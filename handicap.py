@@ -275,8 +275,9 @@ def _load_bullpen_json(path: Path) -> dict:
             "wOBA":  r.get("woba"),
             "SwStr%": r.get("swstr_pct"),
             "CSW%":  r.get("csw_pct"),
-            "Hard%": r.get("hard_hit_pct") or r.get("hard_contact_pct"),
-            "GB%":   r.get("gb_pct") or r.get("ground_ball_pct"),
+            "Hard%":   r.get("hard_hit_pct") or r.get("hard_contact_pct"),
+            "Barrel%": r.get("barrel_pct"),
+            "GB%":     r.get("gb_pct") or r.get("ground_ball_pct"),
             "FB%":   r.get("fb_pct") or r.get("fly_ball_pct"),
             "LD%":   r.get("ld_pct") or r.get("line_drive_pct"),
             "HR/9":  r.get("hr_per_9") or r.get("hr_per_nine"),
@@ -775,6 +776,10 @@ def analyze_game(
             "kbb":    kbb,
             "kbb_s":  f"{kbb:.1f}%" if kbb is not None else "N/A",
             "depth":  depth,
+            "k":      fp1(p.get("K%")),
+            "bb":     fp1(p.get("BB%")),
+            "hard":   fp1(p.get("Hard-Hit%")),
+            "barrel": fp1(p.get("Barrel%")),
         }
 
     def _off(batting: str, pitcher: dict) -> Optional[dict]:
@@ -803,9 +808,10 @@ def analyze_game(
             "xera_s": f"{xera:.2f}" if xera is not None else "N/A",
             "era_s":  f"{era:.2f}" if era is not None else "N/A",
             "label":  xera_label(xera) if xera is not None else "",
-            "k":      fp1(b.get("K%")),
-            "bb":     fp1(b.get("BB%")),
-            "hard":   fp1(b.get("Hard%", b.get("HardHit%"))),
+            "k":      fp1(b.get("K%") or b.get("k_pct") or b.get("k_perc")),
+            "bb":     fp1(b.get("BB%") or b.get("bb_pct") or b.get("bb_perc")),
+            "hard":   fp1(b.get("Hard%")),
+            "barrel": fp1(b.get("Barrel%")),
             "raw":    b,
         }
 
@@ -1078,11 +1084,15 @@ def _html_game(g: dict) -> str:
     def _sp_row(team, sp):
         ec = _era_cls(sp["label"])
         lbl = f' <span class="dim">({_h(sp["label"])})</span>' if sp["label"] else ""
+        barrel_s = f'<span class="dim">Brrl% {_h(sp["barrel"])}</span>' if sp["barrel"] != "?" else ""
         return (f'<div class="sp-row">'
                 f'<span class="tm">{_h(team)}</span>'
                 f'<span class="pname">{_h(sp["name"])} <span class="hb">{_h(sp["hand"])}</span></span>'
                 f'<span class="xr {ec}">xERA {_h(sp["xera_s"])}{lbl}</span>'
-                f'<span class="dim">{_h(sp["kbb_s"])} K-BB</span>'
+                f'<span class="dim">K% {_h(sp["k"])}</span>'
+                f'<span class="dim">BB% {_h(sp["bb"])}</span>'
+                f'<span class="dim">HH% {_h(sp["hard"])}</span>'
+                f'{barrel_s}'
                 f'<span class="dim">{_h(sp["depth"])}</span>'
                 f'</div>')
 
@@ -1103,13 +1113,15 @@ def _html_game(g: dict) -> str:
     def _bp_row(team, bp):
         ec = _era_cls(bp["label"])
         lbl = f' <span class="dim">({_h(bp["label"])})</span>' if bp["label"] else ""
+        barrel_s = f'<span class="dim">Brrl% {_h(bp["barrel"])}</span>' if bp["barrel"] != "?" else ""
         return (f'<div class="bp-row">'
                 f'<span class="tm">{_h(team)}</span>'
                 f'<span class="xr {ec}">xERA {_h(bp["xera_s"])}{lbl}</span>'
                 f'<span class="dim">ERA {_h(bp["era_s"])}</span>'
                 f'<span class="dim">K% {_h(bp["k"])}</span>'
                 f'<span class="dim">BB% {_h(bp["bb"])}</span>'
-                f'<span class="dim">Hard% {_h(bp["hard"])}</span>'
+                f'<span class="dim">HH% {_h(bp["hard"])}</span>'
+                f'{barrel_s}'
                 f'</div>')
 
     def _edge_line(edge, a_val, h_val, metric, away, home):
