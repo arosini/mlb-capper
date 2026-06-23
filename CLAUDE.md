@@ -1,7 +1,7 @@
 # MLB Capper — Claude Session Guide
 
 ## What This Is
-A daily MLB handicapping dashboard published to GitHub Pages at `www.adamrosini.com/mlb-capper/`. A GitHub Actions workflow runs at 6 AM ET, downloads fresh data, generates a static HTML page, and deploys it.
+A daily MLB handicapping dashboard published to Cloudflare Pages at `mlbautocap.com`. A GitHub Actions workflow runs at 6 AM ET, downloads fresh data, generates a static HTML page, and deploys it.
 
 ## Credentials & Secrets
 **Never commit credentials.** Two sources:
@@ -67,10 +67,11 @@ CSS uses `prefers-color-scheme: dark` for automatic dark mode. No JavaScript.
 
 ## Deployment
 - **Repo**: `github.com/arosini/mlb-capper`
-- **Branch**: `main` (source) → GitHub Actions → `gh-pages` is NOT used; `actions/deploy-pages` deploys directly
+- **Hosting**: Cloudflare Pages — project `mlb-capper`, custom domain `mlbautocap.com`
 - **Workflow**: `.github/workflows/publish.yml` — cron `0 10 * * *` (6 AM ET), also `workflow_dispatch`
+- **Deploy step**: `cloudflare/wrangler-action@v3` with `pages deploy _site --project-name=mlb-capper`
+- **Secrets needed**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (plus Handigraphs + Odds API keys)
 - **Trigger manually**: `gh workflow run publish.yml`
-- **Concurrency**: `group: pages, cancel-in-progress: true` prevents deploy conflicts
 
 ## Adding New Data Fields
 1. Check what's available: `python3 download.py --inspect`
