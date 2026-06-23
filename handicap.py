@@ -922,10 +922,6 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .gs-teams{font-size:.975rem;font-weight:700;display:flex;align-items:center;gap:.3rem}
 .gs-venue{font-size:.7rem;color:#9ca3af;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tm-logo{width:22px;height:22px;object-fit:contain;flex-shrink:0}
-.vbadge{font-size:.76rem;font-weight:700;padding:.18rem .52rem;border-radius:20px;white-space:nowrap;flex-shrink:0}
-.v-strong{background:#dcfce7;color:#15803d}
-.v-lean{background:#dbeafe;color:#1d4ed8}
-.v-even{background:#f3f4f6;color:#6b7280}
 .gd{padding:.7rem .875rem .875rem;display:flex;flex-direction:column;gap:.7rem}
 .sec-hd{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:.28rem}
 .sp-row,.off-row,.bp-row{display:flex;align-items:baseline;gap:.35rem .45rem;flex-wrap:wrap;font-size:.845rem;padding:.12rem 0}
@@ -936,12 +932,6 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .era-elite{color:#16a34a}.era-good{color:#2563eb}.era-avg{color:#6b7280}.era-below{color:#d97706}.era-poor{color:#dc2626}.era-na{color:#9ca3af}
 .wrc-elite{color:#16a34a}.wrc-above{color:#2563eb}.wrc-avg{color:#6b7280}.wrc-below{color:#d97706}.wrc-poor{color:#dc2626}
 .dim{color:#9ca3af;font-size:.795rem}
-.el{font-size:.775rem;color:#6b7280;margin-top:.28rem;padding-top:.28rem;border-top:1px solid #f3f4f6}
-.el .ew{color:#111827;font-weight:700}
-.sum-box{background:#f9fafb;border-radius:8px;padding:.5rem .7rem}
-.erow{display:flex;justify-content:space-between;font-size:.83rem;padding:.08rem 0}
-.erow .ec{color:#6b7280}.erow .ew{font-weight:600}.erow .ev{color:#9ca3af}
-.vrow{display:flex;justify-content:space-between;font-size:.88rem;padding:.28rem 0 0;margin-top:.22rem;border-top:1px solid #e5e7eb;font-weight:700}
 .flags{list-style:none}
 .flags li{font-size:.78rem;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:.18rem .45rem;margin-top:.2rem;border-radius:0 4px 4px 0}
 @media(prefers-color-scheme:dark){
@@ -950,16 +940,8 @@ header{background:#030712}
 .game{background:#1a1a1a;border-color:#2a2a2a}
 .game[open]>summary{border-bottom-color:#2a2a2a}
 .gs-venue{color:#6b7280}
-.v-strong{background:#052e16;color:#4ade80}
-.v-lean{background:#0c1a3d;color:#93c5fd}
-.v-even{background:#1f2937;color:#9ca3af}
 .sec-hd{color:#6b7280}
 .hb{background:#374151;color:#d1d5db}
-.el{border-top-color:#2a2a2a;color:#9ca3af}
-.el .ew{color:#f5f5f5}
-.sum-box{background:#111}
-.erow .ew{color:#e5e5e5}
-.vrow{border-top-color:#2a2a2a}
 .flags li{background:#1c1400;border-left-color:#b45309;color:#fbbf24}
 }
 """
@@ -1118,15 +1100,13 @@ def _html_game(g: dict) -> str:
         f'\n<details class="game" open id="{_h(away)}-{_h(home)}">'
         f'\n  <summary>'
         f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}</div>{venue_html}</div>'
-        f'\n    <span class="vbadge {vcls}">{vtxt}</span>'
         f'\n  </summary>'
         f'\n  <div class="gd">'
-        f'\n    <div><div class="sec-hd">Starters <span class="dim"{_sub}>· xERA last 3 starts</span></div>{_sp_row(away,sp_a)}{_sp_row(home,sp_h)}{pitch_el}</div>'
-        f'\n    <div><div class="sec-hd">Offense vs Starter <span class="dim"{_sub}>· wRC+ last 12</span></div>{_off_row(away,of_a)}{_off_row(home,of_h)}{off_el}</div>'
+        f'\n    <div><div class="sec-hd">Starters <span class="dim"{_sub}>· xERA last 3 starts</span></div>{_sp_row(away,sp_a)}{_sp_row(home,sp_h)}</div>'
+        f'\n    <div><div class="sec-hd">Offense vs Starter <span class="dim"{_sub}>· wRC+ last 12</span></div>{_off_row(away,of_a)}{_off_row(home,of_h)}</div>'
         f'\n    <div><div class="sec-hd">Bullpens <span class="dim"{_sub}>· xERA last 12g</span></div>'
-        f'{_bp_row(away,bp_a)}{_bp_row(home,bp_h)}{bp_el}</div>'
+        f'{_bp_row(away,bp_a)}{_bp_row(home,bp_h)}</div>'
         f'\n    {wx_html}'
-        f'\n    <div class="sum-box">{edge_rows}<div class="vrow"><span>Overall</span><span>{verdict_html}</span></div></div>'
         f'\n    {flags_html}'
         f'\n  </div>'
         f'\n</details>'
