@@ -993,7 +993,10 @@ def _html_game(g: dict) -> str:
     roof = (g["wx"] or {}).get("roof_status", "")
     roof_paren = f" ({roof})" if roof and roof not in ("Open Air", "N/A") else ""
     venue_str = (g["venue"] or "") + roof_paren
-    venue_html = f'<span class="gs-venue">{_h(venue_str)}</span>' if venue_str.strip() else ""
+    time_str = (g["wx"] or {}).get("game_time_local", "").replace(" ET", "").strip()
+    venue_parts = [p for p in [time_str, venue_str] if p.strip()]
+    venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}</span>'
+                  if venue_parts else "")
 
     def _sp_row(team, sp):
         ec = _era_cls(sp["label"])
@@ -1130,9 +1133,22 @@ def _html_game(g: dict) -> str:
     )
 
 
+def _time_sort_key(g: dict) -> int:
+    t = (g.get("wx") or {}).get("game_time_local", "")
+    import re as _re
+    m = _re.match(r'(\d+):(\d+)\s*(AM|PM)', t)
+    if not m:
+        return 9999
+    h, mn, ampm = int(m.group(1)), int(m.group(2)), m.group(3)
+    if ampm == "PM" and h != 12: h += 12
+    elif ampm == "AM" and h == 12: h = 0
+    return h * 60 + mn
+
+
 def render_html_page(games: list[dict], target_date: date, generated_at: str) -> str:
     date_long = target_date.strftime(f"%A, %B {target_date.day}, %Y")
     date_short = target_date.strftime(f"%b {target_date.day}")
+    games = sorted(games, key=_time_sort_key)
     cards = "".join(_html_game(g) for g in games)
     return (
         f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
