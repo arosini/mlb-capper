@@ -2,8 +2,10 @@ name: Update MLB Dashboard
 
 on:
   schedule:
-    - cron: '0 10 * * *'  # 6 AM ET (10 AM UTC, adjusts 1hr in winter)
+    - cron: '0 10 * * *'  # 6 AM ET (10 AM UTC)
   workflow_dispatch:        # manual trigger
+  push:
+    branches: [main]        # redeploy on every push to main
 
 permissions:
   contents: read
@@ -23,6 +25,17 @@ jobs:
 
       - name: Install dependencies
         run: pip install requests
+
+      - name: Set cache date
+        run: echo "CACHE_DATE=$(date -u +%Y-%m-%d)" >> $GITHUB_ENV
+
+      - name: Restore odds cache
+        uses: actions/cache@v4
+        with:
+          path: data/
+          key: odds-${{ env.CACHE_DATE }}
+          restore-keys: |
+            odds-
 
       - name: Download data
         env:

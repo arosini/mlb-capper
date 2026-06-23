@@ -118,10 +118,15 @@ def _fetch(session: requests.Session, url: str) -> dict | list | None:
 
 
 def download_odds(data_dir: Path, date_str: str) -> None:
-    """Fetch full-game odds from The Odds API (DK, FanDuel, Fanatics). No auth needed."""
+    """Fetch full-game odds from The Odds API (DK, FanDuel, Fanatics). No auth needed.
+    Skips the API call if a cached file already exists for this date."""
     key = config.ODDS_API_KEY
     if not key:
         print("  [odds] ODDS_API_KEY not set — skipping odds download")
+        return
+    odds_path = data_dir / f"odds_{date_str}.json"
+    if odds_path.exists():
+        print(f"  [odds] Already cached for {date_str} — skipping API call")
         return
     url = (
         "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/"
@@ -139,9 +144,12 @@ def download_odds(data_dir: Path, date_str: str) -> None:
             print(f"  [odds] API error {r.status_code}: {r.text[:200]}")
             return
         data = r.json()
-        fname = f"odds_{date_str}.json"
-        (data_dir / fname).write_text(json.dumps(data, indent=2))
-        print(f"  ✓  {fname}  ({len(data)} games, {remaining} API calls remaining)")
+        odds_path.write_text(json.dumps(data, indent=2))
+        # Save fetch timestamp so the page can show when odds were last pulled
+        from datetime import timezone
+        meta = {"fetched_at": datetime.now(timezone.utc).isoformat()}
+        (data_dir / f"odds_meta_{date_str}.json").write_text(json.dumps(meta))
+        print(f"  ✓  odds_{date_str}.json  ({len(data)} games, {remaining} API calls remaining)")
     except Exception as e:
         print(f"  [odds] Failed: {e}")
 

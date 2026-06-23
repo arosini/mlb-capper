@@ -319,6 +319,26 @@ def load_bullpen(data_dir: Path, target_date: date) -> dict:
         return {r["Team"]: r for r in _load_csv(p)}
     sys.exit(f"ERROR: No bullpen data in {data_dir} for {target_date}.")
 
+def load_odds_meta(data_dir: Path, target_date: date) -> str:
+    """Return odds fetch time as 'H:MM AM/PM ET', or '' if not found."""
+    p = data_dir / f"odds_meta_{target_date.strftime('%Y-%m-%d')}.json"
+    if not p.exists():
+        return ""
+    try:
+        meta = json.loads(p.read_text())
+        fetched_at = meta.get("fetched_at", "")
+        if fetched_at:
+            dt = datetime.fromisoformat(fetched_at)
+            try:
+                from zoneinfo import ZoneInfo
+                et = dt.astimezone(ZoneInfo("America/New_York"))
+                return et.strftime("%-I:%M %p ET")
+            except Exception:
+                return dt.strftime("%H:%M UTC")
+    except Exception:
+        pass
+    return ""
+
 def load_ballpark_weather(data_dir: Path, target_date: date) -> dict:
     """Returns dict keyed by frozenset({away_team, home_team}) → game weather dict."""
     p = _find_file(data_dir, "ballpark_weather", target_date, "json")
@@ -767,14 +787,17 @@ def analyze_game(
             depth = f"{ip:.1f} IP (3gs)"
         else:
             depth = "—"
+        era = flt(p.get("ERA"))
         return {
             "name":   p.get("Name", "TBD"),
             "hand":   hand,
             "xera":   xera,
-            "xera_s": f"{xera:.2f}" if xera is not None else "N/A",
+            "xera_s": f"{xera:.2f}" if xera is not None else "?",
+            "era":    era,
+            "era_s":  f"{era:.2f}" if era is not None else "?",
             "label":  xera_label(xera) if xera is not None else "",
             "kbb":    kbb,
-            "kbb_s":  f"{kbb:.1f}%" if kbb is not None else "N/A",
+            "kbb_s":  f"{kbb:.1f}%" if kbb is not None else "?",
             "depth":  depth,
             "k":      fp1(p.get("K%")),
             "bb":     fp1(p.get("BB%")),
@@ -1022,14 +1045,26 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .tm-logo{width:22px;height:22px;object-fit:contain;flex-shrink:0}
 .gd{padding:.7rem .875rem .875rem;display:flex;flex-direction:column;gap:.7rem}
 .sec-hd{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:.28rem}
-.sp-row,.off-row,.bp-row{display:flex;align-items:baseline;gap:.35rem .45rem;flex-wrap:wrap;font-size:.845rem;padding:.12rem 0}
-.tm{font-weight:700;font-size:.77rem;min-width:2.3rem}
-.pname{flex:1 1 auto}
 .hb{background:#e5e7eb;color:#374151;font-size:.63rem;font-weight:700;padding:.04rem .26rem;border-radius:3px}
 .xr{font-weight:600}
 .era-elite{color:#16a34a}.era-good{color:#2563eb}.era-avg{color:#6b7280}.era-below{color:#d97706}.era-poor{color:#dc2626}.era-na{color:#9ca3af}
 .wrc-elite{color:#16a34a}.wrc-above{color:#2563eb}.wrc-avg{color:#6b7280}.wrc-below{color:#d97706}.wrc-poor{color:#dc2626}
 .dim{color:#9ca3af;font-size:.795rem}
+.mu-wrap{margin:.05rem 0 .55rem}
+.mu-hdr{display:flex;align-items:center;gap:.35rem;margin-bottom:.22rem;font-size:.84rem}
+.mu-sp-nm{font-weight:700}
+.mu-sep{color:#9ca3af;font-size:.78rem}
+.mu-bat-nm{font-weight:600;color:#6b7280}
+.mu-tbl{display:grid;grid-template-columns:5.4rem 1fr 1fr;gap:.1rem .45rem;font-size:.8rem;align-items:baseline}
+.mu-col-hd{font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;font-weight:700;text-align:center}
+.mu-lbl{color:#9ca3af;font-size:.77rem}
+.mu-v{font-weight:600}
+.mu-misc{font-size:.74rem;color:#9ca3af;margin-top:.22rem;padding-left:5.85rem}
+.bp-row{display:flex;align-items:flex-start;gap:.4rem;font-size:.845rem;padding:.18rem 0}
+.tm{font-weight:700;font-size:.77rem;min-width:2.3rem;padding-top:.1rem}
+.bp-body{flex:1;min-width:0}
+.stats{display:flex;flex-wrap:wrap;gap:.15rem .5rem;font-size:.8rem;color:#6b7280}
+.stats b{color:#374151;font-weight:600}
 .odds-grid{display:grid;grid-template-columns:2.4rem 1fr 1fr 1fr;gap:.18rem .4rem;font-size:.82rem;align-items:center}
 .odds-hd{font-size:.6rem;font-weight:700;color:#9ca3af;text-align:center;text-transform:uppercase;letter-spacing:.04em}
 .odds-val{text-align:center;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -1042,6 +1077,11 @@ header{background:#030712}
 .game[open]>summary{border-bottom-color:#2a2a2a}
 .gs-venue{color:#6b7280}
 .sec-hd{color:#6b7280}
+.mu-bat-nm{color:#9ca3af}
+.mu-lbl{color:#6b7280}
+.mu-col-hd{color:#6b7280}
+.mu-misc{color:#6b7280}
+.stats b{color:#d1d5db}
 .hb{background:#374151;color:#d1d5db}
 .flags li{background:#1c1400;border-left-color:#b45309;color:#fbbf24}
 }
@@ -1058,20 +1098,103 @@ def _wrc_cls(label: str) -> str:
     return {"elite": "wrc-elite", "above avg": "wrc-above", "avg": "wrc-avg",
             "below avg": "wrc-below", "poor": "wrc-poor"}.get(label, "")
 
+def _k_sp_cls(v):
+    if v is None: return "era-na"
+    if v >= 28: return "era-elite"
+    if v >= 23: return "era-good"
+    if v >= 17: return "era-avg"
+    if v >= 12: return "era-below"
+    return "era-poor"
+
+def _k_sp_lbl(v):
+    if v is None: return ""
+    if v >= 28: return "elite"
+    if v >= 23: return "good"
+    if v >= 17: return "avg"
+    if v >= 12: return "below avg"
+    return "poor"
+
+def _k_bat_cls(v):
+    """High lineup K% = more strikeouts = bad for offense."""
+    if v is None: return ""
+    if v >= 28: return "wrc-poor"
+    if v >= 24: return "wrc-below"
+    if v >= 20: return "wrc-avg"
+    if v >= 16: return "wrc-above"
+    return "wrc-elite"
+
+def _k_bat_lbl(v):
+    if v is None: return ""
+    if v >= 28: return "poor"
+    if v >= 24: return "below avg"
+    if v >= 20: return "avg"
+    if v >= 16: return "above avg"
+    return "elite"
+
+def _hh_sp_cls(v):
+    """Low HH% allowed = good for pitcher."""
+    if v is None: return "era-na"
+    if v <= 30: return "era-elite"
+    if v <= 35: return "era-good"
+    if v <= 40: return "era-avg"
+    if v <= 45: return "era-below"
+    return "era-poor"
+
+def _hh_sp_lbl(v):
+    if v is None: return ""
+    if v <= 30: return "elite"
+    if v <= 35: return "good"
+    if v <= 40: return "avg"
+    if v <= 45: return "below avg"
+    return "poor"
+
+def _hh_bat_cls(v):
+    """High HH% = good for offense (they hit the ball hard)."""
+    if v is None: return ""
+    if v >= 45: return "wrc-elite"
+    if v >= 40: return "wrc-above"
+    if v >= 35: return "wrc-avg"
+    if v >= 30: return "wrc-below"
+    return "wrc-poor"
+
+def _hh_bat_lbl(v):
+    if v is None: return ""
+    if v >= 45: return "elite"
+    if v >= 40: return "above avg"
+    if v >= 35: return "avg"
+    if v >= 30: return "below avg"
+    return "poor"
+
+def _barrel_sp_cls(v):
+    """Low Barrel% allowed = good for pitcher."""
+    if v is None: return "era-na"
+    if v <= 5:  return "era-elite"
+    if v <= 8:  return "era-good"
+    if v <= 11: return "era-avg"
+    if v <= 15: return "era-below"
+    return "era-poor"
+
+def _barrel_sp_lbl(v):
+    if v is None: return ""
+    if v <= 5:  return "elite"
+    if v <= 8:  return "good"
+    if v <= 11: return "avg"
+    if v <= 15: return "below avg"
+    return "poor"
+
+def _apf_cls_lbl(v):
+    if v is None: return "era-avg", "Neutral"
+    if v >= 108: return "era-poor",  "Hitter Friendly"
+    if v >= 103: return "era-below", "Hitter Friendly"
+    if v >= 97:  return "era-avg",   "Neutral"
+    if v >= 93:  return "era-good",  "Pitcher Friendly"
+    return "era-elite", "Pitcher Friendly"
+
 def _html_game(g: dict) -> str:
     away, home = g["away"], g["home"]
     sp_a, sp_h = g["away_sp"], g["home_sp"]
     of_a, of_h = g["away_off"], g["home_off"]
     bp_a, bp_h = g["away_bp"], g["home_bp"]
-
-    vc = g["verdict_count"]
-    vt = g["verdict_team"]
-    if vc >= 2:
-        vcls, vtxt = "v-strong", f"{_h(vt)} · {vc}/3"
-    elif vc == 1:
-        vcls, vtxt = "v-lean", f"Lean {_h(vt)}"
-    else:
-        vcls, vtxt = "v-even", "Even"
 
     roof = (g["wx"] or {}).get("roof_status", "")
     roof_paren = f" ({roof})" if roof and roof not in ("Open Air", "N/A") else ""
@@ -1081,121 +1204,114 @@ def _html_game(g: dict) -> str:
     venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}</span>'
                   if venue_parts else "")
 
-    def _sp_row(team, sp):
-        ec = _era_cls(sp["label"])
-        lbl = f' <span class="dim">({_h(sp["label"])})</span>' if sp["label"] else ""
-        barrel_s = f'<span class="dim">Brrl% {_h(sp["barrel"])}</span>' if sp["barrel"] != "?" else ""
-        return (f'<div class="sp-row">'
-                f'<span class="tm">{_h(team)}</span>'
-                f'<span class="pname">{_h(sp["name"])} <span class="hb">{_h(sp["hand"])}</span></span>'
-                f'<span class="xr {ec}">xERA {_h(sp["xera_s"])}{lbl}</span>'
-                f'<span class="dim">K% {_h(sp["k"])}</span>'
-                f'<span class="dim">BB% {_h(sp["bb"])}</span>'
-                f'<span class="dim">HH% {_h(sp["hard"])}</span>'
-                f'{barrel_s}'
-                f'<span class="dim">{_h(sp["depth"])}</span>'
-                f'</div>')
+    def _mu_table(sp, bat_team, off):
+        """Comparison table: SP stats vs batting lineup stats."""
+        def _cell(val_s, cls, lbl):
+            if val_s == "?": return '<span class="mu-v dim">?</span>'
+            lbl_s = f' <span class="dim">({lbl})</span>' if lbl else ""
+            return f'<span class="mu-v {cls}">{_h(val_s)}{lbl_s}</span>'
 
-    def _off_row(team, off):
-        if off is None:
-            return f'<div class="off-row"><span class="tm">{_h(team)}</span><span class="dim">no data</span></div>'
-        wc = _wrc_cls(off["label"])
-        lbl = f' <span class="{wc}">({_h(off["label"])})</span>' if off["label"] else ""
-        return (f'<div class="off-row">'
-                f'<span class="tm">{_h(team)}</span>'
-                f'<span class="dim">vs {_h(off["vs_hand"])}</span>'
-                f'<span class="{wc}">wRC+ <b>{_h(off["wrc_s"])}</b>{lbl}</span>'
-                f'<span class="dim">wOBA {_h(off["woba"])}</span>'
-                f'<span class="dim">K% {_h(off["k"])}</span>'
-                f'<span class="dim">Hard% {_h(off["hard"])}</span>'
-                f'</div>')
+        ec = _era_cls(sp["label"])
+        xera_cell = f'<span class="mu-v {ec}">{_h(sp["xera_s"])}</span>'
+
+        if off:
+            wc = _wrc_cls(off["label"])
+            wrc_lbl = f' <span class="dim">({_h(off["label"])})</span>' if off["label"] else ""
+            wrc_cell  = f'<span class="mu-v {wc}">{_h(off["wrc_s"])}{wrc_lbl}</span>'
+            k_bat_v   = flt(off["k"])
+            k_bat     = _cell(off["k"],   _k_bat_cls(k_bat_v),  _k_bat_lbl(k_bat_v))
+            hh_bat_v  = flt(off["hard"])
+            hh_bat    = _cell(off["hard"], _hh_bat_cls(hh_bat_v), _hh_bat_lbl(hh_bat_v))
+            col_hd    = _h(off["vs_hand"])
+        else:
+            wrc_cell = '<span class="mu-v dim">no data</span>'
+            k_bat = hh_bat = '<span class="mu-v dim">—</span>'
+            col_hd = "lineup"
+
+        k_sp_v  = flt(sp["k"])
+        k_sp    = _cell(sp["k"],    _k_sp_cls(k_sp_v),      _k_sp_lbl(k_sp_v))
+        hh_sp_v = flt(sp["hard"])
+        hh_sp   = _cell(sp["hard"], _hh_sp_cls(hh_sp_v),    _hh_sp_lbl(hh_sp_v))
+
+        barrel_row = ""
+        if sp["barrel"] != "?":
+            bv = flt(sp["barrel"])
+            barrel_row = (
+                f'<span class="mu-lbl">Barrel%</span>'
+                + _cell(sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
+                + '<span class="mu-v dim">—</span>'
+            )
+
+        misc_parts = []
+        if sp["era_s"] != "?":
+            misc_parts.append(f'ERA {sp["era_s"]}')
+        misc_parts.append(sp["depth"])
+        if sp["bb"] != "?":
+            misc_parts.append(f'BB% {sp["bb"]}')
+        hand_badge = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
+        return (
+            f'<div class="mu-wrap">'
+            f'<div class="mu-hdr">'
+            f'<span class="mu-sp-nm">{_h(sp["name"])} {hand_badge}</span>'
+            f'<span class="mu-sep">vs</span>'
+            f'<span class="mu-bat-nm">{_h(bat_team)}</span>'
+            f'</div>'
+            f'<div class="mu-tbl">'
+            f'<span></span><span class="mu-col-hd">SP</span><span class="mu-col-hd">{col_hd}</span>'
+            f'<span class="mu-lbl">xERA / wRC+</span>{xera_cell}{wrc_cell}'
+            f'<span class="mu-lbl">K%</span>{k_sp}{k_bat}'
+            f'<span class="mu-lbl">HH%</span>{hh_sp}{hh_bat}'
+            f'{barrel_row}'
+            f'</div>'
+            + (f'<div class="mu-misc">{_h(" · ".join(misc_parts))}</div>' if misc_parts else "")
+            + f'</div>'
+        )
 
     def _bp_row(team, bp):
         ec = _era_cls(bp["label"])
         lbl = f' <span class="dim">({_h(bp["label"])})</span>' if bp["label"] else ""
-        barrel_s = f'<span class="dim">Brrl% {_h(bp["barrel"])}</span>' if bp["barrel"] != "?" else ""
+        barrel_s = f'<span><b>Brrl%</b> {_h(bp["barrel"])}</span>' if bp["barrel"] != "?" else ""
         return (f'<div class="bp-row">'
                 f'<span class="tm">{_h(team)}</span>'
-                f'<span class="xr {ec}">xERA {_h(bp["xera_s"])}{lbl}</span>'
-                f'<span class="dim">ERA {_h(bp["era_s"])}</span>'
-                f'<span class="dim">K% {_h(bp["k"])}</span>'
-                f'<span class="dim">BB% {_h(bp["bb"])}</span>'
-                f'<span class="dim">HH% {_h(bp["hard"])}</span>'
+                f'<div class="bp-body stats">'
+                f'<span class="xr {ec}"><b>xERA</b> {_h(bp["xera_s"])}{lbl}</span>'
+                f'<span><b>ERA</b> {_h(bp["era_s"])}</span>'
+                f'<span><b>K%</b> {_h(bp["k"])}</span>'
+                f'<span><b>BB%</b> {_h(bp["bb"])}</span>'
+                f'<span><b>HH%</b> {_h(bp["hard"])}</span>'
                 f'{barrel_s}'
-                f'</div>')
-
-    def _edge_line(edge, a_val, h_val, metric, away, home):
-        if a_val is None or h_val is None:
-            return ""
-        if edge:
-            other = h_val if edge == away else a_val
-            winner_val = a_val if edge == away else h_val
-            return (f'<div class="el">→ edge: <span class="ew">{_h(edge)}</span>'
-                    f' ({metric} {winner_val} vs {other})</div>')
-        return f'<div class="el">→ <span class="ev">EVEN</span></div>'
-
-    xa, xh = sp_a["xera"], sp_h["xera"]
-    xa_s = f"{xa:.2f}" if xa is not None else "?"
-    xh_s = f"{xh:.2f}" if xh is not None else "?"
-    pitch_el = _edge_line(g["pitch_edge"], xa_s, xh_s, "xERA", away, home)
-
-    wrc_a = of_a["wrc"] if of_a else None
-    wrc_h = of_h["wrc"] if of_h else None
-    wrc_a_s = f"{wrc_a:.0f}" if wrc_a is not None else None
-    wrc_h_s = f"{wrc_h:.0f}" if wrc_h is not None else None
-    off_el = _edge_line(g["off_edge"], wrc_a_s, wrc_h_s, "wRC+", away, home)
-
-    xbp_a, xbp_h = bp_a["xera"], bp_h["xera"]
-    xbp_a_s = f"{xbp_a:.2f}" if xbp_a is not None else None
-    xbp_h_s = f"{xbp_h:.2f}" if xbp_h is not None else None
-    bp_el = _edge_line(g["bp_edge"], xbp_a_s, xbp_h_s, "xERA", away, home)
+                f'</div></div>')
 
     wx = g["wx"]
     wx_html = ""
     if wx:
         parts = []
-        if wx.get("temperature")       is not None: parts.append(f"{wx['temperature']:.0f}°F")
-        if wx.get("weather_description"):            parts.append(wx["weather_description"])
-        if wx.get("wind_speed")        is not None:
+        if wx.get("temperature") is not None:
+            parts.append(f"{wx['temperature']:.0f}°F")
+        if wx.get("weather_description"):
+            parts.append(wx["weather_description"])
+        if wx.get("wind_speed") is not None:
             wd = wx.get("wind_direction_label", "")
             parts.append(f"Wind {wx['wind_speed']:.0f} mph {wd}".strip())
-        if wx.get("precip_probability") is not None: parts.append(f"Rain {wx['precip_probability']:.0f}%")
-        roof  = wx.get("roof_status", "")
-        roof_s = f" ({roof})" if roof and roof not in ("Open Air", "N/A") else ""
-        apf   = wx.get("adjusted_park_factor")
-        hit   = wx.get("hitting_conditions", "")
-        pit   = wx.get("pitching_conditions", "")
-        # Park factor color: ≥108 orange, ≤92 blue, else gray
+        rain_html = ""
+        if wx.get("precip_risk_during_game"):
+            prob = wx.get("precip_probability")
+            rain_s = f"Rain possible ({prob:.0f}%)" if prob is not None else "Rain possible"
+            rain_html = f' · <span class="era-below">{_h(rain_s)}</span>'
+        apf = wx.get("adjusted_park_factor")
+        apf_html = ""
         if apf is not None:
-            if apf >= 108:   apf_cls = "era-poor"
-            elif apf >= 104: apf_cls = "era-below"
-            elif apf <= 92:  apf_cls = "era-good"
-            else:            apf_cls = "era-avg"
-        else:
-            apf_cls = "era-na"
-        apf_html = (f'<span class="{apf_cls}">apf {apf:.0f}</span> · {_h(hit)} hitting · {_h(pit)} pitching'
-                    if apf is not None else "")
-        time_s = f' · {_h(wx["game_time_local"])}' if wx.get("game_time_local") else ""
-        venue_line = f'{_h(wx.get("venue_name",""))}{_h(roof_s)}{time_s}' if wx.get("venue_name") else ""
+            apf_cls, apf_lbl = _apf_cls_lbl(apf)
+            apf_html = f'<span class="{apf_cls}">APF {apf:.0f} — {apf_lbl}</span>'
+        cond_line = ""
+        if apf_html or rain_html:
+            cond_line = f'<div>{apf_html}{rain_html}</div>'
         wx_html = (
             f'<div><div class="sec-hd">Weather</div>'
-            + (f'<div class="dim">{venue_line}</div>' if venue_line else "")
             + (f'<div class="dim">{_h(", ".join(parts))}</div>' if parts else "")
-            + (f'<div class="dim">{apf_html}</div>' if apf_html else "")
+            + cond_line
             + f'</div>'
         )
-
-    edge_rows = "".join(
-        f'<div class="erow"><span class="ec">{_h(cat)}</span>'
-        f'<span class="{"ew" if w else "ev"}">{_h(w) if w else "—"}</span></div>'
-        for cat, w in g["cat_edges"]
-    )
-    if vt and vc >= 2:
-        verdict_html = f'{_h(vt)} · {vc} of 3'
-    elif vt:
-        verdict_html = f'Lean {_h(vt)}'
-    else:
-        verdict_html = 'TOSS-UP'
 
     flags_html = ""
     if g["flags"]:
@@ -1217,6 +1333,13 @@ def _html_game(g: dict) -> str:
             f'</div></div>'
         )
 
+    matchup_html = (
+        f'<div><div class="sec-hd">Matchup <span class="dim"{_sub}>· SP last 3 starts / lineup last 12</span></div>'
+        + _mu_table(sp_a, home, of_h)
+        + _mu_table(sp_h, away, of_a)
+        + f'</div>'
+    )
+
     return (
         f'\n<details class="game" open id="{_h(away)}-{_h(home)}">'
         f'\n  <summary>'
@@ -1224,8 +1347,7 @@ def _html_game(g: dict) -> str:
         f'\n  </summary>'
         f'\n  <div class="gd">'
         f'\n    {odds_html}'
-        f'\n    <div><div class="sec-hd">Starters <span class="dim"{_sub}>· last 3 starts</span></div>{_sp_row(away,sp_a)}{_sp_row(home,sp_h)}</div>'
-        f'\n    <div><div class="sec-hd">Offense vs Starter <span class="dim"{_sub}>· last 12</span></div>{_off_row(away,of_a)}{_off_row(home,of_h)}</div>'
+        f'\n    {matchup_html}'
         f'\n    <div><div class="sec-hd">Bullpens <span class="dim"{_sub}>· last 12</span></div>'
         f'{_bp_row(away,bp_a)}{_bp_row(home,bp_h)}</div>'
         f'\n    {wx_html}'
@@ -1247,20 +1369,22 @@ def _time_sort_key(g: dict) -> int:
     return h * 60 + mn
 
 
-def render_html_page(games: list[dict], target_date: date, generated_at: str) -> str:
+def render_html_page(games: list[dict], target_date: date, generated_at: str,
+                     odds_at: str = "") -> str:
     date_long = target_date.strftime(f"%A, %B {target_date.day}, %Y")
     date_short = target_date.strftime(f"%b {target_date.day}")
     games = sorted(games, key=_time_sort_key)
     cards = "".join(_html_game(g) for g in games)
+    odds_sub = f" · Odds {_h(odds_at)}" if odds_at else ""
     return (
         f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
         f'<meta charset="utf-8">\n'
         f'<meta name="viewport" content="width=device-width,initial-scale=1">\n'
-        f'<title>MLB Picks · {_h(date_short)}</title>\n'
+        f'<title>MLB Game Overviews · {_h(date_short)}</title>\n'
         f'<style>{_CSS}</style>\n'
         f'</head>\n<body>\n'
-        f'<header><h1>MLB Picks</h1>'
-        f'<p class="sub">{_h(date_long)} · Updated {_h(generated_at)}</p></header>\n'
+        f'<header><h1>MLB Game Overviews</h1>'
+        f'<p class="sub">{_h(date_long)} · Updated {_h(generated_at)}{odds_sub}</p></header>\n'
         f'<main>{cards}\n</main>\n</body>\n</html>'
     )
 
@@ -1355,6 +1479,7 @@ def main():
 
     odds_data = load_odds(data_dir, target_date)
     _log(f"Odds: {len(odds_data)} games loaded" if odds_data else "Odds: no file found")
+    odds_at = load_odds_meta(data_dir, target_date)
 
     game_data: list[dict] = []
     for p1, p2 in games:
@@ -1389,7 +1514,7 @@ def main():
 
     if args.html:
         generated_at = datetime.utcnow().strftime("%H:%M UTC")
-        print(render_html_page(game_data, target_date, generated_at))
+        print(render_html_page(game_data, target_date, generated_at, odds_at))
     else:
         print()
 
