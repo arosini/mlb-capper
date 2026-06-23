@@ -1,0 +1,66 @@
+name: Update MLB Dashboard
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # every hour
+  workflow_dispatch:        # manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Create config from secrets
+        env:
+          HG_EMAIL: ${{ secrets.HANDIGRAPHS_EMAIL }}
+          HG_PASSWORD: ${{ secrets.HANDIGRAPHS_PASSWORD }}
+        run: |
+          python3 - << 'EOF'
+          import os
+          lines = [
+            f"HANDIGRAPHS_EMAIL = {repr(os.environ['HG_EMAIL'])}",
+            f"HANDIGRAPHS_PASSWORD = {repr(os.environ['HG_PASSWORD'])}",
+            "HANDIGRAPHS_BASE_URL = 'https://www.handigraphs.com'",
+            "HANDIGRAPHS_LOGIN_URL = 'https://www.handigraphs.com/api/auth/login'",
+            "API_URLS = {",
+            "    'starters': 'https://www.handigraphs.com/api/starters?split=last3g&day={slot}&include_season_stats=true',",
+            "    'team_rhp': 'https://www.handigraphs.com/api/team-stats?split=L12RHP&include_season_stats=true',",
+            "    'team_lhp': 'https://www.handigraphs.com/api/team-stats?split=L12LHP&include_season_stats=true',",
+            "    'bullpen':  'https://www.handigraphs.com/api/bullpen-stats/team?split=last12g&include_season_stats=true',",
+            "}",
+            "DATA_DIR = './data'",
+          ]
+          open('config.py', 'w').write('\n'.join(lines) + '\n')
+          print("config.py created")
+          EOF
+
+      - name: Download data
+        run: python3 download.py
+
+      - name: Generate HTML
+        run: |
+          mkdir -p _site
+          python3 handicap.py --html > _site/index.html
+          echo "Generated $(wc -c < _site/index.html) bytes"
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: gh-pages
+          commit_message: "Update dashboard ${{ github.run_number }}"

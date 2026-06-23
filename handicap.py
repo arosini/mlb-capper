@@ -1,0 +1,1156 @@
+#!/usr/bin/env python3
+"""
+MLB game handicapper — uses Handigraphs CSV exports + MLB Stats API.
+
+Usage:
+  python handicap.py                    # today's games
+  python handicap.py --date tomorrow    # tomorrow's games
+  python handicap.py --date 2026-06-24  # specific date
+  python handicap.py --game NYY         # single team only
+  python handicap.py --refresh          # re-download data first
+  python handicap.py --no-mlb           # skip MLB API (faster, no pitcher history)
+  python handicap.py --no-weather       # skip weather lookup
+  python handicap.py --no-color         # plain text output
+"""
+
+import argparse
+import csv
+import json
+import sys
+from datetime import date, timedelta, datetime
+from pathlib import Path
+from typing import Optional
+
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+
+
+# ── Team code normalization ───────────────────────────────────────────────────
+# Starters CSV uses codes that differ slightly from team_stats CSVs and MLB API
+_STATS_MAP = {"CHW": "CWS", "KCR": "KC", "SDP": "SD", "SFG": "SF", "TBR": "TB", "WSN": "WSH"}
+_MLB_MAP = {**_STATS_MAP, "ARI": "AZ"}  # MLB API uses "AZ" for Diamondbacks; ATH stays as-is
+
+def to_stats(t: str) -> str:
+    return _STATS_MAP.get(t, t)
+
+def to_mlb(t: str) -> str:
+    return _MLB_MAP.get(t, t)
+
+
+# ── File finding ─────────────────────────────────────────────────────────────
+def _find_file(data_dir: Path, prefix: str, target_date: date, ext: str) -> Optional[Path]:
+    ds = target_date.strftime("%Y-%m-%d")
+    for p in data_dir.glob(f"{prefix}*{ds}*.{ext}"):
+        return p
+    return None
+
+# ── CSV loading (fallback) ────────────────────────────────────────────────────
+def _load_csv(path: Path) -> list[dict]:
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        headers = next(reader)
+        seen: dict[str, int] = {}
+        clean = []
+        for h in headers:
+            if h in seen:
+                seen[h] += 1
+                clean.append(f"{h}_{seen[h]}")
+            else:
+                seen[h] = 0
+                clean.append(h)
+        return [dict(zip(clean, row)) for row in reader]
+
+# ── JSON loading (primary) ────────────────────────────────────────────────────
+def _load_starters_json(path: Path) -> list[dict]:
+    raw = json.loads(path.read_text())
+    rows = raw.get("starters", raw) if isinstance(raw, dict) else raw
+    result = []
+    for p in rows:
+        if not isinstance(p, dict):
+            continue
+        s = p.get("stats") or {}
+        result.append({
+            "Name":         p.get("name", ""),
+            "Throws":       p.get("throws", ""),
+            "Team":         p.get("team", ""),
+            "Opponent":     p.get("opponent", ""),
+            "mlbam_id":     p.get("mlbam_id") or p.get("id"),
+            "lineup_status": p.get("lineup_status", ""),
+            "IP":           s.get("ip"),
+            "TBF":          s.get("tbf"),
+            "ERA":          s.get("era"),
+            "xERA":         s.get("xera"),
+            "FIP":          s.get("fip"),
+            "xFIP":         s.get("xfip"),
+            "K-BB%":        s.get("k_bb_pct"),
+            "CSW%":         s.get("csw_pct"),
+            "K%":           s.get("k_pct"),
+            "BB%":          s.get("bb_pct"),
+            "SwStr%":       s.get("swstr_pct"),
+            "Whiff%":       s.get("whiff_pct"),
+            "O-Swing%":     s.get("o_swing_pct"),
+            "Zone%":        s.get("zone_pct"),
+            "FPS%":         s.get("fps_pct"),
+            "Avg EV":       s.get("avg_ev"),
+            "Hard-Hit%":    s.get("hard_hit_pct"),
+            "Barrel%":      s.get("barrel_pct"),
+            "HR/9":         s.get("hr_per_9"),
+            "GB%":          s.get("gb_pct"),
+            "FB%":          s.get("fb_pct"),
+            "LD%":          s.get("ld_pct"),
+            "xBA":          s.get("xba"),
+            "xSLG":         s.get("xslg"),
+            "wOBA":         s.get("woba"),
+            "xwOBA":        s.get("xwoba"),
+            "BABIP (ag)":   s.get("babip_ag"),
+            "ISO (ag)":     s.get("iso_ag"),
+            "SLG (ag)":     s.get("slg_ag"),
+            "WHIP":         s.get("whip"),
+            "LOB%":         s.get("lob_pct"),
+            "Outs/GS":      s.get("outs_per_gs"),
+            "Pitches/PA":   s.get("pitches_per_pa"),
+        })
+    return [r for r in result if r.get("Name")]
+
+def _team_stats_entry(r: dict) -> dict:
+    return {
+        "Team":      r.get("team", ""),
+        "wRC+":      r.get("wrc_plus"),
+        "wOBA":      r.get("woba"),
+        "BABIP":     r.get("babip"),
+        "OPS":       r.get("ops"),
+        "ISO":       r.get("iso"),
+        "GB/FB":     r.get("gb_fb"),
+        "K%":        r.get("k_perc") or r.get("k_pct"),
+        "BB%":       r.get("bb_perc") or r.get("bb_pct"),
+        "Hard-Hit%": r.get("hard_perc"),
+        "HardHit%":  r.get("hard_perc"),
+        "FB%":       r.get("fb_perc"),
+        "LD%":       r.get("ld_perc"),
+        "GB%":       r.get("gb_perc"),
+    }
+
+def _load_team_stats_json(path: Path) -> dict:
+    raw = json.loads(path.read_text())
+    rows = raw if isinstance(raw, list) else raw.get("data", [])
+    result = {}
+    for r in rows:
+        team = r.get("team", "")
+        if not team:
+            continue
+        entry = _team_stats_entry(r)
+        result[team] = entry
+        norm = to_stats(team)
+        if norm != team:
+            result[norm] = entry
+    return result
+
+def _load_bullpen_json(path: Path) -> dict:
+    raw = json.loads(path.read_text())
+    rows = raw if isinstance(raw, list) else raw.get("data", [])
+    result = {}
+    for r in rows:
+        team = r.get("team", "")
+        if not team:
+            continue
+        entry = {
+            "Team":  team,
+            "ERA":   r.get("era"),
+            "xERA":  r.get("xera"),
+            "FIP":   r.get("fip"),
+            "xFIP":  r.get("xfip"),
+            "K%":    r.get("k_perc") or r.get("k_pct"),
+            "BB%":   r.get("bb_perc") or r.get("bb_pct"),
+            "BABIP": r.get("babip"),
+            "wOBA":  r.get("woba"),
+            "SwStr%": r.get("swstr_pct"),
+            "CSW%":  r.get("csw_pct"),
+            "Hard%": r.get("hard_hit_pct") or r.get("hard_contact_pct"),
+            "GB%":   r.get("gb_pct") or r.get("ground_ball_pct"),
+            "FB%":   r.get("fb_pct") or r.get("fly_ball_pct"),
+            "LD%":   r.get("ld_pct") or r.get("line_drive_pct"),
+            "HR/9":  r.get("hr_per_9") or r.get("hr_per_nine"),
+        }
+        result[team] = entry
+        norm = to_stats(team)
+        if norm != team:
+            result[norm] = entry
+    return result
+
+# ── Public loaders (JSON primary, CSV fallback) ───────────────────────────────
+def load_starters(data_dir: Path, target_date: date) -> list[dict]:
+    p = _find_file(data_dir, "starters_last3g", target_date, "json")
+    if p:
+        return _load_starters_json(p)
+    p = _find_file(data_dir, "starters_last3g", target_date, "csv")
+    if p:
+        return [r for r in _load_csv(p) if r.get("Name", "").strip()]
+    sys.exit(f"ERROR: No starters data in {data_dir} for {target_date}. Run with --refresh.")
+
+def load_team_stats(data_dir: Path, target_date: date) -> tuple[dict, dict]:
+    rj = _find_file(data_dir, "team_stats_L12RHP", target_date, "json")
+    lj = _find_file(data_dir, "team_stats_L12LHP", target_date, "json")
+    if rj and lj:
+        return _load_team_stats_json(rj), _load_team_stats_json(lj)
+    rp = _find_file(data_dir, "team_stats_L12RHP", target_date, "csv")
+    lp = _find_file(data_dir, "team_stats_L12LHP", target_date, "csv")
+    if rp and lp:
+        return ({r["Team"]: r for r in _load_csv(rp)},
+                {r["Team"]: r for r in _load_csv(lp)})
+    sys.exit(f"ERROR: Missing team stats data in {data_dir} for {target_date}.")
+
+def load_bullpen(data_dir: Path, target_date: date) -> dict:
+    p = _find_file(data_dir, "bullpen_stats_last12g", target_date, "json")
+    if p:
+        return _load_bullpen_json(p)
+    p = _find_file(data_dir, "bullpen_stats_last12g", target_date, "csv")
+    if p:
+        return {r["Team"]: r for r in _load_csv(p)}
+    sys.exit(f"ERROR: No bullpen data in {data_dir} for {target_date}.")
+
+
+# ── Type helpers ──────────────────────────────────────────────────────────────
+def flt(val) -> Optional[float]:
+    try:
+        return float(str(val).rstrip("%"))
+    except (TypeError, ValueError):
+        return None
+
+def pct_val(s: str) -> Optional[float]:
+    return flt(s.rstrip("%")) if s else None
+
+def fp1(val) -> str:
+    """Format a percentage or rate to 1 decimal place (handles float or '22.6%' string)."""
+    v = flt(val)
+    return f"{v:.1f}" if v is not None else "?"
+
+def fp3(val) -> str:
+    """Format a rate to 3 decimal places."""
+    v = flt(val)
+    return f"{v:.3f}" if v is not None else "?"
+
+
+# ── Qualitative labels ────────────────────────────────────────────────────────
+def wrc_label(v: Optional[float]) -> str:
+    if v is None: return ""
+    if v >= 130: return "elite"
+    if v >= 115: return "above avg"
+    if v >= 95:  return "avg"
+    if v >= 80:  return "below avg"
+    return "poor"
+
+def xera_label(v: Optional[float]) -> str:
+    if v is None: return ""
+    if v < 3.00: return "elite"
+    if v < 3.75: return "good"
+    if v < 4.50: return "avg"
+    if v < 5.25: return "below avg"
+    return "poor"
+
+
+# ── Game pairing ──────────────────────────────────────────────────────────────
+def build_games(starters: list[dict]) -> list[tuple[dict, dict]]:
+    by_team = {r["Team"]: r for r in starters if r.get("Team")}
+    seen: set[tuple] = set()
+    games = []
+    for row in starters:
+        team = row.get("Team", "").strip()
+        opp  = row.get("Opponent", "").strip()
+        if not team or not opp:
+            continue
+        key = tuple(sorted([team, opp]))
+        if key in seen:
+            continue
+        seen.add(key)
+        games.append((row, by_team.get(opp, {"Name": "TBD", "Team": opp, "Throws": "?"})))
+    return games
+
+
+# ── Pitcher flags (from CSV data) ─────────────────────────────────────────────
+def pitcher_csv_flags(row: dict) -> list[str]:
+    flags = []
+    status = row.get("lineup_status", "")
+    if status and status not in ("confirmed", "expected", ""):
+        flags.append(f"lineup status '{status}' — confirm this pitcher is actually starting")
+    ip    = flt(row.get("IP"))
+    era   = flt(row.get("ERA"))
+    xera  = flt(row.get("xERA"))
+    hh    = flt(row.get("Hard-Hit%", ""))
+    barrel= flt(row.get("Barrel%", ""))
+    kbb   = flt(row.get("K-BB%", ""))
+    lob   = flt(row.get("LOB%", ""))
+    ogs   = flt(row.get("Outs/GS"))
+
+    if ip is None and xera is None:
+        flags.append("no stats — likely TBD or skipping this start")
+        return flags
+
+    if ip is not None:
+        if ip < 9:
+            flags.append(f"tiny sample ({ip:.1f} IP over 3 starts) — xERA is unreliable")
+        elif ip < 13:
+            flags.append(f"small sample ({ip:.1f} IP over 3 starts)")
+
+    if era is not None and xera is not None:
+        gap = era - xera
+        if gap > 2.5:
+            flags.append(
+                f"ERA {era:.2f} >> xERA {xera:.2f} — likely unlucky; "
+                "may be better than ERA shows (check LOB%/BABIP)"
+            )
+        elif gap < -2.5:
+            flags.append(
+                f"ERA {era:.2f} << xERA {xera:.2f} — overperforming; "
+                "regression risk"
+            )
+
+    if hh is not None and hh > 45:
+        flags.append(f"getting squared up (Hard-Hit% {hh:.0f}%)")
+    if barrel is not None and barrel > 15:
+        flags.append(f"elevated Barrel% {barrel:.0f}%")
+    if kbb is not None and kbb < 5:
+        flags.append(f"poor K-BB% {kbb:.0f}% — limited command/stuff separation")
+    if lob is not None and lob > 85:
+        flags.append(f"high LOB% {lob:.0f}% — ERA flattered by strand luck")
+    if lob is not None and lob < 48:
+        flags.append(f"low LOB% {lob:.0f}% — ERA penalized by bad sequencing")
+    if ogs is not None and (ogs / 3) < 4.0:
+        flags.append(f"averaging only {ogs/3:.1f} IP/start — heavy bullpen usage")
+
+    return flags
+
+
+def bullpen_flags(row: dict) -> list[str]:
+    flags = []
+    era  = flt(row.get("ERA"))
+    xera = flt(row.get("xERA"))
+    if xera is not None and xera > 5.0:
+        flags.append(f"bullpen is a liability (xERA {xera:.2f})")
+    if era is not None and xera is not None:
+        gap = era - xera
+        if gap > 2.0:
+            flags.append(f"bullpen ERA {era:.2f} >> xERA {xera:.2f} — may be getting unlucky")
+        elif gap < -2.0:
+            flags.append(f"bullpen ERA {era:.2f} << xERA {xera:.2f} — ERA flatters the pen")
+    return flags
+
+
+# ── MLB Stats API ─────────────────────────────────────────────────────────────
+MLB_API = "https://statsapi.mlb.com/api/v1"
+
+def get_mlb_schedule(target_date: date) -> dict:
+    if not HAS_REQUESTS:
+        return {}
+    try:
+        r = requests.get(
+            f"{MLB_API}/schedule",
+            params={
+                "sportId": 1,
+                "date": target_date.isoformat(),
+                "hydrate": "probablePitcher,venue,team",
+                "gameType": "R",
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+    except Exception as e:
+        print(f"Warning: MLB API unavailable ({e})", file=sys.stderr)
+        return {}
+
+    games = {}
+    for date_entry in r.json().get("dates", []):
+        for g in date_entry.get("games", []):
+            teams = g.get("teams", {})
+            home  = teams.get("home", {})
+            away  = teams.get("away", {})
+            ha    = home.get("team", {}).get("abbreviation", "")
+            aa    = away.get("team", {}).get("abbreviation", "")
+            hp    = home.get("probablePitcher", {})
+            ap    = away.get("probablePitcher", {})
+            games[frozenset([ha, aa])] = {
+                "home": ha, "away": aa,
+                "venue": g.get("venue", {}).get("name", ""),
+                "home_pid": hp.get("id"), "home_pname": hp.get("fullName", ""),
+                "away_pid": ap.get("id"), "away_pname": ap.get("fullName", ""),
+            }
+    return games
+
+
+def get_recent_starts(player_id: int) -> list[dict]:
+    if not HAS_REQUESTS or not player_id:
+        return []
+    try:
+        r = requests.get(
+            f"{MLB_API}/people/{player_id}/stats",
+            params={"stats": "gameLog", "season": 2026, "group": "pitching"},
+            timeout=10,
+        )
+        r.raise_for_status()
+        splits = r.json().get("stats", [{}])[0].get("splits", [])
+        return [s for s in splits if flt(s.get("stat", {}).get("inningsPitched")) is not None][-6:]
+    except Exception:
+        return []
+
+
+def pitcher_history_flags(starts: list[dict]) -> list[str]:
+    """Derive context flags from MLB game log entries."""
+    flags = []
+    if not starts:
+        return flags
+
+    # Check for missed turn (gap > 10 days between consecutive starts)
+    dates = []
+    for s in starts:
+        d = s.get("date") or s.get("game", {}).get("officialDate", "")
+        try:
+            dates.append(datetime.strptime(d[:10], "%Y-%m-%d").date())
+        except (ValueError, TypeError):
+            pass
+    if len(dates) >= 2:
+        for a, b in zip(sorted(dates), sorted(dates)[1:]):
+            if (b - a).days > 10:
+                flags.append(f"missed a turn ({(b-a).days}-day gap between starts)")
+                break
+
+    # Check last start
+    last = starts[-1].get("stat", {})
+    ip = flt(last.get("inningsPitched"))
+    er = flt(last.get("earnedRuns"))
+    pitches = last.get("numberOfPitches")
+
+    if pitches is not None:
+        pitches = int(pitches)
+        if pitches < 80:
+            flags.append(f"low pitch count last start ({pitches} pitches) — may have been managing something")
+        elif pitches > 100:
+            flags.append(f"high pitch count last start ({pitches} pitches) — monitor workload today")
+
+    # xERA outlier check: look at all starts in the 3-game window and flag if one outing
+    # is dramatically inflating the aggregate xERA
+    game_starts = [s for s in starts if int(s.get("stat", {}).get("gamesStarted", 0)) > 0]
+    recent_3 = game_starts[-3:]
+    if len(recent_3) >= 2:
+        outings = []
+        for s in recent_3:
+            stat = s.get("stat", {})
+            oip = flt(stat.get("inningsPitched"))
+            oer = int(stat.get("earnedRuns") or 0)
+            d = (s.get("date") or s.get("game", {}).get("officialDate", ""))[:10]
+            if oip and oip > 0:
+                outings.append({"ip": oip, "er": oer, "era_eq": (oer / oip) * 9, "date": d})
+
+        if len(outings) >= 2:
+            worst = max(outings, key=lambda x: x["era_eq"])
+            others = [o for o in outings if o is not worst]
+            avg_other_era = sum(o["era_eq"] for o in others) / len(others)
+
+            # Flag if worst start was a disaster AND the other starts were genuinely clean
+            # (avg_other_era <= 3.75 avoids false positives when all starts were mediocre)
+            if worst["era_eq"] >= 9.0 and avg_other_era <= 3.75:
+                other_label = "other start" if len(others) == 1 else f"other {len(others)} starts"
+                # Skip ERA equiv display when IP is too small to be meaningful
+                if worst["ip"] >= 2.0:
+                    outing_str = (
+                        f"{worst['er']} ER in {worst['ip']:.1f} IP "
+                        f"(ERA equiv {worst['era_eq']:.0f})"
+                    )
+                else:
+                    outing_str = f"{worst['er']} ER in just {worst['ip']:.1f} IP"
+                flags.append(
+                    f"{worst['date']}: {outing_str} is inflating 3-game xERA — "
+                    f"{other_label} averaged {avg_other_era:.2f} ERA equiv"
+                )
+
+    return flags
+
+
+# ── Weather ───────────────────────────────────────────────────────────────────
+# (lat, lon, city, IANA timezone)
+STADIUMS: dict[str, tuple] = {
+    "ARI": (33.4453, -112.0667, "Phoenix",           "America/Phoenix"),
+    "ATH": (38.5802, -121.4687, "Sacramento",         "America/Los_Angeles"),
+    "OAK": (38.5802, -121.4687, "Sacramento",         "America/Los_Angeles"),
+    "ATL": (33.8908,  -84.4677, "Atlanta",            "America/New_York"),
+    "BAL": (39.2838,  -76.6218, "Baltimore",          "America/New_York"),
+    "BOS": (42.3467,  -71.0972, "Boston",             "America/New_York"),
+    "CHC": (41.9484,  -87.6553, "Chicago (Wrigley)",  "America/Chicago"),
+    "CWS": (41.8300,  -87.6338, "Chicago (Sox)",      "America/Chicago"),
+    "CHW": (41.8300,  -87.6338, "Chicago (Sox)",      "America/Chicago"),
+    "CIN": (39.0978,  -84.5081, "Cincinnati",         "America/New_York"),
+    "CLE": (41.4962,  -81.6852, "Cleveland",          "America/New_York"),
+    "COL": (39.7559, -104.9942, "Denver",             "America/Denver"),
+    "DET": (42.3390,  -83.0485, "Detroit",            "America/Detroit"),
+    "HOU": (29.7573,  -95.3555, "Houston",            "America/Chicago"),
+    "KC":  (39.0517,  -94.4803, "Kansas City",        "America/Chicago"),
+    "KCR": (39.0517,  -94.4803, "Kansas City",        "America/Chicago"),
+    "LAA": (33.8003, -117.8827, "Anaheim",            "America/Los_Angeles"),
+    "LAD": (34.0739, -118.2400, "Los Angeles",        "America/Los_Angeles"),
+    "MIA": (25.7781,  -80.2197, "Miami",              "America/New_York"),
+    "MIL": (43.0280,  -87.9712, "Milwaukee",          "America/Chicago"),
+    "MIN": (44.9817,  -93.2781, "Minneapolis",        "America/Chicago"),
+    "NYM": (40.7571,  -73.8458, "New York (Mets)",    "America/New_York"),
+    "NYY": (40.8296,  -73.9262, "New York (Yankees)", "America/New_York"),
+    "PHI": (39.9061,  -75.1665, "Philadelphia",       "America/New_York"),
+    "PIT": (40.4469,  -80.0058, "Pittsburgh",         "America/New_York"),
+    "SD":  (32.7076, -117.1570, "San Diego",          "America/Los_Angeles"),
+    "SDP": (32.7076, -117.1570, "San Diego",          "America/Los_Angeles"),
+    "SEA": (47.5914, -122.3325, "Seattle",            "America/Los_Angeles"),
+    "SF":  (37.7786, -122.3893, "San Francisco",      "America/Los_Angeles"),
+    "SFG": (37.7786, -122.3893, "San Francisco",      "America/Los_Angeles"),
+    "STL": (38.6226,  -90.1928, "St. Louis",          "America/Chicago"),
+    "TB":  (27.7682,  -82.6534, "St. Petersburg",     "America/New_York"),
+    "TBR": (27.7682,  -82.6534, "St. Petersburg",     "America/New_York"),
+    "TEX": (32.7473,  -97.0824, "Arlington",          "America/Chicago"),
+    "TOR": (43.6414,  -79.3894, "Toronto",            "America/Toronto"),
+    "WSH": (38.8730,  -77.0074, "Washington",         "America/New_York"),
+    "WSN": (38.8730,  -77.0074, "Washington",         "America/New_York"),
+}
+
+def get_weather(home_team: str, target_date: date) -> dict:
+    if not HAS_REQUESTS:
+        return {}
+    s = STADIUMS.get(home_team)
+    if not s:
+        return {}
+    lat, lon, city, tz = s
+    try:
+        r = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": lat, "longitude": lon,
+                "daily": "precipitation_probability_max,temperature_2m_max,windspeed_10m_max",
+                "timezone": tz,
+                "start_date": target_date.isoformat(),
+                "end_date": target_date.isoformat(),
+                "wind_speed_unit": "mph",
+                "temperature_unit": "fahrenheit",
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        daily = r.json().get("daily", {})
+        return {
+            "city": city,
+            "rain_pct": (daily.get("precipitation_probability_max") or [None])[0],
+            "temp_f":   (daily.get("temperature_2m_max") or [None])[0],
+            "wind_mph": (daily.get("windspeed_10m_max") or [None])[0],
+        }
+    except Exception:
+        return {}
+
+def weather_flags(wx: dict) -> list[str]:
+    flags = []
+    rain = wx.get("rain_pct")
+    wind = wx.get("wind_mph")
+    if rain is not None and rain >= 40:
+        flags.append(f"rain chance {rain:.0f}% — possible delay/postponement")
+    elif rain is not None and rain >= 20:
+        flags.append(f"rain chance {rain:.0f}%")
+    if wind is not None and wind >= 15:
+        flags.append(f"wind {wind:.0f} mph — check direction for park factor impact")
+    return flags
+
+
+# ── Terminal colors ───────────────────────────────────────────────────────────
+class C:
+    BOLD   = "\033[1m"
+    RESET  = "\033[0m"
+    CYAN   = "\033[36m"
+    YELLOW = "\033[33m"
+    DIM    = "\033[2m"
+
+_use_color = True
+
+def bold(s):   return f"{C.BOLD}{s}{C.RESET}" if _use_color else s
+def cyan(s):   return f"{C.CYAN}{s}{C.RESET}" if _use_color else s
+def yellow(s): return f"{C.YELLOW}{s}{C.RESET}" if _use_color else s
+def dim(s):    return f"{C.DIM}{s}{C.RESET}" if _use_color else s
+
+
+# ── Per-game output ───────────────────────────────────────────────────────────
+def analyze_game(
+    p1: dict, p2: dict,
+    rhp: dict, lhp: dict,
+    bullpen: dict,
+    mlb_info: dict,
+    wx: dict,
+) -> dict:
+    """Return structured analysis dict — used by both terminal and HTML renderers."""
+    t1, t2 = p1.get("Team", "?"), p2.get("Team", "?")
+    home_abbr = mlb_info.get("home", "")
+    away_abbr = mlb_info.get("away", "")
+
+    if home_abbr and away_abbr:
+        if to_mlb(t1) == away_abbr:
+            away_team, home_team, p_away, p_home = t1, t2, p1, p2
+        else:
+            away_team, home_team, p_away, p_home = t2, t1, p2, p1
+    else:
+        away_team, home_team, p_away, p_home = t1, t2, p1, p2
+
+    def _sp(p: dict) -> dict:
+        hand = (p.get("Throws") or "?")[0]
+        xera = flt(p.get("xERA"))
+        kbb  = flt(p.get("K-BB%", ""))
+        ogs  = flt(p.get("Outs/GS"))
+        ip   = flt(p.get("IP"))
+        if ogs is not None:
+            depth = f"{ogs/3:.1f} IP/gs"
+        elif ip is not None:
+            depth = f"{ip:.1f} IP (3gs)"
+        else:
+            depth = "—"
+        return {
+            "name":   p.get("Name", "TBD"),
+            "hand":   hand,
+            "xera":   xera,
+            "xera_s": f"{xera:.2f}" if xera is not None else "N/A",
+            "label":  xera_label(xera) if xera is not None else "",
+            "kbb":    kbb,
+            "kbb_s":  f"{kbb:.1f}%" if kbb is not None else "N/A",
+            "depth":  depth,
+        }
+
+    def _off(batting: str, pitcher: dict) -> Optional[dict]:
+        hand = (pitcher.get("Throws") or "?")[0]
+        pool = rhp if hand == "R" else lhp
+        s = pool.get(to_stats(batting), {})
+        if not s:
+            return None
+        wrc = flt(s.get("wRC+"))
+        return {
+            "wrc":      wrc,
+            "wrc_s":    f"{wrc:.0f}" if wrc is not None else "N/A",
+            "label":    wrc_label(wrc) if wrc is not None else "",
+            "woba":     fp3(s.get("wOBA")),
+            "k":        fp1(s.get("K%")),
+            "hard":     fp1(s.get("HardHit%", s.get("Hard-Hit%"))),
+            "vs_hand":  "RHP" if hand == "R" else "LHP",
+        }
+
+    def _bp(team: str) -> dict:
+        b = bullpen.get(team, bullpen.get(to_stats(team), {}))
+        xera = flt(b.get("xERA"))
+        era  = flt(b.get("ERA"))
+        return {
+            "xera":   xera,
+            "xera_s": f"{xera:.2f}" if xera is not None else "N/A",
+            "era_s":  f"{era:.2f}" if era is not None else "N/A",
+            "label":  xera_label(xera) if xera is not None else "",
+            "k":      fp1(b.get("K%")),
+            "bb":     fp1(b.get("BB%")),
+            "hard":   fp1(b.get("Hard%", b.get("HardHit%"))),
+            "raw":    b,
+        }
+
+    away_sp = _sp(p_away)
+    home_sp = _sp(p_home)
+    xa, xh  = away_sp["xera"], home_sp["xera"]
+    pitch_edge = (
+        None if xa is None or xh is None or abs(xa - xh) < 0.5
+        else (away_team if xa < xh else home_team)
+    )
+
+    away_off = _off(away_team, p_home)
+    home_off = _off(home_team, p_away)
+    wrc_a = away_off["wrc"] if away_off else None
+    wrc_h = home_off["wrc"] if home_off else None
+    off_edge = (
+        None if wrc_a is None or wrc_h is None or abs(wrc_a - wrc_h) < 10
+        else (away_team if wrc_a > wrc_h else home_team)
+    )
+
+    away_bp = _bp(away_team)
+    home_bp = _bp(home_team)
+    xbp_a, xbp_h = away_bp["xera"], home_bp["xera"]
+    bp_edge = (
+        None if xbp_a is None or xbp_h is None or abs(xbp_a - xbp_h) < 0.3
+        else (away_team if xbp_a < xbp_h else home_team)
+    )
+
+    tally: dict[str, int] = {away_team: 0, home_team: 0}
+    cat_edges = []
+    for cat, winner in [("Pitching", pitch_edge), ("Offense", off_edge), ("Bullpen", bp_edge)]:
+        cat_edges.append((cat, winner))
+        if winner:
+            tally[winner] += 1
+
+    best = max(tally.values())
+    leaders = [t for t, v in tally.items() if v == best]
+    if best == 0:
+        verdict, verdict_team = "TOSS-UP / no clear edge", None
+    elif best == 1:
+        verdict, verdict_team = f"Lean {leaders[0]}  (1 of 3)", leaders[0]
+    else:
+        verdict, verdict_team = f"{leaders[0]}  ({best} of 3 categories)", leaders[0]
+
+    flags: list[str] = []
+    for team, p in [(away_team, p_away), (home_team, p_home)]:
+        name = p.get("Name", "?")
+        for f in pitcher_csv_flags(p):
+            flags.append(f"{team} — {name}: {f}")
+    for team in [away_team, home_team]:
+        b = bullpen.get(team, bullpen.get(to_stats(team), {}))
+        for f in bullpen_flags(b):
+            flags.append(f"{team} bullpen: {f}")
+    for team, p in [(away_team, p_away), (home_team, p_home)]:
+        for f in pitcher_history_flags(mlb_info.get(f"history_{team}", [])):
+            flags.append(f"{team} — {p.get('Name', '?')}: {f}")
+    for f in weather_flags(wx):
+        flags.append(f"WEATHER: {f}")
+
+    return {
+        "away":         away_team,
+        "home":         home_team,
+        "venue":        mlb_info.get("venue", ""),
+        "away_sp":      away_sp,
+        "home_sp":      home_sp,
+        "pitch_edge":   pitch_edge,
+        "away_off":     away_off,
+        "home_off":     home_off,
+        "off_edge":     off_edge,
+        "away_bp":      away_bp,
+        "home_bp":      home_bp,
+        "bp_edge":      bp_edge,
+        "cat_edges":    cat_edges,
+        "verdict":      verdict,
+        "verdict_team": verdict_team,
+        "verdict_count": best,
+        "wx":           wx,
+        "flags":        flags,
+    }
+
+
+def print_game(
+    p1: dict, p2: dict,
+    rhp: dict, lhp: dict,
+    bullpen: dict,
+    mlb_info: dict,
+    wx: dict,
+):
+    g = analyze_game(p1, p2, rhp, lhp, bullpen, mlb_info, wx)
+    away, home = g["away"], g["home"]
+    away_sp, home_sp = g["away_sp"], g["home_sp"]
+    away_off, home_off = g["away_off"], g["home_off"]
+    away_bp, home_bp = g["away_bp"], g["home_bp"]
+    venue = g["venue"]
+    W = 64
+
+    title = f"{away} @ {home}" if mlb_info.get("home") else f"{away} vs {home}"
+    print()
+    print(bold("═" * W))
+    print(bold(f" {title}" + (f"  ·  {venue}" if venue else "")))
+    print(bold("═" * W))
+
+    def _sp_line(team, sp):
+        lbl = f"({sp['label']:<10})" if sp["label"] else ""
+        return f"  {team:<5} {sp['name']} ({sp['hand']}HP)   xERA {sp['xera_s']}  {lbl:<12}  K-BB% {sp['kbb_s']}  {sp['depth']}"
+
+    print(cyan("\nSTARTERS"))
+    print(_sp_line(away, away_sp))
+    print(_sp_line(home, home_sp))
+    xa, xh = away_sp["xera"], home_sp["xera"]
+    if xa is not None and xh is not None:
+        pe = g["pitch_edge"]
+        if not pe:
+            print(f"  → Pitching: EVEN  (gap {abs(xa-xh):.2f})")
+        elif pe == away:
+            print(f"  → Pitching edge: {away}  (xERA {xa:.2f} vs {xh:.2f})")
+        else:
+            print(f"  → Pitching edge: {home}  (xERA {xh:.2f} vs {xa:.2f})")
+
+    def _off_line(team, off):
+        if off is None:
+            return f"  {team:<5} vs ???: no data"
+        lbl = f"({off['label']:<10})" if off["label"] else ""
+        return (f"  {team:<5} vs {off['vs_hand']}: wRC+ {off['wrc_s']} {lbl:<12}  "
+                f"wOBA {off['woba']}  K% {off['k']}  Hard% {off['hard']}")
+
+    print(cyan("\nOFFENSE vs STARTER HAND"))
+    print(_off_line(away, away_off))
+    print(_off_line(home, home_off))
+    wrc_a = away_off["wrc"] if away_off else None
+    wrc_h = home_off["wrc"] if home_off else None
+    if wrc_a is not None and wrc_h is not None:
+        oe = g["off_edge"]
+        if not oe:
+            print(f"  → Offense: EVEN  (gap {abs(wrc_a - wrc_h):.0f} wRC+)")
+        elif oe == away:
+            print(f"  → Offense edge: {away}  (wRC+ {wrc_a:.0f} vs {wrc_h:.0f})")
+        else:
+            print(f"  → Offense edge: {home}  (wRC+ {wrc_h:.0f} vs {wrc_a:.0f})")
+
+    def _bp_line(team, bp):
+        lbl = f"({bp['label']:<10})" if bp["label"] else ""
+        return (f"  {team:<5} xERA {bp['xera_s']} {lbl:<12}  ERA {bp['era_s']}  "
+                f"K% {bp['k']}  BB% {bp['bb']}  Hard% {bp['hard']}")
+
+    print(cyan("\nBULLPENS  (last 12g)"))
+    print(_bp_line(away, away_bp))
+    print(_bp_line(home, home_bp))
+    xbp_a, xbp_h = away_bp["xera"], home_bp["xera"]
+    if xbp_a is not None and xbp_h is not None:
+        be = g["bp_edge"]
+        if not be:
+            print(f"  → Bullpen: EVEN  (gap {abs(xbp_a - xbp_h):.2f})")
+        elif be == away:
+            print(f"  → Bullpen edge: {away}  (xERA {xbp_a:.2f} vs {xbp_h:.2f})")
+        else:
+            print(f"  → Bullpen edge: {home}  (xERA {xbp_h:.2f} vs {xbp_a:.2f})")
+
+    if g["wx"]:
+        print(cyan("\nWEATHER"))
+        w = g["wx"]
+        parts = []
+        if w.get("temp_f")   is not None: parts.append(f"{w['temp_f']:.0f}°F")
+        if w.get("rain_pct") is not None: parts.append(f"Rain {w['rain_pct']:.0f}%")
+        if w.get("wind_mph") is not None: parts.append(f"Wind {w['wind_mph']:.0f} mph")
+        print(f"  {w.get('city', '?')}: {', '.join(parts) or 'unavailable'}")
+
+    print(cyan("\nEDGE SUMMARY"))
+    for cat, winner in g["cat_edges"]:
+        print(f"  {cat:<9}  {winner if winner else 'EVEN'}")
+    print(bold(f"  Overall    {g['verdict']}"))
+
+    if g["flags"]:
+        print(cyan("\nFLAGS / CONSIDERATIONS"))
+        for f in g["flags"]:
+            print(yellow(f"  ⚠  {f}"))
+
+
+# ── HTML output ───────────────────────────────────────────────────────────────
+_CSS = """
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5;background:#f3f4f6;color:#111827;padding-bottom:2rem}
+header{background:#0f172a;color:white;padding:.875rem 1rem;text-align:center;position:sticky;top:0;z-index:10}
+header h1{font-size:1.15rem;font-weight:700;letter-spacing:-.01em}
+.sub{font-size:.73rem;color:#94a3b8;margin-top:.2rem}
+main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
+.game{background:white;margin-bottom:.5rem;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
+.game>summary{list-style:none;cursor:pointer;padding:.7rem .875rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;-webkit-tap-highlight-color:transparent;user-select:none}
+.game>summary::-webkit-details-marker{display:none}
+.game[open]>summary{border-bottom:1px solid #f0f0f0}
+.gs-matchup{flex:1;min-width:0}
+.gs-teams{font-size:.975rem;font-weight:700}
+.gs-venue{font-size:.7rem;color:#9ca3af;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vbadge{font-size:.76rem;font-weight:700;padding:.18rem .52rem;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.v-strong{background:#dcfce7;color:#15803d}
+.v-lean{background:#dbeafe;color:#1d4ed8}
+.v-even{background:#f3f4f6;color:#6b7280}
+.gd{padding:.7rem .875rem .875rem;display:flex;flex-direction:column;gap:.7rem}
+.sec-hd{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:.28rem}
+.sp-row,.off-row,.bp-row{display:flex;align-items:baseline;gap:.35rem .45rem;flex-wrap:wrap;font-size:.845rem;padding:.12rem 0}
+.tm{font-weight:700;font-size:.77rem;min-width:2.3rem}
+.pname{flex:1 1 auto}
+.hb{background:#e5e7eb;color:#374151;font-size:.63rem;font-weight:700;padding:.04rem .26rem;border-radius:3px}
+.xr{font-weight:600}
+.era-elite{color:#16a34a}.era-good{color:#2563eb}.era-avg{color:#6b7280}.era-below{color:#d97706}.era-poor{color:#dc2626}.era-na{color:#9ca3af}
+.wrc-elite{color:#16a34a}.wrc-above{color:#2563eb}.wrc-avg{color:#6b7280}.wrc-below{color:#d97706}.wrc-poor{color:#dc2626}
+.dim{color:#9ca3af;font-size:.795rem}
+.el{font-size:.775rem;color:#6b7280;margin-top:.28rem;padding-top:.28rem;border-top:1px solid #f3f4f6}
+.el .ew{color:#111827;font-weight:700}
+.sum-box{background:#f9fafb;border-radius:8px;padding:.5rem .7rem}
+.erow{display:flex;justify-content:space-between;font-size:.83rem;padding:.08rem 0}
+.erow .ec{color:#6b7280}.erow .ew{font-weight:600}.erow .ev{color:#9ca3af}
+.vrow{display:flex;justify-content:space-between;font-size:.88rem;padding:.28rem 0 0;margin-top:.22rem;border-top:1px solid #e5e7eb;font-weight:700}
+.flags{list-style:none}
+.flags li{font-size:.78rem;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:.18rem .45rem;margin-top:.2rem;border-radius:0 4px 4px 0}
+@media(prefers-color-scheme:dark){
+body{background:#0f0f0f;color:#e5e5e5}
+header{background:#030712}
+.game{background:#1a1a1a;border-color:#2a2a2a}
+.game[open]>summary{border-bottom-color:#2a2a2a}
+.gs-venue{color:#6b7280}
+.v-strong{background:#052e16;color:#4ade80}
+.v-lean{background:#0c1a3d;color:#93c5fd}
+.v-even{background:#1f2937;color:#9ca3af}
+.sec-hd{color:#6b7280}
+.hb{background:#374151;color:#d1d5db}
+.el{border-top-color:#2a2a2a;color:#9ca3af}
+.el .ew{color:#f5f5f5}
+.sum-box{background:#111}
+.erow .ew{color:#e5e5e5}
+.vrow{border-top-color:#2a2a2a}
+.flags li{background:#1c1400;border-left-color:#b45309;color:#fbbf24}
+}
+"""
+
+def _h(text) -> str:
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+def _era_cls(label: str) -> str:
+    return {"elite": "era-elite", "good": "era-good", "avg": "era-avg",
+            "below avg": "era-below", "poor": "era-poor"}.get(label, "era-na")
+
+def _wrc_cls(label: str) -> str:
+    return {"elite": "wrc-elite", "above avg": "wrc-above", "avg": "wrc-avg",
+            "below avg": "wrc-below", "poor": "wrc-poor"}.get(label, "")
+
+def _html_game(g: dict) -> str:
+    away, home = g["away"], g["home"]
+    sp_a, sp_h = g["away_sp"], g["home_sp"]
+    of_a, of_h = g["away_off"], g["home_off"]
+    bp_a, bp_h = g["away_bp"], g["home_bp"]
+
+    vc = g["verdict_count"]
+    vt = g["verdict_team"]
+    if vc >= 2:
+        vcls, vtxt = "v-strong", f"{_h(vt)} · {vc}/3"
+    elif vc == 1:
+        vcls, vtxt = "v-lean", f"Lean {_h(vt)}"
+    else:
+        vcls, vtxt = "v-even", "Even"
+
+    venue_html = f'<span class="gs-venue">{_h(g["venue"])}</span>' if g["venue"] else ""
+
+    def _sp_row(team, sp):
+        ec = _era_cls(sp["label"])
+        lbl = f' <span class="dim">({_h(sp["label"])})</span>' if sp["label"] else ""
+        return (f'<div class="sp-row">'
+                f'<span class="tm">{_h(team)}</span>'
+                f'<span class="pname">{_h(sp["name"])} <span class="hb">{_h(sp["hand"])}</span></span>'
+                f'<span class="xr {ec}">{_h(sp["xera_s"])}{lbl}</span>'
+                f'<span class="dim">{_h(sp["kbb_s"])} K-BB</span>'
+                f'<span class="dim">{_h(sp["depth"])}</span>'
+                f'</div>')
+
+    def _off_row(team, off):
+        if off is None:
+            return f'<div class="off-row"><span class="tm">{_h(team)}</span><span class="dim">no data</span></div>'
+        wc = _wrc_cls(off["label"])
+        lbl = f' <span class="{wc}">({_h(off["label"])})</span>' if off["label"] else ""
+        return (f'<div class="off-row">'
+                f'<span class="tm">{_h(team)}</span>'
+                f'<span class="dim">vs {_h(off["vs_hand"])}</span>'
+                f'<span class="{wc}">wRC+ <b>{_h(off["wrc_s"])}</b>{lbl}</span>'
+                f'<span class="dim">wOBA {_h(off["woba"])}</span>'
+                f'<span class="dim">K% {_h(off["k"])}</span>'
+                f'<span class="dim">Hard% {_h(off["hard"])}</span>'
+                f'</div>')
+
+    def _bp_row(team, bp):
+        ec = _era_cls(bp["label"])
+        lbl = f' <span class="dim">({_h(bp["label"])})</span>' if bp["label"] else ""
+        return (f'<div class="bp-row">'
+                f'<span class="tm">{_h(team)}</span>'
+                f'<span class="xr {ec}">{_h(bp["xera_s"])}{lbl}</span>'
+                f'<span class="dim">ERA {_h(bp["era_s"])}</span>'
+                f'<span class="dim">K% {_h(bp["k"])}</span>'
+                f'<span class="dim">BB% {_h(bp["bb"])}</span>'
+                f'<span class="dim">Hard% {_h(bp["hard"])}</span>'
+                f'</div>')
+
+    def _edge_line(edge, a_val, h_val, metric, away, home):
+        if a_val is None or h_val is None:
+            return ""
+        if edge:
+            other = h_val if edge == away else a_val
+            winner_val = a_val if edge == away else h_val
+            return (f'<div class="el">→ edge: <span class="ew">{_h(edge)}</span>'
+                    f' ({metric} {winner_val} vs {other})</div>')
+        return f'<div class="el">→ <span class="ev">EVEN</span></div>'
+
+    xa, xh = sp_a["xera"], sp_h["xera"]
+    xa_s = f"{xa:.2f}" if xa is not None else "?"
+    xh_s = f"{xh:.2f}" if xh is not None else "?"
+    pitch_el = _edge_line(g["pitch_edge"], xa_s, xh_s, "xERA", away, home)
+
+    wrc_a = of_a["wrc"] if of_a else None
+    wrc_h = of_h["wrc"] if of_h else None
+    wrc_a_s = f"{wrc_a:.0f}" if wrc_a is not None else None
+    wrc_h_s = f"{wrc_h:.0f}" if wrc_h is not None else None
+    off_el = _edge_line(g["off_edge"], wrc_a_s, wrc_h_s, "wRC+", away, home)
+
+    xbp_a, xbp_h = bp_a["xera"], bp_h["xera"]
+    xbp_a_s = f"{xbp_a:.2f}" if xbp_a is not None else None
+    xbp_h_s = f"{xbp_h:.2f}" if xbp_h is not None else None
+    bp_el = _edge_line(g["bp_edge"], xbp_a_s, xbp_h_s, "xERA", away, home)
+
+    wx = g["wx"]
+    wx_html = ""
+    if wx:
+        parts = []
+        if wx.get("temp_f")   is not None: parts.append(f"{wx['temp_f']:.0f}°F")
+        if wx.get("rain_pct") is not None: parts.append(f"Rain {wx['rain_pct']:.0f}%")
+        if wx.get("wind_mph") is not None: parts.append(f"Wind {wx['wind_mph']:.0f} mph")
+        if parts:
+            wx_html = (f'<div><div class="sec-hd">Weather</div>'
+                       f'<div class="dim">{_h(wx.get("city","?"))}: {", ".join(parts)}</div></div>')
+
+    edge_rows = "".join(
+        f'<div class="erow"><span class="ec">{_h(cat)}</span>'
+        f'<span class="{"ew" if w else "ev"}">{_h(w) if w else "—"}</span></div>'
+        for cat, w in g["cat_edges"]
+    )
+    if vt and vc >= 2:
+        verdict_html = f'{_h(vt)} · {vc} of 3'
+    elif vt:
+        verdict_html = f'Lean {_h(vt)}'
+    else:
+        verdict_html = 'TOSS-UP'
+
+    flags_html = ""
+    if g["flags"]:
+        items = "".join(f'<li>{_h(f)}</li>' for f in g["flags"])
+        flags_html = f'<div><div class="sec-hd">Flags</div><ul class="flags">{items}</ul></div>'
+
+    return (
+        f'\n<details class="game" id="{_h(away)}-{_h(home)}">'
+        f'\n  <summary>'
+        f'\n    <div class="gs-matchup"><div class="gs-teams">{_h(away)} @ {_h(home)}</div>{venue_html}</div>'
+        f'\n    <span class="vbadge {vcls}">{vtxt}</span>'
+        f'\n  </summary>'
+        f'\n  <div class="gd">'
+        f'\n    <div><div class="sec-hd">Starters</div>{_sp_row(away,sp_a)}{_sp_row(home,sp_h)}{pitch_el}</div>'
+        f'\n    <div><div class="sec-hd">Offense vs Starter</div>{_off_row(away,of_a)}{_off_row(home,of_h)}{off_el}</div>'
+        f'\n    <div><div class="sec-hd">Bullpens <span class="dim" style="text-transform:none;font-weight:400">(last 12g)</span></div>'
+        f'{_bp_row(away,bp_a)}{_bp_row(home,bp_h)}{bp_el}</div>'
+        f'\n    {wx_html}'
+        f'\n    <div class="sum-box">{edge_rows}<div class="vrow"><span>Overall</span><span>{verdict_html}</span></div></div>'
+        f'\n    {flags_html}'
+        f'\n  </div>'
+        f'\n</details>'
+    )
+
+
+def render_html_page(games: list[dict], target_date: date, generated_at: str) -> str:
+    date_long = target_date.strftime(f"%A, %B {target_date.day}, %Y")
+    date_short = target_date.strftime(f"%b {target_date.day}")
+    cards = "".join(_html_game(g) for g in games)
+    return (
+        f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+        f'<meta charset="utf-8">\n'
+        f'<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+        f'<title>MLB Picks · {_h(date_short)}</title>\n'
+        f'<style>{_CSS}</style>\n'
+        f'</head>\n<body>\n'
+        f'<header><h1>MLB Picks</h1>'
+        f'<p class="sub">{_h(date_long)} · Updated {_h(generated_at)}</p></header>\n'
+        f'<main>{cards}\n</main>\n</body>\n</html>'
+    )
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+def main():
+    global _use_color
+
+    ap = argparse.ArgumentParser(description="MLB game handicapper")
+    ap.add_argument("--date", default="today",
+                    help="today (default), tomorrow, or YYYY-MM-DD")
+    ap.add_argument("--data-dir", default="./data",
+                    help="Directory containing Handigraphs CSV files")
+    ap.add_argument("--refresh", action="store_true",
+                    help="Download fresh data before analysis")
+    ap.add_argument("--game", metavar="TEAM",
+                    help="Show only games involving this team (e.g. NYY)")
+    ap.add_argument("--no-mlb", action="store_true",
+                    help="Skip MLB API calls (no pitcher history / home-away context)")
+    ap.add_argument("--no-weather", action="store_true",
+                    help="Skip weather lookup")
+    ap.add_argument("--no-color", action="store_true",
+                    help="Plain text output (no ANSI colors)")
+    ap.add_argument("--html", action="store_true",
+                    help="Output a self-contained HTML page to stdout")
+    args = ap.parse_args()
+
+    if args.no_color or args.html:
+        _use_color = False
+
+    # In HTML mode route status messages to stderr so they don't corrupt the HTML
+    _log = (lambda msg: print(msg, file=sys.stderr)) if args.html else print
+
+    # Resolve date
+    today_d = date.today()
+    if args.date == "today":
+        target_date, slot = today_d, "today"
+    elif args.date == "tomorrow":
+        target_date, slot = today_d + timedelta(days=1), "tomorrow"
+    else:
+        try:
+            target_date = datetime.strptime(args.date, "%Y-%m-%d").date()
+            slot = "today"
+        except ValueError:
+            sys.exit(f"ERROR: Invalid date '{args.date}'. Use today, tomorrow, or YYYY-MM-DD.")
+
+    data_dir = Path(args.data_dir)
+
+    # Optionally download fresh data
+    if args.refresh:
+        from download import download_all
+        data_dir.mkdir(parents=True, exist_ok=True)
+        _log(f"Downloading data for {target_date}...")
+        if not download_all(target_date, data_dir, slot):
+            _log("Download failed or not configured. Falling back to existing files.")
+
+    if not data_dir.exists():
+        sys.exit(
+            f"ERROR: Data directory '{data_dir}' does not exist.\n"
+            f"Create it and place your CSV files there, or run with --refresh."
+        )
+
+    # Load data
+    starters = load_starters(data_dir, target_date)
+    rhp, lhp = load_team_stats(data_dir, target_date)
+    bp = load_bullpen(data_dir, target_date)
+    games = build_games(starters)
+
+    if not games:
+        sys.exit("No games found in starters CSV.")
+
+    # Filter by team
+    if args.game:
+        team_filter = args.game.upper()
+        games = [(p1, p2) for p1, p2 in games
+                 if team_filter in (p1.get("Team", ""), p2.get("Team", ""))]
+        if not games:
+            sys.exit(f"No games found for '{team_filter}'.")
+
+    # MLB schedule (home/away, venue)
+    mlb_schedule: dict = {}
+    if not args.no_mlb and HAS_REQUESTS:
+        _log("Fetching MLB schedule...")
+        mlb_schedule = get_mlb_schedule(target_date)
+        _log(f"  {len(mlb_schedule)} games found")
+
+    if not args.html:
+        print(bold(f"\n{'━'*64}"))
+        print(bold(f"  MLB Handicap — {target_date.strftime('%A, %B %d %Y')}"))
+        print(bold(f"{'━'*64}"))
+
+    game_data: list[dict] = []
+    for p1, p2 in games:
+        t1_mlb = to_mlb(p1.get("Team", ""))
+        t2_mlb = to_mlb(p2.get("Team", ""))
+        key = frozenset([t1_mlb, t2_mlb])
+
+        mlb_info = mlb_schedule.get(key, {})
+
+        if not args.no_mlb and HAS_REQUESTS:
+            for p in (p1, p2):
+                pid = p.get("mlbam_id")
+                team = p.get("Team", "")
+                if pid and team:
+                    mlb_info[f"history_{team}"] = get_recent_starts(int(pid))
+
+        wx = {}
+        if not args.no_weather and HAS_REQUESTS:
+            home_t = mlb_info.get("home", p2.get("Team", ""))
+            wx = get_weather(home_t, target_date)
+
+        if args.html:
+            game_data.append(analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx))
+        else:
+            print_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
+
+    if args.html:
+        generated_at = datetime.utcnow().strftime("%H:%M UTC")
+        print(render_html_page(game_data, target_date, generated_at))
+    else:
+        print()
+
+
+if __name__ == "__main__":
+    main()
