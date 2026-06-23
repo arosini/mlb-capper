@@ -27,10 +27,11 @@ except ImportError:
 
 # Output filenames — {date} = YYYY-MM-DD, {slot} = today|tomorrow
 FILE_NAMES = {
-    "starters": "starters_last3g_{slot}_{date}.json",
-    "team_rhp": "team_stats_L12RHP_{date}.json",
-    "team_lhp": "team_stats_L12LHP_{date}.json",
-    "bullpen":  "bullpen_stats_last12g_{date}.json",
+    "starters":        "starters_last3g_{slot}_{date}.json",
+    "team_rhp":        "team_stats_L12RHP_{date}.json",
+    "team_lhp":        "team_stats_L12LHP_{date}.json",
+    "bullpen":         "bullpen_stats_last12g_{date}.json",
+    "ballpark_weather": "ballpark_weather_{date}.json",
 }
 
 

@@ -211,6 +211,21 @@ def load_bullpen(data_dir: Path, target_date: date) -> dict:
         return {r["Team"]: r for r in _load_csv(p)}
     sys.exit(f"ERROR: No bullpen data in {data_dir} for {target_date}.")
 
+def load_ballpark_weather(data_dir: Path, target_date: date) -> dict:
+    """Returns dict keyed by frozenset({away_team, home_team}) → game weather dict."""
+    p = _find_file(data_dir, "ballpark_weather", target_date, "json")
+    if not p:
+        return {}
+    raw = json.loads(p.read_text())
+    games = raw.get("games", []) if isinstance(raw, dict) else raw
+    result = {}
+    for g in games:
+        away = g.get("away_team", "")
+        home = g.get("home_team", "")
+        if away and home:
+            result[frozenset([away, home])] = g
+    return result
+
 
 # ── Type helpers ──────────────────────────────────────────────────────────────
 def flt(val) -> Optional[float]:
@@ -542,15 +557,56 @@ def get_weather(home_team: str, target_date: date) -> dict:
         return {}
 
 def weather_flags(wx: dict) -> list[str]:
+    """Generate flags from Handigraphs ballpark-weather data."""
     flags = []
-    rain = wx.get("rain_pct")
-    wind = wx.get("wind_mph")
-    if rain is not None and rain >= 40:
-        flags.append(f"rain chance {rain:.0f}% — possible delay/postponement")
-    elif rain is not None and rain >= 20:
-        flags.append(f"rain chance {rain:.0f}%")
-    if wind is not None and wind >= 15:
-        flags.append(f"wind {wind:.0f} mph — check direction for park factor impact")
+    if not wx:
+        return flags
+
+    apf         = wx.get("adjusted_park_factor")
+    pitch_cond  = wx.get("pitching_conditions", "Neutral")
+    hit_cond    = wx.get("hitting_conditions", "Average")
+    precip_risk = wx.get("precip_risk_during_game", False)
+    precip_prob = wx.get("precip_probability")
+    wind_lbl    = wx.get("wind_effect_label", "")
+    wind_speed  = wx.get("wind_speed")
+    roof        = wx.get("roof_status", "")
+    is_outdoor  = roof not in ("Dome", "Roof Closed")
+
+    # Park factor — flag when meaningfully off neutral
+    if apf is not None:
+        if apf >= 108:
+            flags.append(
+                f"extreme hitter's park (adj factor {apf:.0f}) — "
+                f"xERAs will play higher than usual"
+            )
+        elif apf >= 104 and hit_cond not in ("Average",):
+            flags.append(f"hitter-friendly park today (adj factor {apf:.0f})")
+        elif apf <= 92:
+            flags.append(
+                f"extreme pitcher's park (adj factor {apf:.0f}) — "
+                f"xERAs will play lower than usual"
+            )
+
+    # Pitching conditions label (combines park + weather)
+    if pitch_cond == "Hitter Friendly":
+        apf_s = f" (adj factor {apf:.0f})" if apf is not None else ""
+        flags.append(
+            f"hitter-friendly conditions{apf_s} — "
+            f"adjust pitcher xERA expectations up"
+        )
+
+    # Weather — only relevant for outdoor/open-roof parks
+    if is_outdoor:
+        if precip_risk:
+            prob_s = f" ({precip_prob:.0f}%)" if precip_prob is not None else ""
+            flags.append(f"rain risk{prob_s} — possible delay or postponement")
+        elif precip_prob is not None and precip_prob >= 25:
+            flags.append(f"rain chance {precip_prob:.0f}%")
+
+        if wind_lbl and wind_lbl not in ("Calm", "Indoor", ""):
+            speed_s = f" {wind_speed:.0f} mph" if wind_speed is not None else ""
+            flags.append(f"wind: {wind_lbl}{speed_s} — check direction for park impact")
+
     return flags
 
 
@@ -804,11 +860,25 @@ def print_game(
     if g["wx"]:
         print(cyan("\nWEATHER"))
         w = g["wx"]
+        venue = w.get("venue_name") or w.get("city", "?")
+        roof = w.get("roof_status", "")
+        roof_s = f" ({roof})" if roof and roof not in ("Open Air", "N/A") else ""
+        time_s = f"  ·  {w['game_time_local']}" if w.get("game_time_local") else ""
+        print(f"  {venue}{roof_s}{time_s}")
         parts = []
-        if w.get("temp_f")   is not None: parts.append(f"{w['temp_f']:.0f}°F")
-        if w.get("rain_pct") is not None: parts.append(f"Rain {w['rain_pct']:.0f}%")
-        if w.get("wind_mph") is not None: parts.append(f"Wind {w['wind_mph']:.0f} mph")
-        print(f"  {w.get('city', '?')}: {', '.join(parts) or 'unavailable'}")
+        if w.get("temperature")   is not None: parts.append(f"{w['temperature']:.0f}°F")
+        if w.get("weather_description"):        parts.append(w["weather_description"])
+        if w.get("wind_speed") is not None:
+            wd = w.get("wind_direction_label", "")
+            parts.append(f"Wind {w['wind_speed']:.0f} mph {wd}".strip())
+        if w.get("precip_probability") is not None: parts.append(f"Rain {w['precip_probability']:.0f}%")
+        if parts:
+            print(f"  {', '.join(parts)}")
+        apf = w.get("adjusted_park_factor")
+        hit = w.get("hitting_conditions", "")
+        pit = w.get("pitching_conditions", "")
+        if apf is not None:
+            print(f"  Park factor {apf:.0f}  |  Hitting: {hit}  |  Pitching: {pit}")
 
     print(cyan("\nEDGE SUMMARY"))
     for cat, winner in g["cat_edges"]:
@@ -973,12 +1043,36 @@ def _html_game(g: dict) -> str:
     wx_html = ""
     if wx:
         parts = []
-        if wx.get("temp_f")   is not None: parts.append(f"{wx['temp_f']:.0f}°F")
-        if wx.get("rain_pct") is not None: parts.append(f"Rain {wx['rain_pct']:.0f}%")
-        if wx.get("wind_mph") is not None: parts.append(f"Wind {wx['wind_mph']:.0f} mph")
-        if parts:
-            wx_html = (f'<div><div class="sec-hd">Weather</div>'
-                       f'<div class="dim">{_h(wx.get("city","?"))}: {", ".join(parts)}</div></div>')
+        if wx.get("temperature")       is not None: parts.append(f"{wx['temperature']:.0f}°F")
+        if wx.get("weather_description"):            parts.append(wx["weather_description"])
+        if wx.get("wind_speed")        is not None:
+            wd = wx.get("wind_direction_label", "")
+            parts.append(f"Wind {wx['wind_speed']:.0f} mph {wd}".strip())
+        if wx.get("precip_probability") is not None: parts.append(f"Rain {wx['precip_probability']:.0f}%")
+        roof  = wx.get("roof_status", "")
+        roof_s = f" · {roof}" if roof and roof not in ("Open Air", "N/A") else ""
+        apf   = wx.get("adjusted_park_factor")
+        hit   = wx.get("hitting_conditions", "")
+        pit   = wx.get("pitching_conditions", "")
+        # Park factor color: ≥108 orange, ≤92 blue, else gray
+        if apf is not None:
+            if apf >= 108:   apf_cls = "era-poor"
+            elif apf >= 104: apf_cls = "era-below"
+            elif apf <= 92:  apf_cls = "era-good"
+            else:            apf_cls = "era-avg"
+        else:
+            apf_cls = "era-na"
+        apf_html = (f'<span class="{apf_cls}">apf {apf:.0f}</span> · {_h(hit)} hitting · {_h(pit)} pitching'
+                    if apf is not None else "")
+        time_s = f' · {_h(wx["game_time_local"])}' if wx.get("game_time_local") else ""
+        venue_line = f'{_h(wx.get("venue_name",""))}{_h(roof_s)}{time_s}' if wx.get("venue_name") else ""
+        wx_html = (
+            f'<div><div class="sec-hd">Weather</div>'
+            + (f'<div class="dim">{venue_line}</div>' if venue_line else "")
+            + (f'<div class="dim">{_h(", ".join(parts))}</div>' if parts else "")
+            + (f'<div class="dim">{apf_html}</div>' if apf_html else "")
+            + f'</div>'
+        )
 
     edge_rows = "".join(
         f'<div class="erow"><span class="ec">{_h(cat)}</span>'
@@ -1095,6 +1189,7 @@ def main():
     starters = load_starters(data_dir, target_date)
     rhp, lhp = load_team_stats(data_dir, target_date)
     bp = load_bullpen(data_dir, target_date)
+    ballpark_wx = {} if args.no_weather else load_ballpark_weather(data_dir, target_date)
     games = build_games(starters)
 
     if not games:
@@ -1135,9 +1230,13 @@ def main():
                 if pid and team:
                     mlb_info[f"history_{team}"] = get_recent_starts(int(pid))
 
-        wx = {}
-        if not args.no_weather and HAS_REQUESTS:
-            home_t = mlb_info.get("home", p2.get("Team", ""))
+        # Ballpark weather — keyed by raw team codes (same as Handigraphs starters JSON)
+        t1_raw = p1.get("Team", "")
+        t2_raw = p2.get("Team", "")
+        wx = ballpark_wx.get(frozenset([t1_raw, t2_raw]), {})
+        # Fallback to Open-Meteo if Handigraphs weather file wasn't downloaded
+        if not wx and not args.no_weather and HAS_REQUESTS:
+            home_t = mlb_info.get("home", t2_raw)
             wx = get_weather(home_t, target_date)
 
         if args.html:
