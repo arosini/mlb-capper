@@ -2,7 +2,7 @@ name: Update MLB Dashboard
 
 on:
   schedule:
-    - cron: '0 * * * *'   # every hour
+    - cron: '0 10 * * *'  # 6 AM ET (10 AM UTC, adjusts 1hr in winter)
   workflow_dispatch:        # manual trigger
 
 permissions:
