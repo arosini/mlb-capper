@@ -33,6 +33,21 @@ except ImportError:
 _STATS_MAP = {"CHW": "CWS", "KCR": "KC", "SDP": "SD", "SFG": "SF", "TBR": "TB", "WSN": "WSH"}
 _MLB_MAP = {**_STATS_MAP, "ARI": "AZ"}  # MLB API uses "AZ" for Diamondbacks; ATH stays as-is
 
+# ESPN CDN logo codes (keyed by Handigraphs team codes)
+_LOGO = {
+    "ARI": "ari", "ATH": "oak", "ATL": "atl", "BAL": "bal", "BOS": "bos",
+    "CHC": "chc", "CHW": "cws", "CIN": "cin", "CLE": "cle", "COL": "col",
+    "DET": "det", "HOU": "hou", "KCR": "kc",  "LAA": "laa", "LAD": "lad",
+    "MIA": "mia", "MIL": "mil", "MIN": "min", "NYM": "nym", "NYY": "nyy",
+    "PHI": "phi", "PIT": "pit", "SDP": "sd",  "SEA": "sea", "SFG": "sf",
+    "STL": "stl", "TBR": "tb",  "TEX": "tex", "TOR": "tor", "WSN": "wsh",
+}
+
+def _logo_img(team: str) -> str:
+    code = _LOGO.get(team, team.lower())
+    url = f"https://a.espncdn.com/combiner/i?img=/i/teamlogos/mlb/500/{code}.png&h=28&w=28"
+    return f'<img src="{url}" class="tm-logo" alt="{team}" onerror="this.style.display=\'none\'">'
+
 def to_stats(t: str) -> str:
     return _STATS_MAP.get(t, t)
 
@@ -904,8 +919,9 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .game>summary::-webkit-details-marker{display:none}
 .game[open]>summary{border-bottom:1px solid #f0f0f0}
 .gs-matchup{flex:1;min-width:0}
-.gs-teams{font-size:.975rem;font-weight:700}
+.gs-teams{font-size:.975rem;font-weight:700;display:flex;align-items:center;gap:.3rem}
 .gs-venue{font-size:.7rem;color:#9ca3af;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm-logo{width:22px;height:22px;object-fit:contain;flex-shrink:0}
 .vbadge{font-size:.76rem;font-weight:700;padding:.18rem .52rem;border-radius:20px;white-space:nowrap;flex-shrink:0}
 .v-strong{background:#dcfce7;color:#15803d}
 .v-lean{background:#dbeafe;color:#1d4ed8}
@@ -974,7 +990,10 @@ def _html_game(g: dict) -> str:
     else:
         vcls, vtxt = "v-even", "Even"
 
-    venue_html = f'<span class="gs-venue">{_h(g["venue"])}</span>' if g["venue"] else ""
+    roof = (g["wx"] or {}).get("roof_status", "")
+    roof_paren = f" ({roof})" if roof and roof not in ("Open Air", "N/A") else ""
+    venue_str = (g["venue"] or "") + roof_paren
+    venue_html = f'<span class="gs-venue">{_h(venue_str)}</span>' if venue_str.strip() else ""
 
     def _sp_row(team, sp):
         ec = _era_cls(sp["label"])
@@ -1050,7 +1069,7 @@ def _html_game(g: dict) -> str:
             parts.append(f"Wind {wx['wind_speed']:.0f} mph {wd}".strip())
         if wx.get("precip_probability") is not None: parts.append(f"Rain {wx['precip_probability']:.0f}%")
         roof  = wx.get("roof_status", "")
-        roof_s = f" · {roof}" if roof and roof not in ("Open Air", "N/A") else ""
+        roof_s = f" ({roof})" if roof and roof not in ("Open Air", "N/A") else ""
         apf   = wx.get("adjusted_park_factor")
         hit   = wx.get("hitting_conditions", "")
         pit   = wx.get("pitching_conditions", "")
@@ -1091,16 +1110,17 @@ def _html_game(g: dict) -> str:
         items = "".join(f'<li>{_h(f)}</li>' for f in g["flags"])
         flags_html = f'<div><div class="sec-hd">Flags</div><ul class="flags">{items}</ul></div>'
 
+    _sub = ' style="text-transform:none;font-weight:400;font-size:.62rem"'
     return (
-        f'\n<details class="game" id="{_h(away)}-{_h(home)}">'
+        f'\n<details class="game" open id="{_h(away)}-{_h(home)}">'
         f'\n  <summary>'
-        f'\n    <div class="gs-matchup"><div class="gs-teams">{_h(away)} @ {_h(home)}</div>{venue_html}</div>'
+        f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}</div>{venue_html}</div>'
         f'\n    <span class="vbadge {vcls}">{vtxt}</span>'
         f'\n  </summary>'
         f'\n  <div class="gd">'
-        f'\n    <div><div class="sec-hd">Starters</div>{_sp_row(away,sp_a)}{_sp_row(home,sp_h)}{pitch_el}</div>'
-        f'\n    <div><div class="sec-hd">Offense vs Starter</div>{_off_row(away,of_a)}{_off_row(home,of_h)}{off_el}</div>'
-        f'\n    <div><div class="sec-hd">Bullpens <span class="dim" style="text-transform:none;font-weight:400">(last 12g)</span></div>'
+        f'\n    <div><div class="sec-hd">Starters <span class="dim"{_sub}>· xERA last 3 starts</span></div>{_sp_row(away,sp_a)}{_sp_row(home,sp_h)}{pitch_el}</div>'
+        f'\n    <div><div class="sec-hd">Offense vs Starter <span class="dim"{_sub}>· wRC+ last 12</span></div>{_off_row(away,of_a)}{_off_row(home,of_h)}{off_el}</div>'
+        f'\n    <div><div class="sec-hd">Bullpens <span class="dim"{_sub}>· xERA last 12g</span></div>'
         f'{_bp_row(away,bp_a)}{_bp_row(home,bp_h)}{bp_el}</div>'
         f'\n    {wx_html}'
         f'\n    <div class="sum-box">{edge_rows}<div class="vrow"><span>Overall</span><span>{verdict_html}</span></div></div>'
