@@ -400,8 +400,8 @@ def build_games(starters: list[dict]) -> list[tuple[dict, dict]]:
     seen: set[tuple] = set()
     games = []
     for row in starters:
-        team = row.get("Team", "").strip()
-        opp  = row.get("Opponent", "").strip()
+        team = (row.get("Team") or "").strip()
+        opp  = (row.get("Opponent") or "").strip()
         if not team or not opp:
             continue
         key = tuple(sorted([team, opp]))
