@@ -117,8 +117,37 @@ def _fetch(session: requests.Session, url: str) -> dict | list | None:
         return None
 
 
+def download_odds(data_dir: Path, date_str: str) -> None:
+    """Fetch full-game odds from The Odds API (DK, FanDuel, Fanatics). No auth needed."""
+    key = config.ODDS_API_KEY
+    if not key:
+        print("  [odds] ODDS_API_KEY not set — skipping odds download")
+        return
+    url = (
+        "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/"
+        f"?apiKey={key}"
+        "&regions=us"
+        "&markets=h2h,spreads,totals"
+        "&bookmakers=draftkings,fanduel,fanatics"
+        "&oddsFormat=american"
+        "&dateFormat=iso"
+    )
+    try:
+        r = requests.get(url, timeout=15)
+        remaining = r.headers.get("x-requests-remaining", "?")
+        if not r.ok:
+            print(f"  [odds] API error {r.status_code}: {r.text[:200]}")
+            return
+        data = r.json()
+        fname = f"odds_{date_str}.json"
+        (data_dir / fname).write_text(json.dumps(data, indent=2))
+        print(f"  ✓  {fname}  ({len(data)} games, {remaining} API calls remaining)")
+    except Exception as e:
+        print(f"  [odds] Failed: {e}")
+
+
 def download_all(target_date: date, data_dir: Path, slot: str = "today") -> bool:
-    """Fetch all 4 endpoints and save as JSON files.  Returns True if all succeeded."""
+    """Fetch all endpoints and save as JSON files.  Returns True if all succeeded."""
     date_str = target_date.strftime("%Y-%m-%d")
     data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -148,6 +177,9 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today") -> bool
             rows = []
         count = len(rows) if rows else "?"
         print(f"  ✓  {fname}  ({count} rows)")
+
+    print("  Fetching odds...")
+    download_odds(data_dir, date_str)
 
     return ok
 

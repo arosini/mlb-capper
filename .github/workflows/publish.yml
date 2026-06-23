@@ -37,6 +37,7 @@ jobs:
         env:
           HANDIGRAPHS_EMAIL: ${{ secrets.HANDIGRAPHS_EMAIL }}
           HANDIGRAPHS_PASSWORD: ${{ secrets.HANDIGRAPHS_PASSWORD }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python3 download.py
 
       - name: Generate HTML

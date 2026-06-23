@@ -54,6 +54,98 @@ def to_stats(t: str) -> str:
 def to_mlb(t: str) -> str:
     return _MLB_MAP.get(t, t)
 
+# Odds API team names (keyed by Handigraphs team codes)
+_ODDS_TEAM = {
+    "ARI": "Arizona Diamondbacks",  "ATH": "Athletics",
+    "ATL": "Atlanta Braves",        "BAL": "Baltimore Orioles",
+    "BOS": "Boston Red Sox",        "CHC": "Chicago Cubs",
+    "CHW": "Chicago White Sox",     "CIN": "Cincinnati Reds",
+    "CLE": "Cleveland Guardians",   "COL": "Colorado Rockies",
+    "DET": "Detroit Tigers",        "HOU": "Houston Astros",
+    "KCR": "Kansas City Royals",    "LAA": "Los Angeles Angels",
+    "LAD": "Los Angeles Dodgers",   "MIA": "Miami Marlins",
+    "MIL": "Milwaukee Brewers",     "MIN": "Minnesota Twins",
+    "NYM": "New York Mets",         "NYY": "New York Yankees",
+    "PHI": "Philadelphia Phillies", "PIT": "Pittsburgh Pirates",
+    "SDP": "San Diego Padres",      "SEA": "Seattle Mariners",
+    "SFG": "San Francisco Giants",  "STL": "St. Louis Cardinals",
+    "TBR": "Tampa Bay Rays",        "TEX": "Texas Rangers",
+    "TOR": "Toronto Blue Jays",     "WSN": "Washington Nationals",
+}
+
+def load_odds(data_dir: Path, target_date: date) -> dict:
+    """Load Odds API JSON; returns {(away_name, home_name): game_dict}."""
+    p = _find_file(data_dir, "odds", target_date, "json")
+    if not p:
+        return {}
+    raw = json.loads(p.read_text())
+    return {(g["away_team"], g["home_team"]): g for g in raw if isinstance(g, dict)}
+
+def _best_price(bookmakers: list, market_key: str, outcome_name: str) -> Optional[float]:
+    best = None
+    for bk in bookmakers:
+        for mkt in bk.get("markets", []):
+            if mkt["key"] != market_key:
+                continue
+            for oc in mkt.get("outcomes", []):
+                if oc.get("name") == outcome_name:
+                    p = oc.get("price")
+                    if p is not None and (best is None or p > best):
+                        best = p
+    return best
+
+def _best_spread(bookmakers: list, outcome_name: str) -> tuple:
+    best_price, best_point = None, None
+    for bk in bookmakers:
+        for mkt in bk.get("markets", []):
+            if mkt["key"] != "spreads":
+                continue
+            for oc in mkt.get("outcomes", []):
+                if oc.get("name") == outcome_name:
+                    p, pt = oc.get("price"), oc.get("point")
+                    if p is not None and (best_price is None or p > best_price):
+                        best_price, best_point = p, pt
+    return best_point, best_price
+
+def _fmt_ml(price) -> str:
+    if price is None: return "—"
+    return f"+{int(price)}" if price > 0 else str(int(price))
+
+def _fmt_spread(point, price) -> str:
+    if point is None: return "—"
+    pt = f"+{point}" if point > 0 else str(point)
+    pr = f"+{int(price)}" if price > 0 else str(int(price))
+    return f"{pt} ({pr})"
+
+def _fmt_total(side: str, point, price) -> str:
+    if point is None: return "—"
+    pr = f"+{int(price)}" if price > 0 else str(int(price))
+    return f"{side}{point} ({pr})"
+
+def get_game_odds(odds_data: dict, away_code: str, home_code: str) -> Optional[dict]:
+    away_name = _ODDS_TEAM.get(away_code, "")
+    home_name = _ODDS_TEAM.get(home_code, "")
+    game = odds_data.get((away_name, home_name))
+    if not game:
+        return None
+    bks = game.get("bookmakers", [])
+    away_sp_pt, away_sp_pr = _best_spread(bks, away_name)
+    home_sp_pt, home_sp_pr = _best_spread(bks, home_name)
+    over_pt  = next((oc.get("point") for bk in bks for mkt in bk.get("markets",[])
+                     if mkt["key"]=="totals" for oc in mkt.get("outcomes",[])
+                     if oc.get("name")=="Over" and oc.get("point") is not None), None)
+    under_pt = next((oc.get("point") for bk in bks for mkt in bk.get("markets",[])
+                     if mkt["key"]=="totals" for oc in mkt.get("outcomes",[])
+                     if oc.get("name")=="Under" and oc.get("point") is not None), None)
+    return {
+        "away_ml":     _fmt_ml(_best_price(bks, "h2h", away_name)),
+        "home_ml":     _fmt_ml(_best_price(bks, "h2h", home_name)),
+        "away_spread": _fmt_spread(away_sp_pt, away_sp_pr),
+        "home_spread": _fmt_spread(home_sp_pt, home_sp_pr),
+        "over":        _fmt_total("O", over_pt,  _best_price(bks, "totals", "Over")),
+        "under":       _fmt_total("U", under_pt, _best_price(bks, "totals", "Under")),
+    }
+
 
 # ── File finding ─────────────────────────────────────────────────────────────
 def _find_file(data_dir: Path, prefix: str, target_date: date, ext: str) -> Optional[Path]:
@@ -932,6 +1024,9 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .era-elite{color:#16a34a}.era-good{color:#2563eb}.era-avg{color:#6b7280}.era-below{color:#d97706}.era-poor{color:#dc2626}.era-na{color:#9ca3af}
 .wrc-elite{color:#16a34a}.wrc-above{color:#2563eb}.wrc-avg{color:#6b7280}.wrc-below{color:#d97706}.wrc-poor{color:#dc2626}
 .dim{color:#9ca3af;font-size:.795rem}
+.odds-grid{display:grid;grid-template-columns:2.4rem 1fr 1fr 1fr;gap:.18rem .4rem;font-size:.82rem;align-items:center}
+.odds-hd{font-size:.6rem;font-weight:700;color:#9ca3af;text-align:center;text-transform:uppercase;letter-spacing:.04em}
+.odds-val{text-align:center;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .flags{list-style:none}
 .flags li{font-size:.78rem;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:.18rem .45rem;margin-top:.2rem;border-radius:0 4px 4px 0}
 @media(prefers-color-scheme:dark){
@@ -1096,12 +1191,27 @@ def _html_game(g: dict) -> str:
         flags_html = f'<div><div class="sec-hd">Flags</div><ul class="flags">{items}</ul></div>'
 
     _sub = ' style="text-transform:none;font-weight:400;font-size:.62rem"'
+    odds_html = ""
+    od = g.get("odds")
+    if od:
+        odds_html = (
+            f'<div><div class="sec-hd">Odds <span class="dim"{_sub}>· best of DK / FanDuel / Fanatics</span></div>'
+            f'<div class="odds-grid">'
+            f'<span></span><span class="odds-hd">ML</span><span class="odds-hd">Spread</span><span class="odds-hd">Total</span>'
+            f'<span class="tm">{_h(away)}</span><span class="odds-val">{_h(od["away_ml"])}</span>'
+            f'<span class="odds-val">{_h(od["away_spread"])}</span><span class="odds-val">{_h(od["over"])}</span>'
+            f'<span class="tm">{_h(home)}</span><span class="odds-val">{_h(od["home_ml"])}</span>'
+            f'<span class="odds-val">{_h(od["home_spread"])}</span><span class="odds-val">{_h(od["under"])}</span>'
+            f'</div></div>'
+        )
+
     return (
         f'\n<details class="game" open id="{_h(away)}-{_h(home)}">'
         f'\n  <summary>'
         f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}</div>{venue_html}</div>'
         f'\n  </summary>'
         f'\n  <div class="gd">'
+        f'\n    {odds_html}'
         f'\n    <div><div class="sec-hd">Starters <span class="dim"{_sub}>· xERA last 3 starts</span></div>{_sp_row(away,sp_a)}{_sp_row(home,sp_h)}</div>'
         f'\n    <div><div class="sec-hd">Offense vs Starter <span class="dim"{_sub}>· wRC+ last 12</span></div>{_off_row(away,of_a)}{_off_row(home,of_h)}</div>'
         f'\n    <div><div class="sec-hd">Bullpens <span class="dim"{_sub}>· xERA last 12g</span></div>'
@@ -1231,6 +1341,9 @@ def main():
         print(bold(f"  MLB Handicap — {target_date.strftime('%A, %B %d %Y')}"))
         print(bold(f"{'━'*64}"))
 
+    odds_data = load_odds(data_dir, target_date)
+    _log(f"Odds: {len(odds_data)} games loaded" if odds_data else "Odds: no file found")
+
     game_data: list[dict] = []
     for p1, p2 in games:
         t1_mlb = to_mlb(p1.get("Team", ""))
@@ -1256,7 +1369,9 @@ def main():
             wx = get_weather(home_t, target_date)
 
         if args.html:
-            game_data.append(analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx))
+            g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
+            g["odds"] = get_game_odds(odds_data, t1_raw, t2_raw)
+            game_data.append(g)
         else:
             print_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
 
