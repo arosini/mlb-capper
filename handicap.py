@@ -397,24 +397,15 @@ def load_bullpen(data_dir: Path, target_date: date) -> dict:
     sys.exit(f"ERROR: No bullpen data in {data_dir} for {target_date}.")
 
 def load_odds_meta(data_dir: Path, target_date: date) -> str:
-    """Return odds fetch time as 'H:MM AM/PM ET', or '' if not found."""
+    """Return odds fetch timestamp as a UTC ISO string, or '' if not found."""
     p = data_dir / f"odds_meta_{target_date.strftime('%Y-%m-%d')}.json"
     if not p.exists():
         return ""
     try:
         meta = json.loads(p.read_text())
-        fetched_at = meta.get("fetched_at", "")
-        if fetched_at:
-            dt = datetime.fromisoformat(fetched_at)
-            try:
-                from zoneinfo import ZoneInfo
-                et = dt.astimezone(ZoneInfo("America/New_York"))
-                return et.strftime("%-I:%M %p ET")
-            except Exception:
-                return dt.strftime("%H:%M UTC")
+        return meta.get("fetched_at", "")
     except Exception:
-        pass
-    return ""
+        return ""
 
 def load_ballpark_weather(data_dir: Path, target_date: date) -> dict:
     """Returns dict keyed by frozenset({away_team, home_team}) → game weather dict."""
@@ -1127,16 +1118,13 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .era-elite{color:#16a34a}.era-good{color:#2563eb}.era-avg{color:#6b7280}.era-below{color:#d97706}.era-poor{color:#dc2626}.era-na{color:#9ca3af}
 .wrc-elite{color:#16a34a}.wrc-above{color:#2563eb}.wrc-avg{color:#6b7280}.wrc-below{color:#d97706}.wrc-poor{color:#dc2626}
 .dim{color:#9ca3af;font-size:.795rem}
-.mu-wrap{margin:.05rem 0 .55rem}
-.mu-hdr{display:flex;align-items:center;gap:.35rem;margin-bottom:.22rem;font-size:.84rem}
-.mu-sp-nm{font-weight:700}
-.mu-sep{color:#9ca3af;font-size:.78rem}
-.mu-bat-nm{font-weight:600;color:#6b7280}
-.mu-tbl{display:grid;grid-template-columns:5.4rem 1fr 1fr;gap:.1rem .45rem;font-size:.8rem;align-items:baseline}
-.mu-col-hd{font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;font-weight:700;text-align:center}
-.mu-lbl{color:#9ca3af;font-size:.77rem}
-.mu-v{font-weight:600}
-.mu-misc{font-size:.74rem;color:#9ca3af;margin-top:.22rem;padding-left:5.85rem}
+.mu-cols{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.35rem 0}
+@media(max-width:440px){.mu-cols{grid-template-columns:1fr}}
+.mu-card{background:rgba(0,0,0,.028);border-radius:.35rem;padding:.35rem .5rem}
+.mu-card-hd{font-size:.75rem;font-weight:700;margin-bottom:.25rem}
+.mu-2c{display:grid;grid-template-columns:auto 1fr;gap:.13rem .5rem;font-size:.82rem;align-items:baseline}
+.mu-lbl{color:#9ca3af;font-size:.75rem;white-space:nowrap}
+.mu-v{font-weight:600;font-variant-numeric:tabular-nums}
 .bp-row{display:flex;align-items:flex-start;gap:.4rem;font-size:.845rem;padding:.18rem 0}
 .tm{font-weight:700;font-size:.77rem;min-width:2.3rem;padding-top:.1rem}
 .bp-body{flex:1;min-width:0}
@@ -1157,10 +1145,8 @@ header{background:#030712}
 .game[open]>summary{border-bottom-color:#2a2a2a}
 .gs-venue{color:#6b7280}
 .sec-hd{color:#6b7280}
-.mu-bat-nm{color:#9ca3af}
+.mu-card{background:rgba(255,255,255,.04)}
 .mu-lbl{color:#6b7280}
-.mu-col-hd{color:#6b7280}
-.mu-misc{color:#6b7280}
 .stats b{color:#d1d5db}
 .hb{background:#374151;color:#d1d5db}
 .flags li{background:#1c1400;border-left-color:#b45309;color:#fbbf24}
@@ -1285,70 +1271,62 @@ def _html_game(g: dict) -> str:
                   if venue_parts else "")
 
     def _mu_table(sp, bat_team, off, k_line=None):
-        """Comparison table: SP stats vs batting lineup stats."""
-        def _cell(val_s, cls, lbl):
-            if val_s == "?": return '<span class="mu-v dim">?</span>'
-            lbl_s = f' <span class="dim">({lbl})</span>' if lbl else ""
-            return f'<span class="mu-v {cls}">{_h(val_s)}{lbl_s}</span>'
+        """Two side-by-side 2-column cards: pitcher stats | lineup stats."""
+        def _row(lbl, val_s, cls="", lbl_txt=""):
+            if val_s == "?":
+                return f'<span class="mu-lbl">{_h(lbl)}</span><span class="dim">?</span>'
+            lbl_part = f' <span class="dim">({_h(lbl_txt)})</span>' if lbl_txt else ""
+            cls_attr = f' class="mu-v {cls}"' if cls else ' class="mu-v"'
+            return f'<span class="mu-lbl">{_h(lbl)}</span><span{cls_attr}>{_h(val_s)}{lbl_part}</span>'
 
+        # -- Pitcher card --
         ec = _era_cls(sp["label"])
-        xera_cell = f'<span class="mu-v {ec}">{_h(sp["xera_s"])}</span>'
-
-        if off:
-            wc = _wrc_cls(off["label"])
-            wrc_lbl = f' <span class="dim">({_h(off["label"])})</span>' if off["label"] else ""
-            wrc_cell  = f'<span class="mu-v {wc}">{_h(off["wrc_s"])}{wrc_lbl}</span>'
-            k_bat_v   = flt(off["k"])
-            k_bat     = _cell(off["k"],   _k_bat_cls(k_bat_v),  _k_bat_lbl(k_bat_v))
-            hh_bat_v  = flt(off["hard"])
-            hh_bat    = _cell(off["hard"], _hh_bat_cls(hh_bat_v), _hh_bat_lbl(hh_bat_v))
-            col_hd    = _h(off["vs_hand"])
-        else:
-            wrc_cell = '<span class="mu-v dim">no data</span>'
-            k_bat = hh_bat = '<span class="mu-v dim">—</span>'
-            col_hd = "lineup"
-
-        k_sp_v  = flt(sp["k"])
-        k_sp    = _cell(sp["k"],    _k_sp_cls(k_sp_v),      _k_sp_lbl(k_sp_v))
-        hh_sp_v = flt(sp["hard"])
-        hh_sp   = _cell(sp["hard"], _hh_sp_cls(hh_sp_v),    _hh_sp_lbl(hh_sp_v))
-
-        barrel_row = ""
+        sp_rows  = _row("xERA",    sp["xera_s"], ec,              sp["label"])
+        k_sp_v   = flt(sp["k"])
+        sp_rows += _row("K%",      sp["k"],      _k_sp_cls(k_sp_v),    _k_sp_lbl(k_sp_v))
+        hh_sp_v  = flt(sp["hard"])
+        sp_rows += _row("HH%",     sp["hard"],   _hh_sp_cls(hh_sp_v),  _hh_sp_lbl(hh_sp_v))
         if sp["barrel"] != "?":
             bv = flt(sp["barrel"])
-            barrel_row = (
-                f'<span class="mu-lbl">Barrel%</span>'
-                + _cell(sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
-                + '<span class="mu-v dim">—</span>'
-            )
-
-        misc_parts = []
+            sp_rows += _row("Barrel%", sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
         if sp["era_s"] != "?":
-            misc_parts.append(f'ERA {sp["era_s"]}')
-        misc_parts.append(sp["depth"])
+            sp_rows += f'<span class="mu-lbl">ERA</span><span class="mu-v">{_h(sp["era_s"])}</span>'
+        sp_rows += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
         if sp["bb"] != "?":
-            misc_parts.append(f'BB% {sp["bb"]}')
+            sp_rows += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
         k_s = _fmt_k_line(k_line)
         if k_s:
-            misc_parts.append(k_s)
+            sp_rows += f'<span class="mu-lbl">K O/U</span><span class="dim">{_h(k_s.replace("K O/U ",""))}</span>'
+
         hand_badge = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
-        return (
-            f'<div class="mu-wrap">'
-            f'<div class="mu-hdr">'
-            f'<span class="mu-sp-nm">{_h(sp["name"])} {hand_badge}</span>'
-            f'<span class="mu-sep">vs</span>'
-            f'<span class="mu-bat-nm">{_h(bat_team)}</span>'
+        sp_card = (
+            f'<div class="mu-card">'
+            f'<div class="mu-card-hd">{_h(sp["name"])} {hand_badge}</div>'
+            f'<div class="mu-2c">{sp_rows}</div>'
             f'</div>'
-            f'<div class="mu-tbl">'
-            f'<span></span><span class="mu-col-hd">SP</span><span class="mu-col-hd">{col_hd}</span>'
-            f'<span class="mu-lbl">xERA / wRC+</span>{xera_cell}{wrc_cell}'
-            f'<span class="mu-lbl">K%</span>{k_sp}{k_bat}'
-            f'<span class="mu-lbl">HH%</span>{hh_sp}{hh_bat}'
-            f'{barrel_row}'
-            f'</div>'
-            + (f'<div class="mu-misc">{_h(" · ".join(misc_parts))}</div>' if misc_parts else "")
-            + f'</div>'
         )
+
+        # -- Lineup card --
+        if off:
+            wc = _wrc_cls(off["label"])
+            bat_rows  = _row("wRC+", off["wrc_s"], wc, off["label"])
+            k_bat_v   = flt(off["k"])
+            bat_rows += _row("K%",   off["k"],   _k_bat_cls(k_bat_v),  _k_bat_lbl(k_bat_v))
+            hh_bat_v  = flt(off["hard"])
+            bat_rows += _row("HH%",  off["hard"], _hh_bat_cls(hh_bat_v), _hh_bat_lbl(hh_bat_v))
+            vs_hd = f'vs {off["vs_hand"]}'
+        else:
+            bat_rows = f'<span class="dim" style="grid-column:1/-1;font-size:.8rem">No data</span>'
+            vs_hd = ""
+
+        bat_card = (
+            f'<div class="mu-card">'
+            f'<div class="mu-card-hd">{_h(bat_team)} <span class="dim" style="font-weight:400">{_h(vs_hd)}</span></div>'
+            f'<div class="mu-2c">{bat_rows}</div>'
+            f'</div>'
+        )
+
+        return f'<div class="mu-cols">{sp_card}{bat_card}</div>'
 
     def _bp_row(team, bp):
         ec = _era_cls(bp["label"])
@@ -1491,9 +1469,29 @@ _SPLIT_SCRIPT = """
     main.appendChild(hd);
     started.forEach(function(c){main.appendChild(c);});
   }
-  document.addEventListener('DOMContentLoaded',split);
+  function localTs(){
+    document.querySelectorAll('.local-ts[data-utc]').forEach(function(el){
+      try{
+        var d=new Date(el.dataset.utc);
+        el.textContent=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',timeZoneName:'short'});
+      }catch(e){}
+    });
+  }
+  document.addEventListener('DOMContentLoaded',function(){split();localTs();});
 })();
 </script>"""
+
+
+def _ts_span(iso: str) -> str:
+    """Render a UTC ISO timestamp as a span the JS will localize to browser TZ."""
+    if not iso:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        fallback = dt.strftime("%H:%M UTC")
+    except Exception:
+        fallback = iso
+    return f'<span class="local-ts" data-utc="{_h(iso)}">{_h(fallback)}</span>'
 
 
 def render_html_page(games: list[dict], target_date: date, generated_at: str,
@@ -1502,7 +1500,8 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
     date_short = target_date.strftime(f"%b {target_date.day}")
     games = sorted(games, key=_time_sort_key)
     cards = "".join(_html_game(g) for g in games)
-    odds_sub = f" · Odds {_h(odds_at)}" if odds_at else ""
+    gen_span  = _ts_span(generated_at)
+    odds_sub  = f" · Odds {_ts_span(odds_at)}" if odds_at else ""
     return (
         f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
         f'<meta charset="utf-8">\n'
@@ -1511,7 +1510,7 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'<style>{_CSS}</style>\n'
         f'</head>\n<body>\n'
         f'<header><h1>MLB Game Overviews</h1>'
-        f'<p class="sub">{_h(date_long)} · Updated {_h(generated_at)}{odds_sub}</p></header>\n'
+        f'<p class="sub">{_h(date_long)} · Updated {gen_span}{odds_sub}</p></header>\n'
         f'<main>{cards}\n</main>{_SPLIT_SCRIPT}\n</body>\n</html>'
     )
 
@@ -1641,7 +1640,8 @@ def main():
             print_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
 
     if args.html:
-        generated_at = datetime.utcnow().strftime("%H:%M UTC")
+        from datetime import timezone as _tz
+        generated_at = datetime.now(_tz.utc).isoformat()
         print(render_html_page(game_data, target_date, generated_at, odds_at))
     else:
         print()
