@@ -620,7 +620,7 @@ def get_recent_starts(player_id: int) -> list[dict]:
     try:
         r = requests.get(
             f"{MLB_API}/people/{player_id}/stats",
-            params={"stats": "gameLog", "season": 2026, "group": "pitching", "hydrate": "game"},
+            params={"stats": "gameLog", "season": 2026, "group": "pitching"},
             timeout=10,
         )
         r.raise_for_status()
@@ -860,24 +860,14 @@ def _extract_outings(history: list[dict], n: int = 5) -> list[dict]:
         except Exception:
             date_s = raw_date[:10]
 
-        # Prefer game result (team W/L) over pitcher decision
-        game_teams  = (s.get("game") or {}).get("teams", {})
-        away_info   = game_teams.get("away", {})
-        home_info   = game_teams.get("home", {})
-        pitcher_tid = (s.get("team") or {}).get("id")
-        away_tid    = (away_info.get("team") or {}).get("id")
-        away_score  = away_info.get("score")
-        home_score  = home_info.get("score")
-        result_s    = None
-        if pitcher_tid and away_score is not None and home_score is not None:
-            if pitcher_tid == away_tid:
-                result_s = "W" if away_score > home_score else "L"
-            else:
-                result_s = "W" if home_score > away_score else "L"
-        if result_s is None:
-            w = int(stat.get("wins", 0) or 0)
-            l = int(stat.get("losses", 0) or 0)
-            result_s = "W" if w else ("L" if l else "?")
+        # isWin = team game result (not pitcher decision)
+        is_win = s.get("isWin")
+        if is_win is True:
+            result_s = "W"
+        elif is_win is False:
+            result_s = "L"
+        else:
+            result_s = "ND"
 
         result.append({
             "date": date_s,
@@ -1413,7 +1403,7 @@ def _html_game(g: dict) -> str:
                '</div>')
         rows = ""
         for o in outings:
-            rc = "ot-w" if o["result"] == "W" else ("ot-l" if o["result"] == "L" else "ot-nd")
+            rc = "ot-w" if o["result"] == "W" else "ot-l" if o["result"] == "L" else "ot-nd"
             rows += (f'<div class="ot-row">'
                      f'<span class="dim">{_h(o["date"])}</span>'
                      f'<span class="{rc}">{_h(o["result"])}</span>'
