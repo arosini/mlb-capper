@@ -1797,7 +1797,7 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
     games = sorted(games, key=_time_sort_key)
     cards = "".join(_html_game(g) for g in games)
     gen_span  = _ts_span(generated_at)
-    odds_sub  = f" · Odds {_ts_span(odds_at)}" if odds_at else ""
+    odds_sub  = f" · Odds Updated {_ts_span(odds_at)}" if odds_at else ""
     return (
         f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
         f'<meta charset="utf-8">\n'
@@ -1806,7 +1806,8 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'<style>{_CSS}</style>\n'
         f'</head>\n<body>\n'
         f'<header><h1>MLB Game Overviews</h1>'
-        f'<p class="sub">{_h(date_long)} · Updated {gen_span}{odds_sub}</p></header>\n'
+        f'<p class="sub">{_h(date_long)}</p>'
+        f'<p class="sub">Updated {gen_span}{odds_sub}</p></header>\n'
         f'<main>{cards}\n</main>{_SPLIT_SCRIPT}\n</body>\n</html>'
     )
 
