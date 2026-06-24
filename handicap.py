@@ -1234,6 +1234,8 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .odds-hd{font-size:.6rem;font-weight:700;color:#9ca3af;text-align:center;text-transform:uppercase;letter-spacing:.04em}
 .odds-val{text-align:center;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .odds-sub{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-top:.45rem;margin-bottom:.1rem}
+.odds-prop-row{display:flex;align-items:center;gap:.4rem;font-size:.82rem;margin:.15rem 0}
+.odds-prop-lbl{font-size:.6rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
 .section-hd{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;border-top:1px solid #e5e7eb;margin:1.2rem 0 .5rem;padding-top:.9rem}
 @media(prefers-color-scheme:dark){.section-hd{color:#9ca3af;border-top-color:#374151}}
 .flags{list-style:none}
@@ -1473,12 +1475,6 @@ def _html_game(g: dict) -> str:
             rows += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_avg)}</span>'
         if sp["bb"] != "?":
             rows += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
-        k_s = _fmt_k_line(k_line)
-        if k_s:
-            rows += f'<span class="mu-lbl">K O/U</span><span class="dim">{_h(k_s.replace("K O/U ",""))}</span>'
-        outs_s = _fmt_k_line(outs_line)
-        if outs_s:
-            rows += f'<span class="mu-lbl">Outs O/U</span><span class="dim">{_h(outs_s.replace("K O/U ",""))}</span>'
         hb = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
         return (f'<div class="mu-card"><div class="mu-card-hd">{_h(sp["name"])} {hb}</div>'
                 f'<div class="mu-2c">{rows}</div></div>')
@@ -1614,22 +1610,32 @@ def _html_game(g: dict) -> str:
                              od["f5_over"], od["f5_under"])
                 + f'</div>'
             )
+        props_html = ""
+        away_k_s = _fmt_k_line(od.get("away_k"))
+        home_k_s = _fmt_k_line(od.get("home_k"))
+        away_outs_s = _fmt_k_line(od.get("away_outs"))
+        home_outs_s = _fmt_k_line(od.get("home_outs"))
+        if away_k_s or home_k_s or away_outs_s or home_outs_s:
+            def _prop_row(name, k_s, outs_s):
+                k_part = f'<span class="odds-prop-lbl">K O/U</span><span class="odds-val">{_h(k_s.replace("K O/U ",""))}</span>' if k_s else ""
+                o_part = f'<span class="odds-prop-lbl">Outs O/U</span><span class="odds-val">{_h(outs_s.replace("K O/U ",""))}</span>' if outs_s else ""
+                return f'<div class="odds-prop-row"><span class="tm">{_h(name)}</span>{k_part}{o_part}</div>'
+            props_html = (
+                f'<div class="odds-sub">Pitcher Props</div>'
+                + _prop_row(sp_a["name"], away_k_s, away_outs_s)
+                + _prop_row(sp_h["name"], home_k_s, home_outs_s)
+            )
         odds_html = (
             f'<details class="sec" id="{g_id}-odds">'
-            f'<summary class="sec-sum">Game Line Odds <span class="dim"{_sub}>· best of DK / FanDuel / Fanatics</span></summary>'
+            f'<summary class="sec-sum">Betting Odds <span class="dim"{_sub}>· best of DK / FanDuel / Fanatics</span></summary>'
             f'<div class="sec-body">'
             f'<div class="odds-sub">Full Game</div>'
             f'<div class="odds-grid">'
             + _odds_rows(od["away_ml"], od["home_ml"],
                          od["away_spread"], od["home_spread"],
                          od["over"], od["under"])
-            + f'</div>{f5_html}</div></details>'
+            + f'</div>{f5_html}{props_html}</div></details>'
         )
-
-    away_k    = od.get("away_k")    if od else None
-    home_k    = od.get("home_k")    if od else None
-    away_outs = od.get("away_outs") if od else None
-    home_outs = od.get("home_outs") if od else None
 
     away_outings = g.get("away_sp_outings", [])
     home_outings = g.get("home_sp_outings", [])
@@ -1641,9 +1647,9 @@ def _html_game(g: dict) -> str:
         f'<summary class="sec-sum">Matchup · SP Last 3 / Team Last 12</summary>'
         f'<div class="sec-body">'
         f'<div class="mu-outer">'
-        f'<div class="mu-col">{_sp_card(sp_a, away_k, away_outs, away_pc)}{_bat_card(home, of_h)}</div>'
+        f'<div class="mu-col">{_sp_card(sp_a, pc_avg=away_pc)}{_bat_card(home, of_h)}</div>'
         f'<div class="mu-divider"></div>'
-        f'<div class="mu-col">{_sp_card(sp_h, home_k, home_outs, home_pc)}{_bat_card(away, of_a)}</div>'
+        f'<div class="mu-col">{_sp_card(sp_h, pc_avg=home_pc)}{_bat_card(away, of_a)}</div>'
         f'</div></div></details>'
     )
 
