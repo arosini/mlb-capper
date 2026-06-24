@@ -133,6 +133,8 @@ def download_odds(data_dir: Path, date_str: str) -> None:
         f"?apiKey={key}"
         "&regions=us"
         "&markets=h2h,spreads,totals"
+        ",h2h_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings"
+        ",pitcher_strikeouts"
         "&bookmakers=draftkings,fanduel,fanatics"
         "&oddsFormat=american"
         "&dateFormat=iso"

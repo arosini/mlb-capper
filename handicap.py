@@ -94,11 +94,11 @@ def _best_price(bookmakers: list, market_key: str, outcome_name: str) -> Optiona
                         best = p
     return best
 
-def _best_spread(bookmakers: list, outcome_name: str) -> tuple:
+def _best_spread(bookmakers: list, outcome_name: str, market_key: str = "spreads") -> tuple:
     best_price, best_point = None, None
     for bk in bookmakers:
         for mkt in bk.get("markets", []):
-            if mkt["key"] != "spreads":
+            if mkt["key"] != market_key:
                 continue
             for oc in mkt.get("outcomes", []):
                 if oc.get("name") == outcome_name:
@@ -106,6 +106,50 @@ def _best_spread(bookmakers: list, outcome_name: str) -> tuple:
                     if p is not None and (best_price is None or p > best_price):
                         best_price, best_point = p, pt
     return best_point, best_price
+
+def _best_total(bookmakers: list, side: str, market_key: str = "totals") -> tuple:
+    """Return (point, price) for the best-priced over or under on the given market."""
+    best_price, best_point = None, None
+    for bk in bookmakers:
+        for mkt in bk.get("markets", []):
+            if mkt["key"] != market_key:
+                continue
+            for oc in mkt.get("outcomes", []):
+                if oc.get("name") == side and oc.get("point") is not None:
+                    p, pt = oc.get("price"), oc.get("point")
+                    if p is not None and (best_price is None or p > best_price):
+                        best_price, best_point = p, pt
+    return best_point, best_price
+
+def _find_pitcher_kline(bookmakers: list, pitcher_name: str) -> Optional[dict]:
+    """Find best-priced K over/under line for a named pitcher across bookmakers."""
+    if not pitcher_name or pitcher_name in ("TBD", ""):
+        return None
+    last = pitcher_name.strip().split()[-1].lower()
+    best_over: Optional[dict] = None
+    best_under: Optional[dict] = None
+    for bk in bookmakers:
+        for mkt in bk.get("markets", []):
+            if mkt["key"] != "pitcher_strikeouts":
+                continue
+            for oc in mkt.get("outcomes", []):
+                if last not in oc.get("name", "").lower():
+                    continue
+                desc = (oc.get("description") or "").lower()
+                p, pt = oc.get("price"), oc.get("point")
+                if "over" in desc:
+                    if p is not None and (best_over is None or p > best_over["price"]):
+                        best_over = {"point": pt, "price": p}
+                elif "under" in desc:
+                    if p is not None and (best_under is None or p > best_under["price"]):
+                        best_under = {"point": pt, "price": p}
+    if best_over is None:
+        return None
+    return {
+        "point": best_over["point"],
+        "over":  best_over["price"],
+        "under": best_under["price"] if best_under else None,
+    }
 
 def _fmt_ml(price) -> str:
     if price is None: return "—"
@@ -122,28 +166,61 @@ def _fmt_total(side: str, point, price) -> str:
     pr = f"+{int(price)}" if price > 0 else str(int(price))
     return f"{side}{point} ({pr})"
 
-def get_game_odds(odds_data: dict, away_code: str, home_code: str) -> Optional[dict]:
+def _fmt_k_line(k: Optional[dict]) -> str:
+    """Format pitcher K O/U as 'K O/U 5.5 (-115 / -105)'."""
+    if not k or k.get("point") is None:
+        return ""
+    pt = k["point"]
+    op = _fmt_ml(k.get("over"))
+    up = _fmt_ml(k.get("under"))
+    return f"K O/U {pt} ({op} / {up})"
+
+def get_game_odds(odds_data: dict, away_code: str, home_code: str,
+                  away_sp_name: str = "", home_sp_name: str = "") -> Optional[dict]:
     away_name = _ODDS_TEAM.get(away_code, "")
     home_name = _ODDS_TEAM.get(home_code, "")
     game = odds_data.get((away_name, home_name))
     if not game:
         return None
     bks = game.get("bookmakers", [])
+
+    # Full-game
     away_sp_pt, away_sp_pr = _best_spread(bks, away_name)
     home_sp_pt, home_sp_pr = _best_spread(bks, home_name)
-    over_pt  = next((oc.get("point") for bk in bks for mkt in bk.get("markets",[])
-                     if mkt["key"]=="totals" for oc in mkt.get("outcomes",[])
-                     if oc.get("name")=="Over" and oc.get("point") is not None), None)
-    under_pt = next((oc.get("point") for bk in bks for mkt in bk.get("markets",[])
-                     if mkt["key"]=="totals" for oc in mkt.get("outcomes",[])
-                     if oc.get("name")=="Under" and oc.get("point") is not None), None)
+    over_pt, over_pr   = _best_total(bks, "Over")
+    under_pt, under_pr = _best_total(bks, "Under")
+
+    # F5
+    away_f5_sp_pt, away_f5_sp_pr = _best_spread(bks, away_name, "spreads_1st_5_innings")
+    home_f5_sp_pt, home_f5_sp_pr = _best_spread(bks, home_name, "spreads_1st_5_innings")
+    f5_over_pt, f5_over_pr   = _best_total(bks, "Over",  "totals_1st_5_innings")
+    f5_under_pt, f5_under_pr = _best_total(bks, "Under", "totals_1st_5_innings")
+    has_f5 = any(v is not None for v in (away_f5_sp_pt, f5_over_pt,
+                                          _best_price(bks, "h2h_1st_5_innings", away_name)))
+
+    # Pitcher K lines
+    away_k = _find_pitcher_kline(bks, away_sp_name)
+    home_k = _find_pitcher_kline(bks, home_sp_name)
+
     return {
-        "away_ml":     _fmt_ml(_best_price(bks, "h2h", away_name)),
-        "home_ml":     _fmt_ml(_best_price(bks, "h2h", home_name)),
-        "away_spread": _fmt_spread(away_sp_pt, away_sp_pr),
-        "home_spread": _fmt_spread(home_sp_pt, home_sp_pr),
-        "over":        _fmt_total("O", over_pt,  _best_price(bks, "totals", "Over")),
-        "under":       _fmt_total("U", under_pt, _best_price(bks, "totals", "Under")),
+        # Full game
+        "away_ml":       _fmt_ml(_best_price(bks, "h2h", away_name)),
+        "home_ml":       _fmt_ml(_best_price(bks, "h2h", home_name)),
+        "away_spread":   _fmt_spread(away_sp_pt, away_sp_pr),
+        "home_spread":   _fmt_spread(home_sp_pt, home_sp_pr),
+        "over":          _fmt_total("O", over_pt,  over_pr),
+        "under":         _fmt_total("U", under_pt, under_pr),
+        # F5
+        "has_f5":        has_f5,
+        "away_f5_ml":    _fmt_ml(_best_price(bks, "h2h_1st_5_innings", away_name)),
+        "home_f5_ml":    _fmt_ml(_best_price(bks, "h2h_1st_5_innings", home_name)),
+        "away_f5_spread":_fmt_spread(away_f5_sp_pt, away_f5_sp_pr),
+        "home_f5_spread":_fmt_spread(home_f5_sp_pt, home_f5_sp_pr),
+        "f5_over":       _fmt_total("O", f5_over_pt, f5_over_pr),
+        "f5_under":      _fmt_total("U", f5_under_pt, f5_under_pr),
+        # Pitcher K lines
+        "away_k":        away_k,
+        "home_k":        home_k,
     }
 
 
@@ -1068,6 +1145,7 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .odds-grid{display:grid;grid-template-columns:2.4rem 1fr 1fr 1fr;gap:.18rem .4rem;font-size:.82rem;align-items:center}
 .odds-hd{font-size:.6rem;font-weight:700;color:#9ca3af;text-align:center;text-transform:uppercase;letter-spacing:.04em}
 .odds-val{text-align:center;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.odds-sub{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-top:.45rem;margin-bottom:.1rem}
 .flags{list-style:none}
 .flags li{font-size:.78rem;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:.18rem .45rem;margin-top:.2rem;border-radius:0 4px 4px 0}
 @media(prefers-color-scheme:dark){
@@ -1204,7 +1282,7 @@ def _html_game(g: dict) -> str:
     venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}</span>'
                   if venue_parts else "")
 
-    def _mu_table(sp, bat_team, off):
+    def _mu_table(sp, bat_team, off, k_line=None):
         """Comparison table: SP stats vs batting lineup stats."""
         def _cell(val_s, cls, lbl):
             if val_s == "?": return '<span class="mu-v dim">?</span>'
@@ -1248,6 +1326,9 @@ def _html_game(g: dict) -> str:
         misc_parts.append(sp["depth"])
         if sp["bb"] != "?":
             misc_parts.append(f'BB% {sp["bb"]}')
+        k_s = _fmt_k_line(k_line)
+        if k_s:
+            misc_parts.append(k_s)
         hand_badge = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
         return (
             f'<div class="mu-wrap">'
@@ -1319,24 +1400,42 @@ def _html_game(g: dict) -> str:
         flags_html = f'<div><div class="sec-hd">Flags</div><ul class="flags">{items}</ul></div>'
 
     _sub = ' style="text-transform:none;font-weight:400;font-size:.62rem"'
-    odds_html = ""
     od = g.get("odds")
+    odds_html = ""
     if od:
+        def _odds_rows(away_ml, home_ml, away_sp, home_sp, ov, un):
+            return (
+                f'<span></span><span class="odds-hd">ML</span>'
+                f'<span class="odds-hd">Spread</span><span class="odds-hd">Total</span>'
+                f'<span class="tm">{_h(away)}</span><span class="odds-val">{_h(away_ml)}</span>'
+                f'<span class="odds-val">{_h(away_sp)}</span><span class="odds-val">{_h(ov)}</span>'
+                f'<span class="tm">{_h(home)}</span><span class="odds-val">{_h(home_ml)}</span>'
+                f'<span class="odds-val">{_h(home_sp)}</span><span class="odds-val">{_h(un)}</span>'
+            )
+        f5_html = ""
+        if od.get("has_f5"):
+            f5_html = (
+                f'<div class="odds-sub">First 5 Innings</div>'
+                f'<div class="odds-grid">'
+                + _odds_rows(od["away_f5_ml"], od["home_f5_ml"],
+                             od["away_f5_spread"], od["home_f5_spread"],
+                             od["f5_over"], od["f5_under"])
+                + f'</div>'
+            )
         odds_html = (
             f'<div><div class="sec-hd">Odds <span class="dim"{_sub}>· best of DK / FanDuel / Fanatics</span></div>'
+            f'<div class="odds-sub">Full Game</div>'
             f'<div class="odds-grid">'
-            f'<span></span><span class="odds-hd">ML</span><span class="odds-hd">Spread</span><span class="odds-hd">Total</span>'
-            f'<span class="tm">{_h(away)}</span><span class="odds-val">{_h(od["away_ml"])}</span>'
-            f'<span class="odds-val">{_h(od["away_spread"])}</span><span class="odds-val">{_h(od["over"])}</span>'
-            f'<span class="tm">{_h(home)}</span><span class="odds-val">{_h(od["home_ml"])}</span>'
-            f'<span class="odds-val">{_h(od["home_spread"])}</span><span class="odds-val">{_h(od["under"])}</span>'
-            f'</div></div>'
+            + _odds_rows(od["away_ml"], od["home_ml"],
+                         od["away_spread"], od["home_spread"],
+                         od["over"], od["under"])
+            + f'</div>{f5_html}</div>'
         )
 
     matchup_html = (
         f'<div><div class="sec-hd">Matchup <span class="dim"{_sub}>· SP last 3 starts / lineup last 12</span></div>'
-        + _mu_table(sp_a, home, of_h)
-        + _mu_table(sp_h, away, of_a)
+        + _mu_table(sp_a, home, of_h, od.get("away_k") if od else None)
+        + _mu_table(sp_h, away, of_a, od.get("home_k") if od else None)
         + f'</div>'
     )
 
@@ -1507,7 +1606,8 @@ def main():
 
         if args.html:
             g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
-            g["odds"] = get_game_odds(odds_data, t1_raw, t2_raw)
+            g["odds"] = get_game_odds(odds_data, t1_raw, t2_raw,
+                                       g["away_sp"]["name"], g["home_sp"]["name"])
             game_data.append(g)
         else:
             print_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
