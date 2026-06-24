@@ -134,7 +134,6 @@ def download_odds(data_dir: Path, date_str: str) -> None:
         "&regions=us"
         "&markets=h2h,spreads,totals"
         ",h2h_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings"
-        ",pitcher_strikeouts"
         "&bookmakers=draftkings,fanduel,fanatics"
         "&oddsFormat=american"
         "&dateFormat=iso"
@@ -154,6 +153,58 @@ def download_odds(data_dir: Path, date_str: str) -> None:
         print(f"  ✓  odds_{date_str}.json  ({len(data)} games, {remaining} API calls remaining)")
     except Exception as e:
         print(f"  [odds] Failed: {e}")
+
+
+def download_pitcher_props(data_dir: Path, date_str: str) -> None:
+    """Fetch pitcher K and outs props from the per-event endpoint (requires Starter plan+).
+    Reads event IDs from the already-saved bulk odds file. Skips if cached."""
+    key = config.ODDS_API_KEY
+    if not key:
+        return
+    props_path = data_dir / f"props_{date_str}.json"
+    if props_path.exists():
+        print(f"  [props] Already cached for {date_str} — skipping")
+        return
+    odds_path = data_dir / f"odds_{date_str}.json"
+    if not odds_path.exists():
+        print(f"  [props] No odds file — skipping pitcher props")
+        return
+    try:
+        games = json.loads(odds_path.read_text())
+    except Exception as e:
+        print(f"  [props] Failed to read odds file: {e}")
+        return
+
+    all_props: dict = {}
+    for game in games:
+        event_id = game.get("id")
+        if not event_id:
+            continue
+        away, home = game.get("away_team", "?"), game.get("home_team", "?")
+        url = (
+            f"https://api.the-odds-api.com/v4/sports/baseball_mlb/events/{event_id}/odds"
+            f"?apiKey={key}"
+            "&regions=us"
+            "&markets=pitcher_strikeouts,pitcher_outs"
+            "&bookmakers=draftkings,fanduel,fanatics"
+            "&oddsFormat=american"
+        )
+        try:
+            r = requests.get(url, timeout=15)
+            remaining = r.headers.get("x-requests-remaining", "?")
+            if r.status_code == 401 or r.status_code == 403:
+                print(f"  [props] Auth error {r.status_code} — pitcher props may require Starter plan")
+                return
+            if not r.ok:
+                print(f"  [props] {away}@{home}: API error {r.status_code}: {r.text[:120]}")
+                continue
+            all_props[event_id] = r.json()
+            print(f"  [props] {away}@{home}: OK ({remaining} remaining)")
+        except Exception as e:
+            print(f"  [props] {away}@{home}: {e}")
+
+    props_path.write_text(json.dumps(all_props, indent=2))
+    print(f"  ✓  props_{date_str}.json ({len(all_props)} games)")
 
 
 def download_all(target_date: date, data_dir: Path, slot: str = "today") -> bool:
@@ -190,6 +241,9 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today") -> bool
 
     print("  Fetching odds...")
     download_odds(data_dir, date_str)
+
+    print("  Fetching pitcher props...")
+    download_pitcher_props(data_dir, date_str)
 
     return ok
 

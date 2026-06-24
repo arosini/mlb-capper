@@ -121,8 +121,8 @@ def _best_total(bookmakers: list, side: str, market_key: str = "totals") -> tupl
                         best_price, best_point = p, pt
     return best_point, best_price
 
-def _find_pitcher_kline(bookmakers: list, pitcher_name: str) -> Optional[dict]:
-    """Find best-priced K over/under line for a named pitcher across bookmakers."""
+def _find_prop_line(bookmakers: list, pitcher_name: str, market_key: str) -> Optional[dict]:
+    """Find best-priced over/under line for a named pitcher on a given prop market."""
     if not pitcher_name or pitcher_name in ("TBD", ""):
         return None
     last = pitcher_name.strip().split()[-1].lower()
@@ -130,7 +130,7 @@ def _find_pitcher_kline(bookmakers: list, pitcher_name: str) -> Optional[dict]:
     best_under: Optional[dict] = None
     for bk in bookmakers:
         for mkt in bk.get("markets", []):
-            if mkt["key"] != "pitcher_strikeouts":
+            if mkt["key"] != market_key:
                 continue
             for oc in mkt.get("outcomes", []):
                 if last not in oc.get("name", "").lower():
@@ -176,7 +176,8 @@ def _fmt_k_line(k: Optional[dict]) -> str:
     return f"K O/U {pt} ({op} / {up})"
 
 def get_game_odds(odds_data: dict, away_code: str, home_code: str,
-                  away_sp_name: str = "", home_sp_name: str = "") -> Optional[dict]:
+                  away_sp_name: str = "", home_sp_name: str = "",
+                  props_data: Optional[dict] = None) -> Optional[dict]:
     away_name = _ODDS_TEAM.get(away_code, "")
     home_name = _ODDS_TEAM.get(home_code, "")
     game = odds_data.get((away_name, home_name))
@@ -198,9 +199,12 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
     has_f5 = any(v is not None for v in (away_f5_sp_pt, f5_over_pt,
                                           _best_price(bks, "h2h_1st_5_innings", away_name)))
 
-    # Pitcher K lines
-    away_k = _find_pitcher_kline(bks, away_sp_name)
-    home_k = _find_pitcher_kline(bks, home_sp_name)
+    # Pitcher props (K strikeouts + outs) from per-event data
+    prop_bks = (props_data or {}).get((away_name, home_name), [])
+    away_k    = _find_prop_line(prop_bks, away_sp_name, "pitcher_strikeouts")
+    home_k    = _find_prop_line(prop_bks, home_sp_name, "pitcher_strikeouts")
+    away_outs = _find_prop_line(prop_bks, away_sp_name, "pitcher_outs")
+    home_outs = _find_prop_line(prop_bks, home_sp_name, "pitcher_outs")
 
     return {
         # Full game
@@ -218,9 +222,11 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
         "home_f5_spread":_fmt_spread(home_f5_sp_pt, home_f5_sp_pr),
         "f5_over":       _fmt_total("O", f5_over_pt, f5_over_pr),
         "f5_under":      _fmt_total("U", f5_under_pt, f5_under_pr),
-        # Pitcher K lines
+        # Pitcher props
         "away_k":        away_k,
         "home_k":        home_k,
+        "away_outs":     away_outs,
+        "home_outs":     home_outs,
     }
 
 
@@ -406,6 +412,24 @@ def load_odds_meta(data_dir: Path, target_date: date) -> str:
         return meta.get("fetched_at", "")
     except Exception:
         return ""
+
+def load_pitcher_props(data_dir: Path, target_date: date) -> dict:
+    """Load per-event pitcher props; returns {(away_team, home_team): bookmakers_list}."""
+    p = _find_file(data_dir, "props", target_date, "json")
+    if not p:
+        return {}
+    try:
+        raw = json.loads(p.read_text())
+        result = {}
+        for event_data in raw.values():
+            away = event_data.get("away_team", "")
+            home = event_data.get("home_team", "")
+            if away and home:
+                result[(away, home)] = event_data.get("bookmakers", [])
+        return result
+    except Exception:
+        return {}
+
 
 def load_ballpark_weather(data_dir: Path, target_date: date) -> dict:
     """Returns dict keyed by frozenset({away_team, home_team}) → game weather dict."""
@@ -1270,7 +1294,7 @@ def _html_game(g: dict) -> str:
     venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}</span>'
                   if venue_parts else "")
 
-    def _mu_table(sp, bat_team, off, k_line=None):
+    def _mu_table(sp, bat_team, off, k_line=None, outs_line=None):
         """Two side-by-side 2-column cards: pitcher stats | lineup stats."""
         def _row(lbl, val_s, cls="", lbl_txt=""):
             if val_s == "?":
@@ -1297,6 +1321,9 @@ def _html_game(g: dict) -> str:
         k_s = _fmt_k_line(k_line)
         if k_s:
             sp_rows += f'<span class="mu-lbl">K O/U</span><span class="dim">{_h(k_s.replace("K O/U ",""))}</span>'
+        outs_s = _fmt_k_line(outs_line)
+        if outs_s:
+            sp_rows += f'<span class="mu-lbl">Outs O/U</span><span class="dim">{_h(outs_s.replace("K O/U ",""))}</span>'
 
         hand_badge = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
         sp_card = (
@@ -1414,13 +1441,13 @@ def _html_game(g: dict) -> str:
 
     matchup_html = (
         f'<div><div class="sec-hd">Matchup <span class="dim"{_sub}>· SP last 3 starts / lineup last 12</span></div>'
-        + _mu_table(sp_a, home, of_h, od.get("away_k") if od else None)
-        + _mu_table(sp_h, away, of_a, od.get("home_k") if od else None)
+        + _mu_table(sp_a, home, of_h, od.get("away_k") if od else None, od.get("away_outs") if od else None)
+        + _mu_table(sp_h, away, of_a, od.get("home_k") if od else None, od.get("home_outs") if od else None)
         + f'</div>'
     )
 
     return (
-        f'\n<details class="game" open data-start-min="{_time_sort_key(g)}" id="{_h(away)}-{_h(home)}">'
+        f'\n<details class="game" data-start-min="{_time_sort_key(g)}" id="{_h(away)}-{_h(home)}">'
         f'\n  <summary>'
         f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}</div>{venue_html}</div>'
         f'\n  </summary>'
@@ -1451,6 +1478,7 @@ def _time_sort_key(g: dict) -> int:
 _SPLIT_SCRIPT = """
 <script>
 (function(){
+  var STORE='mlb_open';
   function etMin(){
     var et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
     return et.getHours()*60+et.getMinutes();
@@ -1462,12 +1490,24 @@ _SPLIT_SCRIPT = """
     var cards=Array.from(main.querySelectorAll('details.game[data-start-min]'));
     var started=cards.filter(function(c){return +c.dataset.startMin<=now&&+c.dataset.startMin<1440;});
     if(!started.length)return;
-    started.forEach(function(c){c.removeAttribute('open');});
     var hd=document.createElement('h2');
     hd.className='section-hd';
     hd.textContent='In Progress / Completed';
     main.appendChild(hd);
     started.forEach(function(c){main.appendChild(c);});
+  }
+  function saveState(){
+    var open=Array.from(document.querySelectorAll('details.game[open]')).map(function(d){return d.id;});
+    try{localStorage.setItem(STORE,JSON.stringify(open));}catch(e){}
+  }
+  function restoreState(){
+    var saved;
+    try{saved=JSON.parse(localStorage.getItem(STORE)||'[]');}catch(e){saved=[];}
+    if(!saved.length)return;
+    var ids=new Set(saved);
+    document.querySelectorAll('details.game').forEach(function(d){
+      if(ids.has(d.id))d.setAttribute('open','');
+    });
   }
   function localTs(){
     document.querySelectorAll('.local-ts[data-utc]').forEach(function(el){
@@ -1477,7 +1517,14 @@ _SPLIT_SCRIPT = """
       }catch(e){}
     });
   }
-  document.addEventListener('DOMContentLoaded',function(){split();localTs();});
+  document.addEventListener('DOMContentLoaded',function(){
+    split();
+    restoreState();
+    localTs();
+    document.querySelectorAll('details.game').forEach(function(d){
+      d.addEventListener('toggle',saveState);
+    });
+  });
 })();
 </script>"""
 
@@ -1605,7 +1652,9 @@ def main():
 
     odds_data = load_odds(data_dir, target_date)
     _log(f"Odds: {len(odds_data)} games loaded" if odds_data else "Odds: no file found")
-    odds_at = load_odds_meta(data_dir, target_date)
+    odds_at   = load_odds_meta(data_dir, target_date)
+    props_data = load_pitcher_props(data_dir, target_date)
+    _log(f"Props: {len(props_data)} games loaded" if props_data else "Props: no file found")
 
     game_data: list[dict] = []
     for p1, p2 in games:
@@ -1634,7 +1683,8 @@ def main():
         if args.html:
             g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
             g["odds"] = get_game_odds(odds_data, t1_raw, t2_raw,
-                                       g["away_sp"]["name"], g["home_sp"]["name"])
+                                       g["away_sp"]["name"], g["home_sp"]["name"],
+                                       props_data)
             game_data.append(g)
         else:
             print_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
