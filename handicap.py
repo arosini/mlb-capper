@@ -80,8 +80,8 @@ _MLB_NAME_TO_CODE.update({
 
 def load_odds(data_dir: Path, target_date: date) -> dict:
     """Load Odds API JSON; returns {(away_name, home_name): game_dict}."""
-    p = _find_file(data_dir, "odds", target_date, "json")
-    if not p:
+    p = data_dir / f"odds_{target_date.strftime('%Y-%m-%d')}.json"
+    if not p.exists():
         return {}
     raw = json.loads(p.read_text())
     return {(g["away_team"], g["home_team"]): g for g in raw if isinstance(g, dict)}
