@@ -1182,7 +1182,15 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .era-elite{color:#16a34a}.era-good{color:#2563eb}.era-avg{color:#6b7280}.era-below{color:#d97706}.era-poor{color:#dc2626}.era-na{color:#9ca3af}
 .wrc-elite{color:#16a34a}.wrc-above{color:#2563eb}.wrc-avg{color:#6b7280}.wrc-below{color:#d97706}.wrc-poor{color:#dc2626}
 .dim{color:#9ca3af;font-size:.795rem}
-.mu-pair{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.3rem 0}
+.mu-outer{display:grid;grid-template-columns:1fr 1px 1fr;gap:0 .55rem;align-items:start}
+.mu-col{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.mu-divider{background:rgba(0,0,0,.1);align-self:stretch}
+.sec{border:1px solid rgba(0,0,0,.09);border-radius:.42rem;overflow:hidden}
+.sec-sum{display:flex;align-items:center;padding:.38rem .55rem;cursor:pointer;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;list-style:none;user-select:none}
+.sec-sum::-webkit-details-marker{display:none}
+.sec-sum::after{content:'▾';margin-left:auto;font-size:.6rem;opacity:.7}
+.sec:not([open])>.sec-sum::after{content:'▸'}
+.sec-body{padding:.3rem .5rem .5rem}
 .mu-card{background:rgba(0,0,0,.028);border-radius:.35rem;padding:.35rem .5rem}
 .mu-card-hd{font-size:.75rem;font-weight:700;margin-bottom:.25rem}
 .mu-2c{display:grid;grid-template-columns:auto 1fr;gap:.13rem .5rem;font-size:.82rem;align-items:baseline}
@@ -1219,6 +1227,8 @@ header{background:#030712}
 .gs-venue{color:#6b7280}
 .sec-hd{color:#6b7280}
 .mu-card{background:rgba(255,255,255,.05)}
+.mu-divider{background:rgba(255,255,255,.12)}
+.sec{border-color:#2a2a2a}
 .mu-lbl{color:#6b7280}
 .ot-hd span{color:#6b7280}
 .stats b{color:#d1d5db}
@@ -1426,6 +1436,8 @@ def _html_game(g: dict) -> str:
                 f'<span><b>ERA</b> {_h(bp["era_s"])}</span>'
                 f'</div></div>')
 
+    g_id = f"{_h(away)}-{_h(home)}"
+
     wx = g["wx"]
     wx_html = ""
     if wx:
@@ -1450,17 +1462,24 @@ def _html_game(g: dict) -> str:
         cond_line = ""
         if apf_html or rain_html:
             cond_line = f'<div>{apf_html}{rain_html}</div>'
+        wx_body = (f'<div class="dim">{_h(", ".join(parts))}</div>' if parts else "") + cond_line
         wx_html = (
-            f'<div><div class="sec-hd">Weather</div>'
-            + (f'<div class="dim">{_h(", ".join(parts))}</div>' if parts else "")
-            + cond_line
-            + f'</div>'
+            f'<details class="sec" id="{g_id}-weather" open>'
+            f'<summary class="sec-sum">Weather</summary>'
+            f'<div class="sec-body">{wx_body}</div>'
+            f'</details>'
         )
 
     flags_html = ""
     if g["flags"]:
+        n = len(g["flags"])
         items = "".join(f'<li>{_h(f)}</li>' for f in g["flags"])
-        flags_html = f'<div><div class="sec-hd">Flags</div><ul class="flags">{items}</ul></div>'
+        flags_html = (
+            f'<details class="sec" id="{g_id}-flags" open>'
+            f'<summary class="sec-sum">Flags · {n}</summary>'
+            f'<div class="sec-body"><ul class="flags">{items}</ul></div>'
+            f'</details>'
+        )
 
     _sub = ' style="text-transform:none;font-weight:400;font-size:.62rem"'
     od = g.get("odds")
@@ -1499,25 +1518,46 @@ def _html_game(g: dict) -> str:
     home_k    = od.get("home_k")    if od else None
     away_outs = od.get("away_outs") if od else None
     home_outs = od.get("home_outs") if od else None
+
     matchup_html = (
-        f'<div><div class="sec-hd">Matchup <span class="dim"{_sub}>· SP last 3 starts / lineup last 12</span></div>'
-        f'<div class="mu-pair">{_sp_card(sp_a, away_k, away_outs)}{_bat_card(home, of_h)}</div>'
-        + _outing_table(g.get("away_sp_outings", []), sp_a["name"])
-        + f'<div class="mu-pair">{_sp_card(sp_h, home_k, home_outs)}{_bat_card(away, of_a)}</div>'
-        + _outing_table(g.get("home_sp_outings", []), sp_h["name"])
-        + f'</div>'
+        f'<details class="sec" id="{g_id}-matchup" open>'
+        f'<summary class="sec-sum">Matchup</summary>'
+        f'<div class="sec-body">'
+        f'<div class="mu-outer">'
+        f'<div class="mu-col">{_sp_card(sp_a, away_k, away_outs)}{_bat_card(home, of_h)}</div>'
+        f'<div class="mu-divider"></div>'
+        f'<div class="mu-col">{_sp_card(sp_h, home_k, home_outs)}{_bat_card(away, of_a)}</div>'
+        f'</div></div></details>'
+    )
+
+    outings_a = _outing_table(g.get("away_sp_outings", []), sp_a["name"])
+    outings_h = _outing_table(g.get("home_sp_outings", []), sp_h["name"])
+    outings_html = ""
+    if outings_a or outings_h:
+        outings_html = (
+            f'<details class="sec" id="{g_id}-outings" open>'
+            f'<summary class="sec-sum">Pitcher Outings</summary>'
+            f'<div class="sec-body">{outings_a}{outings_h}</div>'
+            f'</details>'
+        )
+
+    bullpen_html = (
+        f'<details class="sec" id="{g_id}-bullpen" open>'
+        f'<summary class="sec-sum">Bullpens</summary>'
+        f'<div class="sec-body">{_bp_row(away,bp_a)}{_bp_row(home,bp_h)}</div>'
+        f'</details>'
     )
 
     return (
-        f'\n<details class="game" data-start-min="{_time_sort_key(g)}" id="{_h(away)}-{_h(home)}">'
+        f'\n<details class="game" data-start-min="{_time_sort_key(g)}" id="{g_id}">'
         f'\n  <summary>'
         f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}</div>{venue_html}</div>'
         f'\n  </summary>'
         f'\n  <div class="gd">'
         f'\n    {odds_html}'
         f'\n    {matchup_html}'
-        f'\n    <div><div class="sec-hd">Bullpens <span class="dim"{_sub}>· last 12</span></div>'
-        f'{_bp_row(away,bp_a)}{_bp_row(home,bp_h)}</div>'
+        f'\n    {outings_html}'
+        f'\n    {bullpen_html}'
         f'\n    {wx_html}'
         f'\n    {flags_html}'
         f'\n  </div>'
@@ -1540,7 +1580,8 @@ def _time_sort_key(g: dict) -> int:
 _SPLIT_SCRIPT = """
 <script>
 (function(){
-  var STORE='mlb_open';
+  var GAME_STORE='mlb_open';
+  var SEC_STORE='mlb_sec_closed';
   function etMin(){
     var et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
     return et.getHours()*60+et.getMinutes();
@@ -1558,17 +1599,30 @@ _SPLIT_SCRIPT = """
     main.appendChild(hd);
     started.forEach(function(c){main.appendChild(c);});
   }
-  function saveState(){
+  function saveGames(){
     var open=Array.from(document.querySelectorAll('details.game[open]')).map(function(d){return d.id;});
-    try{localStorage.setItem(STORE,JSON.stringify(open));}catch(e){}
+    try{localStorage.setItem(GAME_STORE,JSON.stringify(open));}catch(e){}
   }
-  function restoreState(){
+  function restoreGames(){
     var saved;
-    try{saved=JSON.parse(localStorage.getItem(STORE)||'[]');}catch(e){saved=[];}
+    try{saved=JSON.parse(localStorage.getItem(GAME_STORE)||'[]');}catch(e){saved=[];}
     if(!saved.length)return;
     var ids=new Set(saved);
     document.querySelectorAll('details.game').forEach(function(d){
       if(ids.has(d.id))d.setAttribute('open','');
+    });
+  }
+  function saveSections(){
+    var closed=Array.from(document.querySelectorAll('details.sec:not([open])')).map(function(d){return d.id;});
+    try{localStorage.setItem(SEC_STORE,JSON.stringify(closed));}catch(e){}
+  }
+  function restoreSections(){
+    var saved;
+    try{saved=JSON.parse(localStorage.getItem(SEC_STORE)||'[]');}catch(e){saved=[];}
+    if(!saved.length)return;
+    var ids=new Set(saved);
+    document.querySelectorAll('details.sec').forEach(function(d){
+      if(ids.has(d.id))d.removeAttribute('open');
     });
   }
   function localTs(){
@@ -1581,10 +1635,14 @@ _SPLIT_SCRIPT = """
   }
   document.addEventListener('DOMContentLoaded',function(){
     split();
-    restoreState();
+    restoreGames();
+    restoreSections();
     localTs();
     document.querySelectorAll('details.game').forEach(function(d){
-      d.addEventListener('toggle',saveState);
+      d.addEventListener('toggle',saveGames);
+    });
+    document.querySelectorAll('details.sec').forEach(function(d){
+      d.addEventListener('toggle',saveSections);
     });
   });
 })();
