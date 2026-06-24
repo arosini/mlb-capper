@@ -1505,13 +1505,15 @@ def _html_game(g: dict) -> str:
                 + f'</div>'
             )
         odds_html = (
-            f'<div><div class="sec-hd">Odds <span class="dim"{_sub}>· best of DK / FanDuel / Fanatics</span></div>'
+            f'<details class="sec" id="{g_id}-odds" open>'
+            f'<summary class="sec-sum">Game Line Odds <span class="dim"{_sub}>· best of DK / FanDuel / Fanatics</span></summary>'
+            f'<div class="sec-body">'
             f'<div class="odds-sub">Full Game</div>'
             f'<div class="odds-grid">'
             + _odds_rows(od["away_ml"], od["home_ml"],
                          od["away_spread"], od["home_spread"],
                          od["over"], od["under"])
-            + f'</div>{f5_html}</div>'
+            + f'</div>{f5_html}</div></details>'
         )
 
     away_k    = od.get("away_k")    if od else None
@@ -1802,7 +1804,7 @@ def main():
 
         if args.html:
             g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
-            g["odds"] = get_game_odds(odds_data, t1_raw, t2_raw,
+            g["odds"] = get_game_odds(odds_data, g["away"], g["home"],
                                        g["away_sp"]["name"], g["home_sp"]["name"],
                                        props_data)
             game_data.append(g)
