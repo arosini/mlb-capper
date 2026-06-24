@@ -138,14 +138,17 @@ def _find_prop_line(bookmakers: list, pitcher_name: str, market_key: str) -> Opt
             if mkt["key"] != market_key:
                 continue
             for oc in mkt.get("outcomes", []):
-                if last not in oc.get("name", "").lower():
+                # Odds API player props: name="Over"/"Under", description=pitcher name
+                # Some books flip it, so check both fields for the pitcher name
+                pitcher_field = (oc.get("description") or oc.get("name") or "").lower()
+                if last not in pitcher_field:
                     continue
-                desc = (oc.get("description") or "").lower()
+                side = (oc.get("name") or oc.get("description") or "").lower()
                 p, pt = oc.get("price"), oc.get("point")
-                if "over" in desc:
+                if "over" in side:
                     if p is not None and (best_over is None or p > best_over["price"]):
                         best_over = {"point": pt, "price": p}
-                elif "under" in desc:
+                elif "under" in side:
                     if p is not None and (best_under is None or p > best_under["price"]):
                         best_under = {"point": pt, "price": p}
     if best_over is None:
