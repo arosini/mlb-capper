@@ -1616,14 +1616,22 @@ def _html_game(g: dict) -> str:
         away_outs_s = _fmt_k_line(od.get("away_outs"))
         home_outs_s = _fmt_k_line(od.get("home_outs"))
         if away_k_s or home_k_s or away_outs_s or home_outs_s:
+            has_outs = away_outs_s or home_outs_s
+            cols = "1fr 1fr 1fr" if has_outs else "1fr 1fr"
+            def _prop_val(s): return _h(s.replace("K O/U ", "")) if s else "—"
             def _prop_row(name, k_s, outs_s):
-                k_part = f'<span class="odds-prop-lbl">K O/U</span><span class="odds-val">{_h(k_s.replace("K O/U ",""))}</span>' if k_s else ""
-                o_part = f'<span class="odds-prop-lbl">Outs O/U</span><span class="odds-val">{_h(outs_s.replace("K O/U ",""))}</span>' if outs_s else ""
-                return f'<div class="odds-prop-row"><span class="tm">{_h(name)}</span>{k_part}{o_part}</div>'
+                outs_cell = f'<span class="odds-val">{_prop_val(outs_s)}</span>' if has_outs else ""
+                return (f'<span class="tm">{_h(name)}</span>'
+                        f'<span class="odds-val">{_prop_val(k_s)}</span>'
+                        + outs_cell)
+            outs_hd = '<span class="odds-hd">Outs O/U</span>' if has_outs else ""
             props_html = (
                 f'<div class="odds-sub">Pitcher Props</div>'
+                f'<div class="odds-grid" style="grid-template-columns:{cols}">'
+                f'<span></span><span class="odds-hd">K O/U</span>{outs_hd}'
                 + _prop_row(sp_a["name"], away_k_s, away_outs_s)
                 + _prop_row(sp_h["name"], home_k_s, home_outs_s)
+                + f'</div>'
             )
         odds_html = (
             f'<details class="sec" id="{g_id}-odds">'
