@@ -196,20 +196,20 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
     over_pt, over_pr   = _best_total(bks, "Over")
     under_pt, under_pr = _best_total(bks, "Under")
 
-    # F5
-    away_f5_sp_pt, away_f5_sp_pr = _best_spread(bks, away_name, "spreads_1st_5_innings")
-    home_f5_sp_pt, home_f5_sp_pr = _best_spread(bks, home_name, "spreads_1st_5_innings")
-    f5_over_pt, f5_over_pr   = _best_total(bks, "Over",  "totals_1st_5_innings")
-    f5_under_pt, f5_under_pr = _best_total(bks, "Under", "totals_1st_5_innings")
-    has_f5 = any(v is not None for v in (away_f5_sp_pt, f5_over_pt,
-                                          _best_price(bks, "h2h_1st_5_innings", away_name)))
-
-    # Pitcher props (K strikeouts + outs) from per-event data
+    # Per-event data (pitcher props + F5 odds — all from per-event endpoint)
     prop_bks = (props_data or {}).get((away_name, home_name), [])
     away_k    = _find_prop_line(prop_bks, away_sp_name, "pitcher_strikeouts")
     home_k    = _find_prop_line(prop_bks, home_sp_name, "pitcher_strikeouts")
     away_outs = _find_prop_line(prop_bks, away_sp_name, "pitcher_outs")
     home_outs = _find_prop_line(prop_bks, home_sp_name, "pitcher_outs")
+
+    # F5 — from per-event endpoint (not available on free bulk endpoint)
+    away_f5_sp_pt, away_f5_sp_pr = _best_spread(prop_bks, away_name, "spreads_1st_5_innings")
+    home_f5_sp_pt, home_f5_sp_pr = _best_spread(prop_bks, home_name, "spreads_1st_5_innings")
+    f5_over_pt, f5_over_pr   = _best_total(prop_bks, "Over",  "totals_1st_5_innings")
+    f5_under_pt, f5_under_pr = _best_total(prop_bks, "Under", "totals_1st_5_innings")
+    has_f5 = any(v is not None for v in (away_f5_sp_pt, f5_over_pt,
+                                          _best_price(prop_bks, "h2h_1st_5_innings", away_name)))
 
     return {
         # Full game
@@ -219,10 +219,10 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
         "home_spread":   _fmt_spread(home_sp_pt, home_sp_pr),
         "over":          _fmt_total("O", over_pt,  over_pr),
         "under":         _fmt_total("U", under_pt, under_pr),
-        # F5
+        # F5 (from per-event endpoint)
         "has_f5":        has_f5,
-        "away_f5_ml":    _fmt_ml(_best_price(bks, "h2h_1st_5_innings", away_name)),
-        "home_f5_ml":    _fmt_ml(_best_price(bks, "h2h_1st_5_innings", home_name)),
+        "away_f5_ml":    _fmt_ml(_best_price(prop_bks, "h2h_1st_5_innings", away_name)),
+        "home_f5_ml":    _fmt_ml(_best_price(prop_bks, "h2h_1st_5_innings", home_name)),
         "away_f5_spread":_fmt_spread(away_f5_sp_pt, away_f5_sp_pr),
         "home_f5_spread":_fmt_spread(home_f5_sp_pt, home_f5_sp_pr),
         "f5_over":       _fmt_total("O", f5_over_pt, f5_over_pr),

@@ -185,6 +185,7 @@ def download_pitcher_props(data_dir: Path, date_str: str) -> None:
             f"?apiKey={key}"
             "&regions=us"
             "&markets=pitcher_strikeouts,pitcher_outs"
+            ",h2h_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings"
             "&bookmakers=draftkings,fanduel,fanatics"
             "&oddsFormat=american"
         )
