@@ -1238,6 +1238,8 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .wx-badge{font-size:.63rem;font-weight:700;background:#e0f2fe;color:#0369a1;padding:.05rem .35rem;border-radius:3px;white-space:nowrap;margin-left:.4rem}
 .wx-badge.wx-warn{background:#fef3c7;color:#92400e}
 .wx-badge.wx-hot{background:#fee2e2;color:#b91c1c}
+.wx-badge.wx-hitter{background:#fef3c7;color:#92400e}
+.wx-badge.wx-pitcher{background:#d1fae5;color:#065f46}
 @media(prefers-color-scheme:dark){
 body{background:#0f0f0f;color:#e5e5e5}
 header{background:#030712}
@@ -1256,6 +1258,8 @@ header{background:#030712}
 .wx-badge{background:#0c2a3a;color:#7dd3fc}
 .wx-badge.wx-warn{background:#2d1a00;color:#fbbf24}
 .wx-badge.wx-hot{background:#2d0a0a;color:#fca5a5}
+.wx-badge.wx-hitter{background:#2d1a00;color:#fbbf24}
+.wx-badge.wx-pitcher{background:#022c22;color:#6ee7b7}
 }
 """
 
@@ -1409,8 +1413,21 @@ def _html_game(g: dict) -> str:
     time_str = wx.get("game_time_local", "").replace(" ET", "").strip()
     venue_parts = [p for p in [time_str, venue_str] if p.strip()]
     wx_lbl, wx_cls = _wx_summary(wx)
-    wx_badge_html = (f'<span class="wx-badge {wx_cls}">{_h(wx_lbl)}</span>'
-                     if wx_lbl and is_open_air else "")
+    apf_raw = wx.get("adjusted_park_factor") if wx else None
+    _apf_cls_pre, apf_lbl_pre = _apf_cls_lbl(apf_raw)
+    apf_notable = apf_raw is not None and apf_lbl_pre != "Neutral"
+    # Effective label: weather conditions take priority; fall back to APF if notable
+    if wx_lbl:
+        effective_wx_lbl = wx_lbl
+        effective_wx_cls = wx_cls
+    elif apf_notable and is_open_air:
+        effective_wx_lbl = apf_lbl_pre  # "Hitter Friendly" or "Pitcher Friendly"
+        effective_wx_cls = "wx-hitter" if "Hitter" in apf_lbl_pre else "wx-pitcher"
+    else:
+        effective_wx_lbl = ""
+        effective_wx_cls = ""
+    wx_badge_html = (f'<span class="wx-badge {effective_wx_cls}">{_h(effective_wx_lbl)}</span>'
+                     if effective_wx_lbl and is_open_air else "")
     venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}{wx_badge_html}</span>'
                   if venue_parts else "")
 
@@ -1543,7 +1560,7 @@ def _html_game(g: dict) -> str:
         if apf_html or rain_html:
             cond_line = f'<div>{apf_html}{rain_html}</div>'
         wx_body = (f'<div class="dim">{_h(", ".join(parts))}</div>' if parts else "") + cond_line
-        wx_sum_lbl = f"Weather · {wx_lbl}" if wx_lbl else "Weather"
+        wx_sum_lbl = f"Weather · {effective_wx_lbl}" if effective_wx_lbl else "Weather"
         wx_html = (
             f'<details class="sec" id="{g_id}-weather">'
             f'<summary class="sec-sum">{_h(wx_sum_lbl)}</summary>'
