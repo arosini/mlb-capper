@@ -307,6 +307,8 @@ def _load_starters_json(path: Path) -> list[dict]:
             "LOB%":         s.get("lob_pct"),
             "Outs/GS":      s.get("outs_per_gs"),
             "Pitches/PA":   s.get("pitches_per_pa"),
+            "H":            s.get("h") or s.get("hit_cnt"),
+            "Games":        s.get("games"),
         })
     return [r for r in result if r.get("Name")]
 
@@ -886,6 +888,7 @@ def _extract_outings(history: list[dict], n: int = 5) -> list[dict]:
             "ip":      stat.get("inningsPitched", "?"),
             "pc":      stat.get("numberOfPitches"),
             "k":       stat.get("strikeOuts"),
+            "h":       stat.get("hits"),
             "bb":      stat.get("baseOnBalls"),
             "er":      stat.get("earnedRuns"),
             "r":       stat.get("runs"),
@@ -944,6 +947,8 @@ def analyze_game(
             "bb":     fp1(p.get("BB%")),
             "hard":   fp1(p.get("Hard-Hit%")),
             "barrel": fp1(p.get("Barrel%")),
+            "h_per_gs": (lambda h, g: f"{h/g:.1f}" if h and g else "?")(
+                flt(p.get("H")), flt(p.get("Games"))),
         }
 
     def _off(batting: str, pitcher: dict) -> Optional[dict]:
@@ -1209,7 +1214,7 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .mu-lbl{color:#9ca3af;font-size:.75rem;white-space:nowrap}
 .mu-v{font-weight:600;font-variant-numeric:tabular-nums}
 .ot-wrap{font-size:.74rem}
-.ot-row{display:grid;grid-template-columns:3rem 3.2rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .18rem;align-items:center;padding:.04rem 0}
+.ot-row{display:grid;grid-template-columns:3rem 3.2rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .18rem;align-items:center;padding:.04rem 0}
 .ot-hd span{font-size:.62rem;font-weight:700;color:#9ca3af;text-align:center}
 .ot-hd span:first-child{text-align:left}
 .ot-row span{text-align:center}
@@ -1389,8 +1394,17 @@ def _html_game(g: dict) -> str:
 
     wx = g["wx"] or {}
     roof = wx.get("roof_status", "")
-    is_open_air = roof in ("Open Air", "N/A", "")
-    roof_paren = f" ({roof})" if roof and not is_open_air else ""
+    # Determine indoor label (Dome / Roof Closed) — None means open air
+    if not roof or roof in ("Open Air", "N/A") or "open" in roof.lower():
+        indoor_label = None
+    elif "dome" in roof.lower():
+        indoor_label = "Dome"
+    elif "closed" in roof.lower():
+        indoor_label = "Roof Closed"
+    else:
+        indoor_label = roof
+    is_open_air = indoor_label is None
+    roof_paren = f" ({indoor_label})" if indoor_label else ""
     venue_str = (g["venue"] or "") + roof_paren
     time_str = wx.get("game_time_local", "").replace(" ET", "").strip()
     venue_parts = [p for p in [time_str, venue_str] if p.strip()]
@@ -1407,7 +1421,11 @@ def _html_game(g: dict) -> str:
         cls_attr = f' class="mu-v {cls}"' if cls else ' class="mu-v"'
         return f'<span class="mu-lbl">{_h(lbl)}</span><span{cls_attr}>{_h(val_s)}{lbl_part}</span>'
 
-    def _sp_card(sp, k_line=None, outs_line=None):
+    def _outing_avg(outings, key, n=3):
+        vals = [o[key] for o in outings[:n] if o.get(key) is not None]
+        return f"{sum(vals)/len(vals):.0f}" if vals else None
+
+    def _sp_card(sp, k_line=None, outs_line=None, pc_avg=None):
         ec = _era_cls(sp["label"])
         rows  = _row("xERA",    sp["xera_s"], ec,             sp["label"])
         k_v   = flt(sp["k"])
@@ -1420,6 +1438,10 @@ def _html_game(g: dict) -> str:
         if sp["era_s"] != "?":
             rows += f'<span class="mu-lbl">ERA</span><span class="mu-v">{_h(sp["era_s"])}</span>'
         rows += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
+        if sp["h_per_gs"] != "?":
+            rows += f'<span class="mu-lbl">H/gs</span><span class="dim">{_h(sp["h_per_gs"])}</span>'
+        if pc_avg:
+            rows += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_avg)}</span>'
         if sp["bb"] != "?":
             rows += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
         k_s = _fmt_k_line(k_line)
@@ -1454,7 +1476,7 @@ def _html_game(g: dict) -> str:
         def _v(v): return "—" if v is None else str(v)
         hdr = ('<div class="ot-row ot-hd">'
                '<span>Date</span><span>Opp</span><span>Res</span>'
-               '<span>IP</span><span>PC</span><span>K</span><span>BB</span><span>ER</span><span>R</span>'
+               '<span>IP</span><span>PC</span><span>K</span><span>H</span><span>BB</span><span>ER</span><span>R</span>'
                '</div>')
         rows = ""
         for o in outings:
@@ -1471,6 +1493,7 @@ def _html_game(g: dict) -> str:
                      f'<span>{_h(_v(o["ip"]))}</span>'
                      f'<span class="dim">{_h(_v(o["pc"]))}</span>'
                      f'<span>{_h(_v(o["k"]))}</span>'
+                     f'<span class="dim">{_h(_v(o["h"]))}</span>'
                      f'<span class="dim">{_h(_v(o["bb"]))}</span>'
                      f'<span>{_h(_v(o["er"]))}</span>'
                      f'<span class="dim">{_h(_v(o["r"]))}</span>'
@@ -1490,7 +1513,14 @@ def _html_game(g: dict) -> str:
     g_id = f"{_h(away)}-{_h(home)}"
 
     wx_html = ""
-    if wx:
+    if indoor_label:
+        wx_html = (
+            f'<details class="sec" id="{g_id}-weather">'
+            f'<summary class="sec-sum">Weather · {_h(indoor_label)}</summary>'
+            f'<div class="sec-body"><span class="dim">{_h(indoor_label)}</span></div>'
+            f'</details>'
+        )
+    elif wx:
         parts = []
         if wx.get("temperature") is not None:
             parts.append(f"{wx['temperature']:.0f}°F")
@@ -1572,19 +1602,24 @@ def _html_game(g: dict) -> str:
     away_outs = od.get("away_outs") if od else None
     home_outs = od.get("home_outs") if od else None
 
+    away_outings = g.get("away_sp_outings", [])
+    home_outings = g.get("home_sp_outings", [])
+    away_pc = _outing_avg(away_outings, "pc")
+    home_pc = _outing_avg(home_outings, "pc")
+
     matchup_html = (
         f'<details class="sec" id="{g_id}-matchup" open>'
         f'<summary class="sec-sum">Matchup · SP Last 3 / Team Last 12</summary>'
         f'<div class="sec-body">'
         f'<div class="mu-outer">'
-        f'<div class="mu-col">{_sp_card(sp_a, away_k, away_outs)}{_bat_card(home, of_h)}</div>'
+        f'<div class="mu-col">{_sp_card(sp_a, away_k, away_outs, away_pc)}{_bat_card(home, of_h)}</div>'
         f'<div class="mu-divider"></div>'
-        f'<div class="mu-col">{_sp_card(sp_h, home_k, home_outs)}{_bat_card(away, of_a)}</div>'
+        f'<div class="mu-col">{_sp_card(sp_h, home_k, home_outs, home_pc)}{_bat_card(away, of_a)}</div>'
         f'</div></div></details>'
     )
 
-    outings_a = _outing_table(g.get("away_sp_outings", []))
-    outings_h = _outing_table(g.get("home_sp_outings", []))
+    outings_a = _outing_table(away_outings)
+    outings_h = _outing_table(home_outings)
     outings_html = ""
     if outings_a:
         outings_html += (
