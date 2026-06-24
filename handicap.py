@@ -1270,7 +1270,7 @@ def _apf_cls_lbl(v):
     if v >= 93:  return "era-good",  "Pitcher Friendly"
     return "era-elite", "Pitcher Friendly"
 
-def _html_game(g: dict, open: bool = True) -> str:
+def _html_game(g: dict) -> str:
     away, home = g["away"], g["home"]
     sp_a, sp_h = g["away_sp"], g["home_sp"]
     of_a, of_h = g["away_off"], g["home_off"]
@@ -1442,7 +1442,7 @@ def _html_game(g: dict, open: bool = True) -> str:
     )
 
     return (
-        f'\n<details class="game"{" open" if open else ""} id="{_h(away)}-{_h(home)}">'
+        f'\n<details class="game" open data-start-min="{_time_sort_key(g)}" id="{_h(away)}-{_h(home)}">'
         f'\n  <summary>'
         f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}</div>{venue_html}</div>'
         f'\n  </summary>'
@@ -1470,44 +1470,38 @@ def _time_sort_key(g: dict) -> int:
     return h * 60 + mn
 
 
-def _now_et_minutes() -> int:
-    """Current time as minutes since midnight, Eastern Time."""
-    from datetime import timezone
-    try:
-        from zoneinfo import ZoneInfo
-        now = datetime.now(ZoneInfo("America/New_York"))
-    except Exception:
-        now = datetime.now(timezone.utc)
-    return now.hour * 60 + now.minute
+_SPLIT_SCRIPT = """
+<script>
+(function(){
+  function etMin(){
+    var et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+    return et.getHours()*60+et.getMinutes();
+  }
+  function split(){
+    var now=etMin();
+    var main=document.querySelector('main');
+    if(!main)return;
+    var cards=Array.from(main.querySelectorAll('details.game[data-start-min]'));
+    var started=cards.filter(function(c){return +c.dataset.startMin<=now&&+c.dataset.startMin<1440;});
+    if(!started.length)return;
+    started.forEach(function(c){c.removeAttribute('open');});
+    var hd=document.createElement('h2');
+    hd.className='section-hd';
+    hd.textContent='In Progress / Completed';
+    main.appendChild(hd);
+    started.forEach(function(c){main.appendChild(c);});
+  }
+  document.addEventListener('DOMContentLoaded',split);
+})();
+</script>"""
 
 
 def render_html_page(games: list[dict], target_date: date, generated_at: str,
                      odds_at: str = "") -> str:
-    import datetime as _dt
     date_long = target_date.strftime(f"%A, %B {target_date.day}, %Y")
     date_short = target_date.strftime(f"%b {target_date.day}")
     games = sorted(games, key=_time_sort_key)
-
-    # Only split today's games; for past/future dates show all as upcoming
-    today = _dt.date.today()
-    if target_date == today:
-        now_min = _now_et_minutes()
-        upcoming = [g for g in games if _time_sort_key(g) > now_min]
-        started  = [g for g in games if _time_sort_key(g) <= now_min]
-    else:
-        upcoming = games
-        started  = []
-
-    upcoming_cards = "".join(_html_game(g, open=True)  for g in upcoming)
-    started_cards  = "".join(_html_game(g, open=False) for g in started)
-
-    started_section = ""
-    if started_cards:
-        started_section = (
-            f'\n<h2 class="section-hd">In Progress / Completed</h2>'
-            f'{started_cards}'
-        )
-
+    cards = "".join(_html_game(g) for g in games)
     odds_sub = f" · Odds {_h(odds_at)}" if odds_at else ""
     return (
         f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
@@ -1518,7 +1512,7 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'</head>\n<body>\n'
         f'<header><h1>MLB Game Overviews</h1>'
         f'<p class="sub">{_h(date_long)} · Updated {_h(generated_at)}{odds_sub}</p></header>\n'
-        f'<main>{upcoming_cards}{started_section}\n</main>\n</body>\n</html>'
+        f'<main>{cards}\n</main>{_SPLIT_SCRIPT}\n</body>\n</html>'
     )
 
 
