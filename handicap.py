@@ -72,6 +72,11 @@ _ODDS_TEAM = {
     "TBR": "Tampa Bay Rays",        "TEX": "Texas Rangers",
     "TOR": "Toronto Blue Jays",     "WSN": "Washington Nationals",
 }
+# Reverse mapping: MLB API team name → Handigraphs code
+_MLB_NAME_TO_CODE: dict[str, str] = {v: k for k, v in _ODDS_TEAM.items()}
+_MLB_NAME_TO_CODE.update({
+    "Oakland Athletics": "ATH",  # pre-relocation name still used in some MLB API responses
+})
 
 def load_odds(data_dir: Path, target_date: date) -> dict:
     """Load Odds API JSON; returns {(away_name, home_name): game_dict}."""
@@ -869,15 +874,21 @@ def _extract_outings(history: list[dict], n: int = 5) -> list[dict]:
         else:
             result_s = "ND"
 
+        opp_full = (s.get("opponent") or {}).get("name", "")
+        opp_code = _MLB_NAME_TO_CODE.get(opp_full, opp_full[:3].upper() if opp_full else "?")
+        is_home  = s.get("isHome")
+
         result.append({
-            "date": date_s,
-            "result": result_s,
-            "ip":   stat.get("inningsPitched", "?"),
-            "pc":   stat.get("numberOfPitches"),
-            "k":    stat.get("strikeOuts"),
-            "bb":   stat.get("baseOnBalls"),
-            "er":   stat.get("earnedRuns"),
-            "r":    stat.get("runs"),
+            "date":    date_s,
+            "ha":      "H" if is_home else ("@" if is_home is False else "?"),
+            "opp":     opp_code,
+            "result":  result_s,
+            "ip":      stat.get("inningsPitched", "?"),
+            "pc":      stat.get("numberOfPitches"),
+            "k":       stat.get("strikeOuts"),
+            "bb":      stat.get("baseOnBalls"),
+            "er":      stat.get("earnedRuns"),
+            "r":       stat.get("runs"),
         })
         if len(result) >= n:
             break
@@ -1196,9 +1207,8 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .mu-2c{display:grid;grid-template-columns:auto 1fr;gap:.13rem .5rem;font-size:.82rem;align-items:baseline}
 .mu-lbl{color:#9ca3af;font-size:.75rem;white-space:nowrap}
 .mu-v{font-weight:600;font-variant-numeric:tabular-nums}
-.ot-wrap{font-size:.74rem;margin:.1rem 0 .3rem}
-.ot-lbl{font-size:.65rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem}
-.ot-row{display:grid;grid-template-columns:3.2rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .2rem;align-items:center;padding:.04rem 0}
+.ot-wrap{font-size:.74rem}
+.ot-row{display:grid;grid-template-columns:3rem 1.4rem 2.4rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .18rem;align-items:center;padding:.04rem 0}
 .ot-hd span{font-size:.62rem;font-weight:700;color:#9ca3af;text-align:center}
 .ot-hd span:first-child{text-align:left}
 .ot-row span{text-align:center}
@@ -1219,6 +1229,9 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 @media(prefers-color-scheme:dark){.section-hd{color:#9ca3af;border-top-color:#374151}}
 .flags{list-style:none}
 .flags li{font-size:.78rem;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:.18rem .45rem;margin-top:.2rem;border-radius:0 4px 4px 0}
+.wx-badge{font-size:.63rem;font-weight:700;background:#e0f2fe;color:#0369a1;padding:.05rem .35rem;border-radius:3px;white-space:nowrap;margin-left:.4rem}
+.wx-badge.wx-warn{background:#fef3c7;color:#92400e}
+.wx-badge.wx-hot{background:#fee2e2;color:#b91c1c}
 @media(prefers-color-scheme:dark){
 body{background:#0f0f0f;color:#e5e5e5}
 header{background:#030712}
@@ -1234,6 +1247,9 @@ header{background:#030712}
 .stats b{color:#d1d5db}
 .hb{background:#374151;color:#d1d5db}
 .flags li{background:#1c1400;border-left-color:#b45309;color:#fbbf24}
+.wx-badge{background:#0c2a3a;color:#7dd3fc}
+.wx-badge.wx-warn{background:#2d1a00;color:#fbbf24}
+.wx-badge.wx-hot{background:#2d0a0a;color:#fca5a5}
 }
 """
 
@@ -1340,18 +1356,47 @@ def _apf_cls_lbl(v):
     if v >= 93:  return "era-good",  "Pitcher Friendly"
     return "era-elite", "Pitcher Friendly"
 
+def _wx_summary(wx: dict) -> tuple[str, str]:
+    """Return (label, css_class) for weather badge. Empty label = no badge."""
+    if not wx:
+        return "", ""
+    desc = (wx.get("weather_description") or "").lower()
+    if any(x in desc for x in ("thunder", "lightning", "storm")):
+        return "Lightning", "wx-warn"
+    parts = []
+    cls = ""
+    if wx.get("precip_risk_during_game") or any(x in desc for x in ("rain", "drizzle", "shower")):
+        parts.append("Rainy")
+    temp = wx.get("temperature")
+    if temp is not None:
+        if temp < 50:
+            parts.append("Cold")
+        elif temp > 90:
+            parts.append("Hot")
+            cls = "wx-hot"
+    wind = wx.get("wind_speed")
+    if wind is not None and wind > 15:
+        parts.append("Windy")
+    return ", ".join(parts), cls or ("wx-warn" if parts else "")
+
+
 def _html_game(g: dict) -> str:
     away, home = g["away"], g["home"]
     sp_a, sp_h = g["away_sp"], g["home_sp"]
     of_a, of_h = g["away_off"], g["home_off"]
     bp_a, bp_h = g["away_bp"], g["home_bp"]
 
-    roof = (g["wx"] or {}).get("roof_status", "")
-    roof_paren = f" ({roof})" if roof and roof not in ("Open Air", "N/A") else ""
+    wx = g["wx"] or {}
+    roof = wx.get("roof_status", "")
+    is_open_air = roof in ("Open Air", "N/A", "")
+    roof_paren = f" ({roof})" if roof and not is_open_air else ""
     venue_str = (g["venue"] or "") + roof_paren
-    time_str = (g["wx"] or {}).get("game_time_local", "").replace(" ET", "").strip()
+    time_str = wx.get("game_time_local", "").replace(" ET", "").strip()
     venue_parts = [p for p in [time_str, venue_str] if p.strip()]
-    venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}</span>'
+    wx_lbl, wx_cls = _wx_summary(wx)
+    wx_badge_html = (f'<span class="wx-badge {wx_cls}">{_h(wx_lbl)}</span>'
+                     if wx_lbl and is_open_air else "")
+    venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}{wx_badge_html}</span>'
                   if venue_parts else "")
 
     def _row(lbl, val_s, cls="", lbl_txt=""):
@@ -1402,20 +1447,21 @@ def _html_game(g: dict) -> str:
                 f'{_h(team)} <span class="dim" style="font-weight:400">{_h(vs)}</span></div>'
                 f'<div class="mu-2c">{rows}</div></div>')
 
-    def _outing_table(outings, sp_name):
+    def _outing_table(outings):
         if not outings:
             return ""
         def _v(v): return "—" if v is None else str(v)
-        lbl = f'<div class="ot-lbl">{_h(sp_name)} · Last {len(outings)} Outings</div>'
         hdr = ('<div class="ot-row ot-hd">'
-               '<span>Date</span><span>Res</span><span>IP</span>'
-               '<span>PC</span><span>K</span><span>BB</span><span>ER</span><span>R</span>'
+               '<span>Date</span><span>H/A</span><span>Opp</span><span>Res</span>'
+               '<span>IP</span><span>PC</span><span>K</span><span>BB</span><span>ER</span><span>R</span>'
                '</div>')
         rows = ""
         for o in outings:
             rc = "ot-w" if o["result"] == "W" else "ot-l" if o["result"] == "L" else "ot-nd"
             rows += (f'<div class="ot-row">'
                      f'<span class="dim">{_h(o["date"])}</span>'
+                     f'<span class="dim">{_h(o["ha"])}</span>'
+                     f'<span class="dim">{_h(o["opp"])}</span>'
                      f'<span class="{rc}">{_h(o["result"])}</span>'
                      f'<span>{_h(_v(o["ip"]))}</span>'
                      f'<span class="dim">{_h(_v(o["pc"]))}</span>'
@@ -1424,7 +1470,7 @@ def _html_game(g: dict) -> str:
                      f'<span>{_h(_v(o["er"]))}</span>'
                      f'<span class="dim">{_h(_v(o["r"]))}</span>'
                      f'</div>')
-        return f'<div class="ot-wrap">{lbl}{hdr}{rows}</div>'
+        return f'<div class="ot-wrap">{hdr}{rows}</div>'
 
     def _bp_row(team, bp):
         ec = _era_cls(bp["label"])
@@ -1438,7 +1484,6 @@ def _html_game(g: dict) -> str:
 
     g_id = f"{_h(away)}-{_h(home)}"
 
-    wx = g["wx"]
     wx_html = ""
     if wx:
         parts = []
@@ -1463,9 +1508,10 @@ def _html_game(g: dict) -> str:
         if apf_html or rain_html:
             cond_line = f'<div>{apf_html}{rain_html}</div>'
         wx_body = (f'<div class="dim">{_h(", ".join(parts))}</div>' if parts else "") + cond_line
+        wx_sum_lbl = f"Weather · {wx_lbl}" if wx_lbl else "Weather"
         wx_html = (
-            f'<details class="sec" id="{g_id}-weather" open>'
-            f'<summary class="sec-sum">Weather</summary>'
+            f'<details class="sec" id="{g_id}-weather">'
+            f'<summary class="sec-sum">{_h(wx_sum_lbl)}</summary>'
             f'<div class="sec-body">{wx_body}</div>'
             f'</details>'
         )
@@ -1523,7 +1569,7 @@ def _html_game(g: dict) -> str:
 
     matchup_html = (
         f'<details class="sec" id="{g_id}-matchup" open>'
-        f'<summary class="sec-sum">Matchup</summary>'
+        f'<summary class="sec-sum">Matchup · SP Last 3 / Team Last 12</summary>'
         f'<div class="sec-body">'
         f'<div class="mu-outer">'
         f'<div class="mu-col">{_sp_card(sp_a, away_k, away_outs)}{_bat_card(home, of_h)}</div>'
@@ -1532,20 +1578,27 @@ def _html_game(g: dict) -> str:
         f'</div></div></details>'
     )
 
-    outings_a = _outing_table(g.get("away_sp_outings", []), sp_a["name"])
-    outings_h = _outing_table(g.get("home_sp_outings", []), sp_h["name"])
+    outings_a = _outing_table(g.get("away_sp_outings", []))
+    outings_h = _outing_table(g.get("home_sp_outings", []))
     outings_html = ""
-    if outings_a or outings_h:
-        outings_html = (
-            f'<details class="sec" id="{g_id}-outings" open>'
-            f'<summary class="sec-sum">Pitcher Outings</summary>'
-            f'<div class="sec-body">{outings_a}{outings_h}</div>'
+    if outings_a:
+        outings_html += (
+            f'<details class="sec" id="{g_id}-outings-away" open>'
+            f'<summary class="sec-sum">{_h(sp_a["name"])} · Last 5 Outings</summary>'
+            f'<div class="sec-body">{outings_a}</div>'
+            f'</details>'
+        )
+    if outings_h:
+        outings_html += (
+            f'<details class="sec" id="{g_id}-outings-home" open>'
+            f'<summary class="sec-sum">{_h(sp_h["name"])} · Last 5 Outings</summary>'
+            f'<div class="sec-body">{outings_h}</div>'
             f'</details>'
         )
 
     bullpen_html = (
         f'<details class="sec" id="{g_id}-bullpen" open>'
-        f'<summary class="sec-sum">Bullpens</summary>'
+        f'<summary class="sec-sum">Bullpens · Last 12</summary>'
         f'<div class="sec-body">{_bp_row(away,bp_a)}{_bp_row(home,bp_h)}</div>'
         f'</details>'
     )
@@ -1615,16 +1668,21 @@ _SPLIT_SCRIPT = """
     });
   }
   function saveSections(){
-    var closed=Array.from(document.querySelectorAll('details.sec:not([open])')).map(function(d){return d.id;});
-    try{localStorage.setItem(SEC_STORE,JSON.stringify(closed));}catch(e){}
+    var state={};
+    document.querySelectorAll('details.sec').forEach(function(d){
+      if(d.id)state[d.id]=d.hasAttribute('open');
+    });
+    try{localStorage.setItem(SEC_STORE,JSON.stringify(state));}catch(e){}
   }
   function restoreSections(){
     var saved;
-    try{saved=JSON.parse(localStorage.getItem(SEC_STORE)||'[]');}catch(e){saved=[];}
-    if(!saved.length)return;
-    var ids=new Set(saved);
+    try{saved=JSON.parse(localStorage.getItem(SEC_STORE)||'null');}catch(e){saved=null;}
+    if(!saved)return;
     document.querySelectorAll('details.sec').forEach(function(d){
-      if(ids.has(d.id))d.removeAttribute('open');
+      if(d.id in saved){
+        if(saved[d.id])d.setAttribute('open','');
+        else d.removeAttribute('open');
+      }
     });
   }
   function localTs(){
