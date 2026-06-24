@@ -1814,7 +1814,11 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'<header><h1>MLB Game Overviews</h1>'
         f'<p class="sub">{_h(date_long)}</p>'
         f'<p class="sub">Updated {gen_span}{odds_sub}</p></header>\n'
-        f'<main>{cards}\n</main>{_SPLIT_SCRIPT}\n</body>\n</html>'
+        f'<main>{cards}\n</main>'
+        f'<footer style="text-align:center;padding:1.5rem 1rem;font-size:.75rem;color:#9ca3af">'
+        f'Powered by <a href="https://handigraphs.com" target="_blank" rel="noopener" style="color:#9ca3af">Handigraphs</a>'
+        f'</footer>'
+        f'{_SPLIT_SCRIPT}\n</body>\n</html>'
     )
 
 
