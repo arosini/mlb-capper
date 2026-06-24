@@ -620,7 +620,7 @@ def get_recent_starts(player_id: int) -> list[dict]:
     try:
         r = requests.get(
             f"{MLB_API}/people/{player_id}/stats",
-            params={"stats": "gameLog", "season": 2026, "group": "pitching"},
+            params={"stats": "gameLog", "season": 2026, "group": "pitching", "hydrate": "game"},
             timeout=10,
         )
         r.raise_for_status()
@@ -859,11 +859,29 @@ def _extract_outings(history: list[dict], n: int = 5) -> list[dict]:
             date_s = dt.strftime("%b %-d")
         except Exception:
             date_s = raw_date[:10]
-        w = int(stat.get("wins", 0) or 0)
-        l = int(stat.get("losses", 0) or 0)
+
+        # Prefer game result (team W/L) over pitcher decision
+        game_teams  = (s.get("game") or {}).get("teams", {})
+        away_info   = game_teams.get("away", {})
+        home_info   = game_teams.get("home", {})
+        pitcher_tid = (s.get("team") or {}).get("id")
+        away_tid    = (away_info.get("team") or {}).get("id")
+        away_score  = away_info.get("score")
+        home_score  = home_info.get("score")
+        result_s    = None
+        if pitcher_tid and away_score is not None and home_score is not None:
+            if pitcher_tid == away_tid:
+                result_s = "W" if away_score > home_score else "L"
+            else:
+                result_s = "W" if home_score > away_score else "L"
+        if result_s is None:
+            w = int(stat.get("wins", 0) or 0)
+            l = int(stat.get("losses", 0) or 0)
+            result_s = "W" if w else ("L" if l else "?")
+
         result.append({
             "date": date_s,
-            "dec":  "W" if w else ("L" if l else "ND"),
+            "result": result_s,
             "ip":   stat.get("inningsPitched", "?"),
             "pc":   stat.get("numberOfPitches"),
             "k":    stat.get("strikeOuts"),
@@ -1174,15 +1192,14 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .era-elite{color:#16a34a}.era-good{color:#2563eb}.era-avg{color:#6b7280}.era-below{color:#d97706}.era-poor{color:#dc2626}.era-na{color:#9ca3af}
 .wrc-elite{color:#16a34a}.wrc-above{color:#2563eb}.wrc-avg{color:#6b7280}.wrc-below{color:#d97706}.wrc-poor{color:#dc2626}
 .dim{color:#9ca3af;font-size:.795rem}
-.mu-outer{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin:.35rem 0}
-.mu-col{display:flex;flex-direction:column;gap:.35rem}
-@media(max-width:540px){.mu-outer{grid-template-columns:1fr}}
+.mu-pair{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.3rem 0}
 .mu-card{background:rgba(0,0,0,.028);border-radius:.35rem;padding:.35rem .5rem}
 .mu-card-hd{font-size:.75rem;font-weight:700;margin-bottom:.25rem}
 .mu-2c{display:grid;grid-template-columns:auto 1fr;gap:.13rem .5rem;font-size:.82rem;align-items:baseline}
 .mu-lbl{color:#9ca3af;font-size:.75rem;white-space:nowrap}
 .mu-v{font-weight:600;font-variant-numeric:tabular-nums}
-.ot-wrap{font-size:.74rem}
+.ot-wrap{font-size:.74rem;margin:.1rem 0 .3rem}
+.ot-lbl{font-size:.65rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem}
 .ot-row{display:grid;grid-template-columns:3.2rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .2rem;align-items:center;padding:.04rem 0}
 .ot-hd span{font-size:.62rem;font-weight:700;color:#9ca3af;text-align:center}
 .ot-hd span:first-child{text-align:left}
@@ -1385,20 +1402,21 @@ def _html_game(g: dict) -> str:
                 f'{_h(team)} <span class="dim" style="font-weight:400">{_h(vs)}</span></div>'
                 f'<div class="mu-2c">{rows}</div></div>')
 
-    def _outing_table(outings):
+    def _outing_table(outings, sp_name):
         if not outings:
             return ""
         def _v(v): return "—" if v is None else str(v)
+        lbl = f'<div class="ot-lbl">{_h(sp_name)} · Last {len(outings)} Outings</div>'
         hdr = ('<div class="ot-row ot-hd">'
-               '<span>Date</span><span>Dec</span><span>IP</span>'
+               '<span>Date</span><span>Res</span><span>IP</span>'
                '<span>PC</span><span>K</span><span>BB</span><span>ER</span><span>R</span>'
                '</div>')
         rows = ""
         for o in outings:
-            dc = "ot-w" if o["dec"] == "W" else ("ot-l" if o["dec"] == "L" else "ot-nd")
+            rc = "ot-w" if o["result"] == "W" else ("ot-l" if o["result"] == "L" else "ot-nd")
             rows += (f'<div class="ot-row">'
                      f'<span class="dim">{_h(o["date"])}</span>'
-                     f'<span class="{dc}">{_h(o["dec"])}</span>'
+                     f'<span class="{rc}">{_h(o["result"])}</span>'
                      f'<span>{_h(_v(o["ip"]))}</span>'
                      f'<span class="dim">{_h(_v(o["pc"]))}</span>'
                      f'<span>{_h(_v(o["k"]))}</span>'
@@ -1406,7 +1424,7 @@ def _html_game(g: dict) -> str:
                      f'<span>{_h(_v(o["er"]))}</span>'
                      f'<span class="dim">{_h(_v(o["r"]))}</span>'
                      f'</div>')
-        return f'<div class="ot-wrap">{hdr}{rows}</div>'
+        return f'<div class="ot-wrap">{lbl}{hdr}{rows}</div>'
 
     def _bp_row(team, bp):
         ec = _era_cls(bp["label"])
@@ -1493,19 +1511,11 @@ def _html_game(g: dict) -> str:
     home_outs = od.get("home_outs") if od else None
     matchup_html = (
         f'<div><div class="sec-hd">Matchup <span class="dim"{_sub}>· SP last 3 starts / lineup last 12</span></div>'
-        f'<div class="mu-outer">'
-        f'<div class="mu-col">'
-        + _sp_card(sp_a, away_k, away_outs)
-        + _outing_table(g.get("away_sp_outings", []))
-        + _bat_card(home, of_h)
+        f'<div class="mu-pair">{_sp_card(sp_a, away_k, away_outs)}{_bat_card(home, of_h)}</div>'
+        + _outing_table(g.get("away_sp_outings", []), sp_a["name"])
+        + f'<div class="mu-pair">{_sp_card(sp_h, home_k, home_outs)}{_bat_card(away, of_a)}</div>'
+        + _outing_table(g.get("home_sp_outings", []), sp_h["name"])
         + f'</div>'
-        f'<div class="mu-col">'
-        + _sp_card(sp_h, home_k, home_outs)
-        + _outing_table(g.get("home_sp_outings", []))
-        + _bat_card(away, of_a)
-        + f'</div>'
-        f'</div>'
-        f'</div>'
     )
 
     return (
