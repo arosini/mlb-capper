@@ -12,7 +12,7 @@ Or call download_all() from handicap.py via --refresh.
 
 import json
 import sys
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
 from pathlib import Path
 
 try:
@@ -117,17 +117,40 @@ def _fetch(session: requests.Session, url: str) -> dict | list | None:
         return None
 
 
-def download_odds(data_dir: Path, date_str: str) -> None:
+def _parse_utc(ts: str) -> datetime:
+    """Parse ISO timestamp to UTC datetime; returns epoch on failure."""
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        return datetime.fromtimestamp(0, tz=timezone.utc)
+
+
+def _odds_age_minutes(data_dir: Path, date_str: str) -> float:
+    """Return minutes since last odds fetch, or infinity if never fetched."""
+    from datetime import timezone
+    meta_path = data_dir / f"odds_meta_{date_str}.json"
+    if not meta_path.exists():
+        return float("inf")
+    try:
+        meta = json.loads(meta_path.read_text())
+        fetched_at = datetime.fromisoformat(meta["fetched_at"])
+        return (datetime.now(timezone.utc) - fetched_at).total_seconds() / 60
+    except Exception:
+        return float("inf")
+
+
+def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 180) -> None:
     """Fetch full-game odds from The Odds API (DK, FanDuel, Fanatics). No auth needed.
-    Skips the API call if a cached file already exists for this date."""
+    Skips if odds were fetched within max_age_minutes (default 3 hours)."""
     key = config.ODDS_API_KEY
     if not key:
         print("  [odds] ODDS_API_KEY not set — skipping odds download")
         return
-    odds_path = data_dir / f"odds_{date_str}.json"
-    if odds_path.exists():
-        print(f"  [odds] Already cached for {date_str} — skipping API call")
+    age = _odds_age_minutes(data_dir, date_str)
+    if age < max_age_minutes:
+        print(f"  [odds] Fetched {age:.0f}m ago — skipping (refresh every {max_age_minutes}m)")
         return
+    odds_path = data_dir / f"odds_{date_str}.json"
     url = (
         "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/"
         f"?apiKey={key}"
@@ -143,27 +166,39 @@ def download_odds(data_dir: Path, date_str: str) -> None:
         if not r.ok:
             print(f"  [odds] API error {r.status_code}: {r.text[:200]}")
             return
-        data = r.json()
+        new_data = r.json()
+        # Merge: API drops started games, so preserve their odds from the old file
+        now = datetime.now(timezone.utc)
+        old_games = {}
+        if odds_path.exists():
+            try:
+                for g in json.loads(odds_path.read_text()):
+                    old_games[g["id"]] = g
+            except Exception:
+                pass
+        new_ids = {g["id"] for g in new_data}
+        started = [g for gid, g in old_games.items() if gid not in new_ids
+                   and _parse_utc(g.get("commence_time", "")) < now]
+        data = new_data + started
         odds_path.write_text(json.dumps(data, indent=2))
-        # Save fetch timestamp so the page can show when odds were last pulled
-        from datetime import timezone
-        meta = {"fetched_at": datetime.now(timezone.utc).isoformat()}
+        meta = {"fetched_at": now.isoformat()}
         (data_dir / f"odds_meta_{date_str}.json").write_text(json.dumps(meta))
-        print(f"  ✓  odds_{date_str}.json  ({len(data)} games, {remaining} API calls remaining)")
+        print(f"  ✓  odds_{date_str}.json  ({len(new_data)} upcoming + {len(started)} started, {remaining} API calls remaining)")
     except Exception as e:
         print(f"  [odds] Failed: {e}")
 
 
-def download_pitcher_props(data_dir: Path, date_str: str) -> None:
+def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 180) -> None:
     """Fetch pitcher K and outs props from the per-event endpoint (requires Starter plan+).
-    Reads event IDs from the already-saved bulk odds file. Skips if cached."""
+    Reads event IDs from the already-saved bulk odds file. Skips if fetched within max_age_minutes."""
     key = config.ODDS_API_KEY
     if not key:
         return
-    props_path = data_dir / f"props_{date_str}.json"
-    if props_path.exists():
-        print(f"  [props] Already cached for {date_str} — skipping")
+    age = _odds_age_minutes(data_dir, date_str)
+    if age < max_age_minutes:
+        print(f"  [props] Fetched {age:.0f}m ago — skipping")
         return
+    props_path = data_dir / f"props_{date_str}.json"
     odds_path = data_dir / f"odds_{date_str}.json"
     if not odds_path.exists():
         print(f"  [props] No odds file — skipping pitcher props")
@@ -174,12 +209,16 @@ def download_pitcher_props(data_dir: Path, date_str: str) -> None:
         print(f"  [props] Failed to read odds file: {e}")
         return
 
+    now = datetime.now(timezone.utc)
     all_props: dict = {}
     for game in games:
         event_id = game.get("id")
         if not event_id:
             continue
         away, home = game.get("away_team", "?"), game.get("home_team", "?")
+        if _parse_utc(game.get("commence_time", "")) < now:
+            print(f"  [props] {away}@{home}: already started — skipping")
+            continue
         url = (
             f"https://api.the-odds-api.com/v4/sports/baseball_mlb/events/{event_id}/odds"
             f"?apiKey={key}"

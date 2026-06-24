@@ -2,7 +2,7 @@ name: Update MLB Dashboard
 
 on:
   schedule:
-    - cron: '0 10 * * *'  # 6 AM ET (10 AM UTC)
+    - cron: '0 */3 * * *'  # every 3 hours
   workflow_dispatch:        # manual trigger
   push:
     branches: [main]        # redeploy on every push to main
