@@ -1415,19 +1415,28 @@ def _html_game(g: dict) -> str:
     wx_lbl, wx_cls = _wx_summary(wx)
     apf_raw = wx.get("adjusted_park_factor") if wx else None
     _apf_cls_pre, apf_lbl_pre = _apf_cls_lbl(apf_raw)
-    apf_notable = apf_raw is not None and apf_lbl_pre != "Neutral"
-    # Effective label: weather conditions take priority; fall back to APF if notable
-    if wx_lbl:
-        effective_wx_lbl = wx_lbl
-        effective_wx_cls = wx_cls
-    elif apf_notable and is_open_air:
-        effective_wx_lbl = apf_lbl_pre  # "Hitter Friendly" or "Pitcher Friendly"
-        effective_wx_cls = "wx-hitter" if "Hitter" in apf_lbl_pre else "wx-pitcher"
+    apf_display = "Neutral Conditions" if apf_lbl_pre == "Neutral" else apf_lbl_pre
+    # Effective label only for open-air parks — prevents indoor leakage
+    if is_open_air:
+        if wx_lbl:
+            effective_wx_lbl = wx_lbl
+            effective_wx_cls = wx_cls
+        elif apf_raw is not None:
+            effective_wx_lbl = apf_display
+            if "Hitter" in apf_lbl_pre:
+                effective_wx_cls = "wx-hitter"
+            elif "Pitcher" in apf_lbl_pre:
+                effective_wx_cls = "wx-pitcher"
+            else:
+                effective_wx_cls = ""
+        else:
+            effective_wx_lbl = ""
+            effective_wx_cls = ""
     else:
         effective_wx_lbl = ""
         effective_wx_cls = ""
     wx_badge_html = (f'<span class="wx-badge {effective_wx_cls}">{_h(effective_wx_lbl)}</span>'
-                     if effective_wx_lbl and is_open_air else "")
+                     if effective_wx_lbl else "")
     venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}{wx_badge_html}</span>'
                   if venue_parts else "")
 
