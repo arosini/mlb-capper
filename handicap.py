@@ -1146,6 +1146,8 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .odds-hd{font-size:.6rem;font-weight:700;color:#9ca3af;text-align:center;text-transform:uppercase;letter-spacing:.04em}
 .odds-val{text-align:center;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .odds-sub{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;margin-top:.45rem;margin-bottom:.1rem}
+.section-hd{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;border-top:1px solid #e5e7eb;margin:1.2rem 0 .5rem;padding-top:.9rem}
+@media(prefers-color-scheme:dark){.section-hd{color:#9ca3af;border-top-color:#374151}}
 .flags{list-style:none}
 .flags li{font-size:.78rem;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:.18rem .45rem;margin-top:.2rem;border-radius:0 4px 4px 0}
 @media(prefers-color-scheme:dark){
@@ -1268,7 +1270,7 @@ def _apf_cls_lbl(v):
     if v >= 93:  return "era-good",  "Pitcher Friendly"
     return "era-elite", "Pitcher Friendly"
 
-def _html_game(g: dict) -> str:
+def _html_game(g: dict, open: bool = True) -> str:
     away, home = g["away"], g["home"]
     sp_a, sp_h = g["away_sp"], g["home_sp"]
     of_a, of_h = g["away_off"], g["home_off"]
@@ -1440,7 +1442,7 @@ def _html_game(g: dict) -> str:
     )
 
     return (
-        f'\n<details class="game" open id="{_h(away)}-{_h(home)}">'
+        f'\n<details class="game"{" open" if open else ""} id="{_h(away)}-{_h(home)}">'
         f'\n  <summary>'
         f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}</div>{venue_html}</div>'
         f'\n  </summary>'
@@ -1468,12 +1470,44 @@ def _time_sort_key(g: dict) -> int:
     return h * 60 + mn
 
 
+def _now_et_minutes() -> int:
+    """Current time as minutes since midnight, Eastern Time."""
+    from datetime import timezone
+    try:
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo("America/New_York"))
+    except Exception:
+        now = datetime.now(timezone.utc)
+    return now.hour * 60 + now.minute
+
+
 def render_html_page(games: list[dict], target_date: date, generated_at: str,
                      odds_at: str = "") -> str:
+    import datetime as _dt
     date_long = target_date.strftime(f"%A, %B {target_date.day}, %Y")
     date_short = target_date.strftime(f"%b {target_date.day}")
     games = sorted(games, key=_time_sort_key)
-    cards = "".join(_html_game(g) for g in games)
+
+    # Only split today's games; for past/future dates show all as upcoming
+    today = _dt.date.today()
+    if target_date == today:
+        now_min = _now_et_minutes()
+        upcoming = [g for g in games if _time_sort_key(g) > now_min]
+        started  = [g for g in games if _time_sort_key(g) <= now_min]
+    else:
+        upcoming = games
+        started  = []
+
+    upcoming_cards = "".join(_html_game(g, open=True)  for g in upcoming)
+    started_cards  = "".join(_html_game(g, open=False) for g in started)
+
+    started_section = ""
+    if started_cards:
+        started_section = (
+            f'\n<h2 class="section-hd">In Progress / Completed</h2>'
+            f'{started_cards}'
+        )
+
     odds_sub = f" · Odds {_h(odds_at)}" if odds_at else ""
     return (
         f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
@@ -1484,7 +1518,7 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'</head>\n<body>\n'
         f'<header><h1>MLB Game Overviews</h1>'
         f'<p class="sub">{_h(date_long)} · Updated {_h(generated_at)}{odds_sub}</p></header>\n'
-        f'<main>{cards}\n</main>\n</body>\n</html>'
+        f'<main>{upcoming_cards}{started_section}\n</main>\n</body>\n</html>'
     )
 
 
