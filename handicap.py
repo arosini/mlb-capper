@@ -846,6 +846,36 @@ def yellow(s): return f"{C.YELLOW}{s}{C.RESET}" if _use_color else s
 def dim(s):    return f"{C.DIM}{s}{C.RESET}" if _use_color else s
 
 
+def _extract_outings(history: list[dict], n: int = 5) -> list[dict]:
+    """Return the n most-recent outings from a game-log list, newest first."""
+    result = []
+    for s in reversed(history):
+        stat = s.get("stat", {})
+        if not stat:
+            continue
+        raw_date = s.get("date") or s.get("game", {}).get("officialDate", "")
+        try:
+            dt = datetime.strptime(raw_date[:10], "%Y-%m-%d")
+            date_s = dt.strftime("%b %-d")
+        except Exception:
+            date_s = raw_date[:10]
+        w = int(stat.get("wins", 0) or 0)
+        l = int(stat.get("losses", 0) or 0)
+        result.append({
+            "date": date_s,
+            "dec":  "W" if w else ("L" if l else "ND"),
+            "ip":   stat.get("inningsPitched", "?"),
+            "pc":   stat.get("numberOfPitches"),
+            "k":    stat.get("strikeOuts"),
+            "bb":   stat.get("baseOnBalls"),
+            "er":   stat.get("earnedRuns"),
+            "r":    stat.get("runs"),
+        })
+        if len(result) >= n:
+            break
+    return result
+
+
 # ── Per-game output ───────────────────────────────────────────────────────────
 def analyze_game(
     p1: dict, p2: dict,
@@ -1005,6 +1035,8 @@ def analyze_game(
         "verdict_count": best,
         "wx":           wx,
         "flags":        flags,
+        "away_sp_outings": _extract_outings(mlb_info.get(f"history_{away_team}", [])),
+        "home_sp_outings": _extract_outings(mlb_info.get(f"history_{home_team}", [])),
     }
 
 
@@ -1142,13 +1174,23 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .era-elite{color:#16a34a}.era-good{color:#2563eb}.era-avg{color:#6b7280}.era-below{color:#d97706}.era-poor{color:#dc2626}.era-na{color:#9ca3af}
 .wrc-elite{color:#16a34a}.wrc-above{color:#2563eb}.wrc-avg{color:#6b7280}.wrc-below{color:#d97706}.wrc-poor{color:#dc2626}
 .dim{color:#9ca3af;font-size:.795rem}
-.mu-cols{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.35rem 0}
-@media(max-width:440px){.mu-cols{grid-template-columns:1fr}}
+.mu-outer{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin:.35rem 0}
+.mu-col{display:flex;flex-direction:column;gap:.35rem}
+@media(max-width:540px){.mu-outer{grid-template-columns:1fr}}
 .mu-card{background:rgba(0,0,0,.028);border-radius:.35rem;padding:.35rem .5rem}
 .mu-card-hd{font-size:.75rem;font-weight:700;margin-bottom:.25rem}
 .mu-2c{display:grid;grid-template-columns:auto 1fr;gap:.13rem .5rem;font-size:.82rem;align-items:baseline}
 .mu-lbl{color:#9ca3af;font-size:.75rem;white-space:nowrap}
 .mu-v{font-weight:600;font-variant-numeric:tabular-nums}
+.ot-wrap{font-size:.74rem}
+.ot-row{display:grid;grid-template-columns:3.2rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .2rem;align-items:center;padding:.04rem 0}
+.ot-hd span{font-size:.62rem;font-weight:700;color:#9ca3af;text-align:center}
+.ot-hd span:first-child{text-align:left}
+.ot-row span{text-align:center}
+.ot-row span:first-child{text-align:left}
+.ot-w{color:#16a34a;font-weight:700}
+.ot-l{color:#dc2626;font-weight:700}
+.ot-nd{color:#9ca3af}
 .bp-row{display:flex;align-items:flex-start;gap:.4rem;font-size:.845rem;padding:.18rem 0}
 .tm{font-weight:700;font-size:.77rem;min-width:2.3rem;padding-top:.1rem}
 .bp-body{flex:1;min-width:0}
@@ -1169,8 +1211,9 @@ header{background:#030712}
 .game[open]>summary{border-bottom-color:#2a2a2a}
 .gs-venue{color:#6b7280}
 .sec-hd{color:#6b7280}
-.mu-card{background:rgba(255,255,255,.04)}
+.mu-card{background:rgba(255,255,255,.05)}
 .mu-lbl{color:#6b7280}
+.ot-hd span{color:#6b7280}
 .stats b{color:#d1d5db}
 .hb{background:#374151;color:#d1d5db}
 .flags li{background:#1c1400;border-left-color:#b45309;color:#fbbf24}
@@ -1294,80 +1337,85 @@ def _html_game(g: dict) -> str:
     venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}</span>'
                   if venue_parts else "")
 
-    def _mu_table(sp, bat_team, off, k_line=None, outs_line=None):
-        """Two side-by-side 2-column cards: pitcher stats | lineup stats."""
-        def _row(lbl, val_s, cls="", lbl_txt=""):
-            if val_s == "?":
-                return f'<span class="mu-lbl">{_h(lbl)}</span><span class="dim">?</span>'
-            lbl_part = f' <span class="dim">({_h(lbl_txt)})</span>' if lbl_txt else ""
-            cls_attr = f' class="mu-v {cls}"' if cls else ' class="mu-v"'
-            return f'<span class="mu-lbl">{_h(lbl)}</span><span{cls_attr}>{_h(val_s)}{lbl_part}</span>'
+    def _row(lbl, val_s, cls="", lbl_txt=""):
+        if val_s == "?":
+            return f'<span class="mu-lbl">{_h(lbl)}</span><span class="dim">?</span>'
+        lbl_part = f' <span class="dim">({_h(lbl_txt)})</span>' if lbl_txt else ""
+        cls_attr = f' class="mu-v {cls}"' if cls else ' class="mu-v"'
+        return f'<span class="mu-lbl">{_h(lbl)}</span><span{cls_attr}>{_h(val_s)}{lbl_part}</span>'
 
-        # -- Pitcher card --
+    def _sp_card(sp, k_line=None, outs_line=None):
         ec = _era_cls(sp["label"])
-        sp_rows  = _row("xERA",    sp["xera_s"], ec,              sp["label"])
-        k_sp_v   = flt(sp["k"])
-        sp_rows += _row("K%",      sp["k"],      _k_sp_cls(k_sp_v),    _k_sp_lbl(k_sp_v))
-        hh_sp_v  = flt(sp["hard"])
-        sp_rows += _row("HH%",     sp["hard"],   _hh_sp_cls(hh_sp_v),  _hh_sp_lbl(hh_sp_v))
+        rows  = _row("xERA",    sp["xera_s"], ec,             sp["label"])
+        k_v   = flt(sp["k"])
+        rows += _row("K%",      sp["k"],      _k_sp_cls(k_v),  _k_sp_lbl(k_v))
+        hh_v  = flt(sp["hard"])
+        rows += _row("HH%",     sp["hard"],   _hh_sp_cls(hh_v), _hh_sp_lbl(hh_v))
         if sp["barrel"] != "?":
             bv = flt(sp["barrel"])
-            sp_rows += _row("Barrel%", sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
+            rows += _row("Barrel%", sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
         if sp["era_s"] != "?":
-            sp_rows += f'<span class="mu-lbl">ERA</span><span class="mu-v">{_h(sp["era_s"])}</span>'
-        sp_rows += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
+            rows += f'<span class="mu-lbl">ERA</span><span class="mu-v">{_h(sp["era_s"])}</span>'
+        rows += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
         if sp["bb"] != "?":
-            sp_rows += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
+            rows += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
         k_s = _fmt_k_line(k_line)
         if k_s:
-            sp_rows += f'<span class="mu-lbl">K O/U</span><span class="dim">{_h(k_s.replace("K O/U ",""))}</span>'
+            rows += f'<span class="mu-lbl">K O/U</span><span class="dim">{_h(k_s.replace("K O/U ",""))}</span>'
         outs_s = _fmt_k_line(outs_line)
         if outs_s:
-            sp_rows += f'<span class="mu-lbl">Outs O/U</span><span class="dim">{_h(outs_s.replace("K O/U ",""))}</span>'
+            rows += f'<span class="mu-lbl">Outs O/U</span><span class="dim">{_h(outs_s.replace("K O/U ",""))}</span>'
+        hb = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
+        return (f'<div class="mu-card"><div class="mu-card-hd">{_h(sp["name"])} {hb}</div>'
+                f'<div class="mu-2c">{rows}</div></div>')
 
-        hand_badge = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
-        sp_card = (
-            f'<div class="mu-card">'
-            f'<div class="mu-card-hd">{_h(sp["name"])} {hand_badge}</div>'
-            f'<div class="mu-2c">{sp_rows}</div>'
-            f'</div>'
-        )
-
-        # -- Lineup card --
+    def _bat_card(team, off):
         if off:
             wc = _wrc_cls(off["label"])
-            bat_rows  = _row("wRC+", off["wrc_s"], wc, off["label"])
-            k_bat_v   = flt(off["k"])
-            bat_rows += _row("K%",   off["k"],   _k_bat_cls(k_bat_v),  _k_bat_lbl(k_bat_v))
-            hh_bat_v  = flt(off["hard"])
-            bat_rows += _row("HH%",  off["hard"], _hh_bat_cls(hh_bat_v), _hh_bat_lbl(hh_bat_v))
-            vs_hd = f'vs {off["vs_hand"]}'
+            rows  = _row("wRC+", off["wrc_s"], wc, off["label"])
+            k_v   = flt(off["k"])
+            rows += _row("K%",  off["k"],   _k_bat_cls(k_v),  _k_bat_lbl(k_v))
+            hh_v  = flt(off["hard"])
+            rows += _row("HH%", off["hard"], _hh_bat_cls(hh_v), _hh_bat_lbl(hh_v))
+            vs = f'vs {off["vs_hand"]}'
         else:
-            bat_rows = f'<span class="dim" style="grid-column:1/-1;font-size:.8rem">No data</span>'
-            vs_hd = ""
+            rows = f'<span class="dim" style="grid-column:1/-1;font-size:.8rem">No data</span>'
+            vs = ""
+        return (f'<div class="mu-card"><div class="mu-card-hd">'
+                f'{_h(team)} <span class="dim" style="font-weight:400">{_h(vs)}</span></div>'
+                f'<div class="mu-2c">{rows}</div></div>')
 
-        bat_card = (
-            f'<div class="mu-card">'
-            f'<div class="mu-card-hd">{_h(bat_team)} <span class="dim" style="font-weight:400">{_h(vs_hd)}</span></div>'
-            f'<div class="mu-2c">{bat_rows}</div>'
-            f'</div>'
-        )
-
-        return f'<div class="mu-cols">{sp_card}{bat_card}</div>'
+    def _outing_table(outings):
+        if not outings:
+            return ""
+        def _v(v): return "—" if v is None else str(v)
+        hdr = ('<div class="ot-row ot-hd">'
+               '<span>Date</span><span>Dec</span><span>IP</span>'
+               '<span>PC</span><span>K</span><span>BB</span><span>ER</span><span>R</span>'
+               '</div>')
+        rows = ""
+        for o in outings:
+            dc = "ot-w" if o["dec"] == "W" else ("ot-l" if o["dec"] == "L" else "ot-nd")
+            rows += (f'<div class="ot-row">'
+                     f'<span class="dim">{_h(o["date"])}</span>'
+                     f'<span class="{dc}">{_h(o["dec"])}</span>'
+                     f'<span>{_h(_v(o["ip"]))}</span>'
+                     f'<span class="dim">{_h(_v(o["pc"]))}</span>'
+                     f'<span>{_h(_v(o["k"]))}</span>'
+                     f'<span class="dim">{_h(_v(o["bb"]))}</span>'
+                     f'<span>{_h(_v(o["er"]))}</span>'
+                     f'<span class="dim">{_h(_v(o["r"]))}</span>'
+                     f'</div>')
+        return f'<div class="ot-wrap">{hdr}{rows}</div>'
 
     def _bp_row(team, bp):
         ec = _era_cls(bp["label"])
         lbl = f' <span class="dim">({_h(bp["label"])})</span>' if bp["label"] else ""
-        barrel_s = f'<span><b>Brrl%</b> {_h(bp["barrel"])}</span>' if bp["barrel"] != "?" else ""
         return (f'<div class="bp-row">'
                 f'<span class="tm">{_h(team)}</span>'
                 f'<div class="bp-body stats">'
                 f'<span class="xr {ec}"><b>xERA</b> {_h(bp["xera_s"])}{lbl}</span>'
                 f'<span><b>ERA</b> {_h(bp["era_s"])}</span>'
-                f'<span><b>K%</b> {_h(bp["k"])}</span>'
-                f'<span><b>BB%</b> {_h(bp["bb"])}</span>'
-                f'<span><b>HH%</b> {_h(bp["hard"])}</span>'
-                f'{barrel_s}'
                 f'</div></div>')
 
     wx = g["wx"]
@@ -1439,11 +1487,25 @@ def _html_game(g: dict) -> str:
             + f'</div>{f5_html}</div>'
         )
 
+    away_k    = od.get("away_k")    if od else None
+    home_k    = od.get("home_k")    if od else None
+    away_outs = od.get("away_outs") if od else None
+    home_outs = od.get("home_outs") if od else None
     matchup_html = (
         f'<div><div class="sec-hd">Matchup <span class="dim"{_sub}>· SP last 3 starts / lineup last 12</span></div>'
-        + _mu_table(sp_a, home, of_h, od.get("away_k") if od else None, od.get("away_outs") if od else None)
-        + _mu_table(sp_h, away, of_a, od.get("home_k") if od else None, od.get("home_outs") if od else None)
+        f'<div class="mu-outer">'
+        f'<div class="mu-col">'
+        + _sp_card(sp_a, away_k, away_outs)
+        + _outing_table(g.get("away_sp_outings", []))
+        + _bat_card(home, of_h)
         + f'</div>'
+        f'<div class="mu-col">'
+        + _sp_card(sp_h, home_k, home_outs)
+        + _outing_table(g.get("home_sp_outings", []))
+        + _bat_card(away, of_a)
+        + f'</div>'
+        f'</div>'
+        f'</div>'
     )
 
     return (
