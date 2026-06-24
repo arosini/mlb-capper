@@ -13,6 +13,9 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node24
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: false
 
     steps:
       - name: Checkout
