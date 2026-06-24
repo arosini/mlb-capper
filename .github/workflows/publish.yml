@@ -52,6 +52,7 @@ jobs:
           mkdir -p _site
           python3 handicap.py --html > _site/index.html
           echo "Generated $(wc -c < _site/index.html) bytes"
+          printf '/*\n  Cache-Control: no-cache, max-age=0, must-revalidate\n' > _site/_headers
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
