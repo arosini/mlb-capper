@@ -1186,6 +1186,7 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .gs-teams{font-size:.975rem;font-weight:700;display:flex;align-items:center;gap:.3rem}
 .gs-venue{font-size:.7rem;color:#9ca3af;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tm-logo{width:22px;height:22px;object-fit:contain;flex-shrink:0}
+.tm-logo-sm{width:14px;height:14px;object-fit:contain;vertical-align:middle}
 .gd{padding:.7rem .875rem .875rem;display:flex;flex-direction:column;gap:.7rem}
 .sec-hd{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:.28rem}
 .hb{background:#e5e7eb;color:#374151;font-size:.63rem;font-weight:700;padding:.04rem .26rem;border-radius:3px}
@@ -1208,7 +1209,7 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .mu-lbl{color:#9ca3af;font-size:.75rem;white-space:nowrap}
 .mu-v{font-weight:600;font-variant-numeric:tabular-nums}
 .ot-wrap{font-size:.74rem}
-.ot-row{display:grid;grid-template-columns:3rem 1.4rem 2.4rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .18rem;align-items:center;padding:.04rem 0}
+.ot-row{display:grid;grid-template-columns:3rem 3.2rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .18rem;align-items:center;padding:.04rem 0}
 .ot-hd span{font-size:.62rem;font-weight:700;color:#9ca3af;text-align:center}
 .ot-hd span:first-child{text-align:left}
 .ot-row span{text-align:center}
@@ -1452,16 +1453,20 @@ def _html_game(g: dict) -> str:
             return ""
         def _v(v): return "—" if v is None else str(v)
         hdr = ('<div class="ot-row ot-hd">'
-               '<span>Date</span><span>H/A</span><span>Opp</span><span>Res</span>'
+               '<span>Date</span><span>Opp</span><span>Res</span>'
                '<span>IP</span><span>PC</span><span>K</span><span>BB</span><span>ER</span><span>R</span>'
                '</div>')
         rows = ""
         for o in outings:
-            rc = "ot-w" if o["result"] == "W" else "ot-l" if o["result"] == "L" else "ot-nd"
+            rc  = "ot-w" if o["result"] == "W" else "ot-l" if o["result"] == "L" else "ot-nd"
+            pfx = "@" if o["ha"] == "@" else "vs"
+            opp_code = o["opp"]
+            opp_slug = _LOGO.get(opp_code, opp_code.lower())
+            opp_url  = f"https://a.espncdn.com/combiner/i?img=/i/teamlogos/mlb/500/{opp_slug}.png&h=28&w=28"
+            opp_logo = f'<img src="{opp_url}" class="tm-logo-sm" alt="{_h(opp_code)}" onerror="this.style.display=\'none\'">'
             rows += (f'<div class="ot-row">'
                      f'<span class="dim">{_h(o["date"])}</span>'
-                     f'<span class="dim">{_h(o["ha"])}</span>'
-                     f'<span class="dim">{_h(o["opp"])}</span>'
+                     f'<span class="dim">{pfx} {opp_logo}</span>'
                      f'<span class="{rc}">{_h(o["result"])}</span>'
                      f'<span>{_h(_v(o["ip"]))}</span>'
                      f'<span class="dim">{_h(_v(o["pc"]))}</span>'
@@ -1521,7 +1526,7 @@ def _html_game(g: dict) -> str:
         n = len(g["flags"])
         items = "".join(f'<li>{_h(f)}</li>' for f in g["flags"])
         flags_html = (
-            f'<details class="sec" id="{g_id}-flags" open>'
+            f'<details class="sec" id="{g_id}-flags">'
             f'<summary class="sec-sum">Flags · {n}</summary>'
             f'<div class="sec-body"><ul class="flags">{items}</ul></div>'
             f'</details>'
@@ -1551,7 +1556,7 @@ def _html_game(g: dict) -> str:
                 + f'</div>'
             )
         odds_html = (
-            f'<details class="sec" id="{g_id}-odds" open>'
+            f'<details class="sec" id="{g_id}-odds">'
             f'<summary class="sec-sum">Game Line Odds <span class="dim"{_sub}>· best of DK / FanDuel / Fanatics</span></summary>'
             f'<div class="sec-body">'
             f'<div class="odds-sub">Full Game</div>'
@@ -1583,21 +1588,21 @@ def _html_game(g: dict) -> str:
     outings_html = ""
     if outings_a:
         outings_html += (
-            f'<details class="sec" id="{g_id}-outings-away" open>'
+            f'<details class="sec" id="{g_id}-outings-away">'
             f'<summary class="sec-sum">{_h(sp_a["name"])} · Last 5 Outings</summary>'
             f'<div class="sec-body">{outings_a}</div>'
             f'</details>'
         )
     if outings_h:
         outings_html += (
-            f'<details class="sec" id="{g_id}-outings-home" open>'
+            f'<details class="sec" id="{g_id}-outings-home">'
             f'<summary class="sec-sum">{_h(sp_h["name"])} · Last 5 Outings</summary>'
             f'<div class="sec-body">{outings_h}</div>'
             f'</details>'
         )
 
     bullpen_html = (
-        f'<details class="sec" id="{g_id}-bullpen" open>'
+        f'<details class="sec" id="{g_id}-bullpen">'
         f'<summary class="sec-sum">Bullpens · Last 12</summary>'
         f'<div class="sec-body">{_bp_row(away,bp_a)}{_bp_row(home,bp_h)}</div>'
         f'</details>'
