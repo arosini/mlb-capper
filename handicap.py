@@ -1738,9 +1738,38 @@ def _wx_summary(wx: dict) -> tuple[str, str]:
 
 def _pick_summary_title(pick: dict) -> str:
     """Return 'Bet (Odds) (H:MM AM/PM ET)' for use as a collapsed pick row title."""
-    bet = pick.get("bet", "")
-    odds = pick.get("odds", "")
-    gt = pick.get("game_time_utc", "")
+    bet_type  = (pick.get("bet_type") or "").lower()
+    bet       = pick.get("bet", "")
+    game      = pick.get("game", "")
+    odds      = pick.get("odds", "")
+    team_side = (pick.get("team_side") or "")
+    line      = pick.get("line")
+    gt        = pick.get("game_time_utc", "")
+
+    # Totals: concise "TEAM u/o{line}" format
+    if "total" in bet_type and game and line is not None and team_side:
+        if team_side in ("over", "under"):
+            # Game total (full game or F5)
+            ou = "u" if team_side == "under" else "o"
+            bet_text = f"{game} {ou}{line}"
+        elif "_" in team_side:
+            # Team total — extract relevant team from game string
+            parts = game.split(" @ ", 1)
+            away_team = parts[0].strip() if len(parts) == 2 else game
+            home_team = parts[1].strip() if len(parts) == 2 else game
+            team = away_team if team_side.startswith("away") else home_team
+            ou = "u" if "under" in team_side else "o"
+            bet_text = f"{team} {ou}{line}"
+        else:
+            bet_text = bet.replace("Over ", "o").replace("Under ", "u")
+            if game:
+                bet_text = bet_text.replace("Game Total", game)
+    else:
+        # Normalize Over/Under → o/u (covers Pitcher_Ks, Pitcher_Outs, old-schema, etc.)
+        bet_text = bet.replace("Over ", "o").replace("Under ", "u")
+        if game and "total" in bet_type:
+            bet_text = bet_text.replace("Game Total", game)
+
     time_s = ""
     if gt:
         try:
@@ -1749,7 +1778,8 @@ def _pick_summary_title(pick: dict) -> str:
             time_s = f"{hour}:{dt.strftime('%M %p')} ET"
         except Exception:
             pass
-    title = bet
+
+    title = bet_text
     if odds:
         title += f" ({odds})"
     if time_s:
