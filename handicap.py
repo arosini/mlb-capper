@@ -1538,14 +1538,18 @@ def _html_game(g: dict) -> str:
     is_open_air = indoor_label is None
     roof_paren = f" ({indoor_label})" if indoor_label else ""
     venue_str = (g["venue"] or "") + roof_paren
-    time_str = wx.get("game_time_local", "").replace(" ET", "").strip()
-    if not time_str and g.get("game_date"):
+    # Use MLB schedule game_date as primary time source; wx.game_time_local is fallback only
+    # (Handigraphs weather may reflect tomorrow's slate by evening).
+    time_str = ""
+    if g.get("game_date"):
         try:
             _dt = datetime.fromisoformat(g["game_date"].replace("Z", "+00:00")).astimezone(_ET)
             _h12 = _dt.hour % 12 or 12
             time_str = f"{_h12}:{_dt.minute:02d} {'PM' if _dt.hour >= 12 else 'AM'}"
         except Exception:
             pass
+    if not time_str:
+        time_str = wx.get("game_time_local", "").replace(" ET", "").strip()
     venue_parts = [p for p in [time_str, venue_str] if p.strip()]
     wx_lbl, wx_cls = _wx_summary(wx)
     apf_raw = wx.get("adjusted_park_factor") if wx else None
@@ -1898,13 +1902,8 @@ def _html_game(g: dict) -> str:
 
 def _time_sort_key(g: dict) -> int:
     import re as _re
-    t = (g.get("wx") or {}).get("game_time_local", "")
-    m = _re.match(r'(\d+):(\d+)\s*(AM|PM)', t)
-    if m:
-        h, mn, ampm = int(m.group(1)), int(m.group(2)), m.group(3)
-        if ampm == "PM" and h != 12: h += 12
-        elif ampm == "AM" and h == 12: h = 0
-        return h * 60 + mn
+    # MLB schedule game_date is authoritative (queried for the correct target date).
+    # wx.game_time_local is a fallback only — Handigraphs may show tomorrow's times by evening.
     gd = g.get("game_date", "")
     if gd:
         try:
@@ -1913,6 +1912,13 @@ def _time_sort_key(g: dict) -> int:
             return dt_et.hour * 60 + dt_et.minute
         except Exception:
             pass
+    t = (g.get("wx") or {}).get("game_time_local", "")
+    m = _re.match(r'(\d+):(\d+)\s*(AM|PM)', t)
+    if m:
+        h, mn, ampm = int(m.group(1)), int(m.group(2)), m.group(3)
+        if ampm == "PM" and h != 12: h += 12
+        elif ampm == "AM" and h == 12: h = 0
+        return h * 60 + mn
     return 9999
 
 
