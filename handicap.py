@@ -619,6 +619,8 @@ def get_mlb_schedule(target_date: date) -> dict:
             ap    = away.get("probablePitcher", {})
             games[frozenset([ha, aa])] = {
                 "home": ha, "away": aa,
+                "home_mlb_id": home.get("team", {}).get("id"),
+                "away_mlb_id": away.get("team", {}).get("id"),
                 "venue": g.get("venue", {}).get("name", ""),
                 "home_pid": hp.get("id"), "home_pname": hp.get("fullName", ""),
                 "away_pid": ap.get("id"), "away_pname": ap.get("fullName", ""),
@@ -648,6 +650,86 @@ def get_recent_starts(player_id: int) -> list[dict]:
         except Exception:
             pass
     return all_splits
+
+
+def get_team_schedule(team_id: int, season: int) -> list[dict]:
+    """Fetch completed game results for a team in the given season."""
+    if not HAS_REQUESTS or not team_id:
+        return []
+    try:
+        r = requests.get(
+            f"{MLB_API}/schedule",
+            params={"teamId": team_id, "season": season, "sportId": 1, "gameType": "R"},
+            timeout=15,
+        )
+        r.raise_for_status()
+    except Exception:
+        return []
+    results = []
+    for date_entry in r.json().get("dates", []):
+        for g in date_entry.get("games", []):
+            if g.get("status", {}).get("abstractGameState") != "Final":
+                continue
+            teams  = g.get("teams", {})
+            home   = teams.get("home", {})
+            away   = teams.get("away", {})
+            is_home = home.get("team", {}).get("id") == team_id
+            my    = home if is_home else away
+            opp   = away if is_home else home
+            results.append({
+                "game_pk":      g.get("gamePk"),
+                "date":         date_entry.get("date", ""),
+                "is_home":      is_home,
+                "won":          bool(my.get("isWinner")),
+                "runs_scored":  int(my.get("score") or 0),
+                "runs_allowed": int(opp.get("score") or 0),
+            })
+    return results
+
+
+def _team_trends(
+    team_record: list[dict],
+    pitcher_hist_cur: list[dict],
+    is_home_today: bool,
+    today_s: str,
+) -> Optional[dict]:
+    if not team_record:
+        return None
+    completed = [g for g in team_record if g["date"] != today_s]
+
+    def wl(games):
+        w = sum(1 for g in games if g["won"])
+        return w, len(games) - w
+
+    def avg_rs(games):
+        return round(sum(g["runs_scored"] for g in games) / len(games), 1) if games else None
+
+    last10      = completed[-10:]
+    side10      = [g for g in completed if g["is_home"] == is_home_today][-10:]
+
+    start_pks = {
+        s.get("game", {}).get("gamePk")
+        for s in pitcher_hist_cur
+        if int(s.get("stat", {}).get("gamesStarted", 0)) > 0
+        and s.get("game", {}).get("gamePk")
+    }
+    in_starts   = [g for g in completed if g["game_pk"] in start_pks]
+    last5       = in_starts[-5:]
+    last5_side  = [g for g in in_starts if g["is_home"] == is_home_today][-5:]
+
+    return {
+        "is_home":       is_home_today,
+        "last10":        wl(last10),
+        "last10_side":   wl(side10),
+        "last5":         wl(last5),
+        "last5_side":    wl(last5_side),
+        "avg_runs":      avg_rs(last5),
+        "avg_runs_side": avg_rs(last5_side),
+        "n_last10":      len(last10),
+        "n_side10":      len(side10),
+        "n_last5":       len(last5),
+        "n_side5":       len(last5_side),
+    }
 
 
 def pitcher_history_flags(
@@ -1133,6 +1215,10 @@ def analyze_game(
         ),
     }
 
+    today_s = today.isoformat() if today else ""
+    away_trends = _team_trends(mlb_info.get("away_record", []), away_hist_cur, False, today_s)
+    home_trends = _team_trends(mlb_info.get("home_record", []), home_hist_cur, True,  today_s)
+
     flags: list[str] = []
     for team, p in [(away_team, p_away), (home_team, p_home)]:
         name = p.get("Name", "?")
@@ -1177,6 +1263,8 @@ def analyze_game(
         "home_sp_outings": _extract_outings(home_hist_cur),
         "away_sp_splits":  away_sp_splits,
         "home_sp_splits":  home_sp_splits,
+        "away_trends":     away_trends,
+        "home_trends":     home_trends,
     }
 
 
@@ -1353,6 +1441,11 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 @media(prefers-color-scheme:dark){.section-hd{color:#9ca3af;border-top-color:#374151}}
 .flags{list-style:none}
 .flags li{font-size:.78rem;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:.18rem .45rem;margin-top:.2rem;border-radius:0 4px 4px 0}
+.trends{list-style:none;display:flex;flex-direction:column;gap:.15rem}
+.trends li{font-size:.79rem;padding:.12rem 0}
+.trend-hd{font-size:.7rem;font-weight:700;color:#374151;padding:.3rem 0 .05rem;border-top:1px solid rgba(0,0,0,.07);margin-top:.2rem}
+.trend-hd:first-child{border-top:none;margin-top:0;padding-top:0}
+.tw{color:#16a34a;font-weight:700}.tl{color:#dc2626;font-weight:700}
 .wx-badge{font-size:.63rem;font-weight:700;background:#e0f2fe;color:#0369a1;padding:.05rem .35rem;border-radius:3px;white-space:nowrap;margin-left:.4rem}
 .wx-badge.wx-warn{background:#fef3c7;color:#92400e}
 .wx-badge.wx-hot{background:#fee2e2;color:#b91c1c}
@@ -1373,6 +1466,7 @@ header{background:#030712}
 .stats b{color:#d1d5db}
 .hb{background:#374151;color:#d1d5db}
 .flags li{background:#1c1400;border-left-color:#b45309;color:#fbbf24}
+.trend-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
 .wx-badge{background:#0c2a3a;color:#7dd3fc}
 .wx-badge.wx-warn{background:#2d1a00;color:#fbbf24}
 .wx-badge.wx-hot{background:#2d0a0a;color:#fca5a5}
@@ -1877,6 +1971,51 @@ def _html_game(g: dict) -> str:
         f'</details>'
     ) if splits_inner.strip() else ""
 
+    def _trend_block(team: str, sp_name: str, tr: Optional[dict]) -> str:
+        if not tr:
+            return ""
+        side_lbl = "home" if tr["is_home"] else "away"
+        lines = []
+
+        def _wl_s(w, l):
+            return f'<span class="tw">{w}</span>-<span class="tl">{l}</span>'
+
+        n10 = tr["n_last10"]
+        if n10:
+            lines.append(f'{_h(team)} are {_wl_s(*tr["last10"])} in their last {n10} games.')
+        n10s = tr["n_side10"]
+        if n10s:
+            lines.append(f'{_h(team)} are {_wl_s(*tr["last10_side"])} in their last {n10s} {side_lbl} games.')
+
+        n5 = tr["n_last5"]
+        if n5:
+            lines.append(f'{_h(team)} are {_wl_s(*tr["last5"])} in {_h(sp_name)}\'s last {n5} starts.')
+        n5s = tr["n_side5"]
+        if n5s:
+            lines.append(f'{_h(team)} are {_wl_s(*tr["last5_side"])} in {_h(sp_name)}\'s last {n5s} {side_lbl} starts.')
+        if tr["avg_runs"] is not None and n5:
+            lines.append(f'{_h(team)} average {tr["avg_runs"]:.1f} runs/game in {_h(sp_name)}\'s last {n5} starts.')
+        if tr["avg_runs_side"] is not None and n5s:
+            lines.append(f'{_h(team)} average {tr["avg_runs_side"]:.1f} runs/game in {_h(sp_name)}\'s last {n5s} {side_lbl} starts.')
+
+        if not lines:
+            return ""
+        items = "".join(f"<li>{ln}</li>" for ln in lines)
+        return f'<div class="trend-hd">{_h(team)}</div><ul class="trends">{items}</ul>'
+
+    away_tr = g.get("away_trends")
+    home_tr = g.get("home_trends")
+    trends_inner = (
+        _trend_block(away, sp_a["name"], away_tr)
+        + _trend_block(home, sp_h["name"], home_tr)
+    )
+    trends_html = (
+        f'<details class="sec" id="{g_id}-trends">'
+        f'<summary class="sec-sum">Trends</summary>'
+        f'<div class="sec-body">{trends_inner}</div>'
+        f'</details>'
+    ) if trends_inner.strip() else ""
+
     bullpen_html = (
         f'<details class="sec" id="{g_id}-bullpen">'
         f'<summary class="sec-sum">Bullpens · Last 12</summary>'
@@ -1894,6 +2033,7 @@ def _html_game(g: dict) -> str:
         f'\n    {odds_html}'
         f'\n    {outings_html}'
         f'\n    {splits_html}'
+        f'\n    {trends_html}'
         f'\n    {bullpen_html}'
         f'\n    {wx_html}'
         f'\n    {flags_html}'
@@ -2147,6 +2287,12 @@ def main():
                 team = p.get("Team", "")
                 if pid and team:
                     mlb_info[f"history_{team}"] = get_recent_starts(int(pid))
+            away_id = mlb_info.get("away_mlb_id")
+            home_id = mlb_info.get("home_mlb_id")
+            if away_id:
+                mlb_info["away_record"] = get_team_schedule(int(away_id), target_date.year)
+            if home_id:
+                mlb_info["home_record"] = get_team_schedule(int(home_id), target_date.year)
 
         # Ballpark weather — keyed by raw team codes (same as Handigraphs starters JSON)
         t1_raw = p1.get("Team", "")
