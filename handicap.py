@@ -1004,9 +1004,11 @@ def analyze_game(
         else:
             depth = "—"
         era = flt(p.get("ERA"))
+        has_stats = xera is not None or era is not None or flt(p.get("K%")) is not None
         return {
-            "name":   p.get("Name", "TBD"),
-            "hand":   hand,
+            "name":      p.get("Name", "TBD"),
+            "hand":      hand,
+            "has_stats": has_stats,
             "xera":   xera,
             "xera_s": f"{xera:.2f}" if xera is not None else "?",
             "era":    era,
@@ -1102,6 +1104,11 @@ def analyze_game(
     home_full = _ODDS_TEAM.get(home_team, "")
     away_hist = mlb_info.get(f"history_{away_team}", [])
     home_hist = mlb_info.get(f"history_{home_team}", [])
+    # Current-season-only history for outings table and flags — prior-season starts
+    # are only relevant for the vs-opp / at-park situational splits.
+    cur_year = str(today.year) if today else str(datetime.now(_ET).year)
+    away_hist_cur = [s for s in away_hist if s.get("date", "").startswith(cur_year)]
+    home_hist_cur = [s for s in home_hist if s.get("date", "").startswith(cur_year)]
 
     away_sp_splits = {
         "vs": _situational_avg(
@@ -1133,10 +1140,11 @@ def analyze_game(
         b = bullpen.get(team, bullpen.get(to_stats(team), {}))
         for f in bullpen_flags(b):
             flags.append(f"{team} bullpen: {f}")
+    hist_cur_map = {away_team: away_hist_cur, home_team: home_hist_cur}
     for team, p in [(away_team, p_away), (home_team, p_home)]:
         hand = (p.get("Throws") or "?")[0]
         for f in pitcher_history_flags(
-            mlb_info.get(f"history_{team}", []),
+            hist_cur_map[team],
             hand, rhp, lhp, today,
         ):
             flags.append(f"{team} — {p.get('Name', '?')}: {f}")
@@ -1163,8 +1171,8 @@ def analyze_game(
         "verdict_count": best,
         "wx":           wx,
         "flags":        flags,
-        "away_sp_outings": _extract_outings(mlb_info.get(f"history_{away_team}", [])),
-        "home_sp_outings": _extract_outings(mlb_info.get(f"history_{home_team}", [])),
+        "away_sp_outings": _extract_outings(away_hist_cur),
+        "home_sp_outings": _extract_outings(home_hist_cur),
         "away_sp_splits":  away_sp_splits,
         "home_sp_splits":  home_sp_splits,
     }
@@ -1585,18 +1593,14 @@ def _html_game(g: dict) -> str:
         rows += _row("K%",      sp["k"],      _k_sp_cls(k_v),  _k_sp_lbl(k_v))
         hh_v  = flt(sp["hard"])
         rows += _row("HH%",     sp["hard"],   _hh_sp_cls(hh_v), _hh_sp_lbl(hh_v))
-        if sp["barrel"] != "?":
-            bv = flt(sp["barrel"])
-            rows += _row("Barrel%", sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
-        if sp["era_s"] != "?":
-            rows += f'<span class="mu-lbl">ERA</span><span class="mu-v">{_h(sp["era_s"])}</span>'
+        bv = flt(sp["barrel"])
+        rows += _row("Barrel%", sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
+        rows += _row("ERA",     sp["era_s"])
         rows += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
-        if sp["h_per_gs"] != "?":
-            rows += f'<span class="mu-lbl">H/gs</span><span class="dim">{_h(sp["h_per_gs"])}</span>'
-        if pc_avg:
+        rows += f'<span class="mu-lbl">H/gs</span><span class="dim">{_h(sp["h_per_gs"])}</span>'
+        if pc_avg and sp.get("has_stats"):
             rows += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_avg)}</span>'
-        if sp["bb"] != "?":
-            rows += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
+        rows += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
         hb = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
         return (f'<div class="mu-card"><div class="mu-card-hd">{_h(sp["name"])} {hb}</div>'
                 f'<div class="mu-2c">{rows}</div></div>')
