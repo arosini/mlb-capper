@@ -1751,12 +1751,15 @@ def _pick_summary_title(pick: dict) -> str:
     team_side = (pick.get("team_side") or "")
     line      = pick.get("line")
 
-    # Totals: concise "TEAM u/o{line}" format
+    is_f5 = bet_type.startswith("f5")
+
+    f5_tag = "F5 " if is_f5 else ""
+
+    # Totals: concise "TEAM [F5] u/o{line}" format
     if "total" in bet_type and game and line is not None and team_side:
         if team_side in ("over", "under"):
-            # Game total (full game or F5)
             ou = "u" if team_side == "under" else "o"
-            bet_text = f"{game} {ou}{line}"
+            bet_text = f"{game} {f5_tag}{ou}{line}"
         elif "_" in team_side:
             # Team total — extract relevant team from game string
             parts = game.split(" @ ", 1)
@@ -1764,7 +1767,7 @@ def _pick_summary_title(pick: dict) -> str:
             home_team = parts[1].strip() if len(parts) == 2 else game
             team = away_team if team_side.startswith("away") else home_team
             ou = "u" if "under" in team_side else "o"
-            bet_text = f"{team} {ou}{line}"
+            bet_text = f"{team} {f5_tag}{ou}{line}"
         else:
             bet_text = bet.replace("Over ", "o").replace("Under ", "u")
             if game:
@@ -1774,7 +1777,8 @@ def _pick_summary_title(pick: dict) -> str:
         bet_text = bet.replace("Over ", "o").replace("Under ", "u")
         if game and "total" in bet_type:
             bet_text = bet_text.replace("Game Total", game)
-
+        if is_f5 and "F5" not in bet_text.upper():
+            bet_text = f"F5 {bet_text}"
     title = bet_text
     if odds:
         title += f" ({odds})"
@@ -3013,7 +3017,6 @@ def _render_suggestions_html(all_picks: list, target_date: "date") -> str:
             f'<details class="{row_cls}" id="{pid}">'
             f'<summary class="ai-pick-sum">{title}{best_s}{conf_s}</summary>'
             f'<div class="ai-pick-body">'
-            f'<div class="ai-game">{game}</div>'
             f'<div class="ai-reason">{reason}</div>'
             f'{found_s}'
             f'{warn_s}'
