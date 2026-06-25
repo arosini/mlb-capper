@@ -2313,12 +2313,15 @@ GENERAL PRINCIPLE:
 FOR PITCHER K PROPS specifically:
 1. Find a good K matchup (high pitcher K%, high opponent K% vs this hand).
 2. Look at the K line point (e.g., Over 7.5 Ks).
-3. Check the pitcher's recent avg K/start (provided in "Recent 3" data above).
-   - If recent avg K/start is WELL ABOVE the line point (e.g., avg 8.5K vs line 6.5): strong Over — pitcher has been consistently exceeding this threshold.
-   - If recent avg K/start is NEAR the line point (within ~0.5): marginal. Only bet if the matchup is clearly stronger than average (elite K% vs elite K% lineup). The market has priced this fairly.
-   - If recent avg K/start is BELOW the line point (e.g., avg 5K vs line 7.5): the line is already pricing in more than the pitcher has been delivering. Lean Under or skip — this is NOT a good over even if the season K% looks nice.
-4. Cross-reference with Outs prop: if the K line seems low but the Outs line is ALSO low (short outing expected), the market knows something — pitcher may not get enough innings to accumulate Ks. Lean away from the K Over. Conversely, a low K line with a normal/high Outs line is a green light — the pitcher will have opportunities and the line is underpricing them.
-5. A weak matchup with an inviting (low) K line can be a better bet than a great matchup where the line has already moved to reflect it.
+3. Check the pitcher's recent avg K/start AND who they faced. Each outing shows "Xk vs OPP" so you can see if those Ks came against high-K or low-K teams.
+   - Calibrate for today's opponent: compare today's opponent K% (shown in OFFENSE section) to the typical K rates of the opponents the pitcher recently faced. If recent high Ks came against strikeout-prone lineups and today's opponent has a lower K rate, adjust expectations down. Conversely, if the pitcher was hitting good K numbers against contact-oriented teams and today's opponent strikes out more, the recent numbers understate what's likely today.
+   - Apply this calibration to estimate an adjusted expected K total before comparing to the line.
+4. Evaluate the adjusted K expectation vs the line point:
+   - Adjusted expectation WELL ABOVE the line (by ≥1.5 Ks): strong Over signal.
+   - Adjusted expectation NEAR the line (within 0.5–1.0): marginal. Only bet if both the pitcher's K% and today's opponent K% are clearly above average.
+   - Adjusted expectation BELOW the line: the line is already pricing in more than the pitcher will likely deliver — lean Under or skip.
+5. Cross-reference with Outs prop: if the K line seems low but the Outs line is ALSO low (short outing expected by the market), don't fight it — the pitcher may not get enough innings to accumulate Ks. A low K line with a normal/high Outs line is the green light — pitcher will have innings and the K line is simply undervalued.
+6. A mediocre matchup with a clearly low K line (vs adjusted expectation) beats a great-looking matchup where the line already reflects the edge.
 
 FOR GAME TOTALS:
 - Great over matchup (bad starters + hot offenses) but total already at 11.5? The market sees it. Skip or find a different angle.
@@ -2450,7 +2453,8 @@ def _serialize_game_for_ai(g: dict) -> str:
                 pc_s = f"/{o['pc']}pc" if o.get("pc") else ""
                 er = o.get("er") if o.get("er") is not None else "?"
                 k_s = f"/{o['k']}K" if o.get("k") is not None else ""
-                outing_strs.append(f"{o['ip']}IP/{er}ER{k_s}{pc_s}")
+                opp_s = f" vs {o['opp']}" if o.get("opp") and o["opp"] != "?" else ""
+                outing_strs.append(f"{o['ip']}IP/{er}ER{k_s}{opp_s}{pc_s}")
             recent_era, avg_k = _recent_stats(outings)
             trajectory = ""
             if recent_era and sp.get("xera_s") not in ("?", None):
