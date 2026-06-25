@@ -204,20 +204,23 @@ def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 360) -> 
         print(f"  [odds] Failed: {e}")
 
 
-def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 360) -> None:
+def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 360,
+                           force: bool = False) -> None:
     """Fetch pitcher K and outs props from the per-event endpoint (requires Starter plan+).
     Reads event IDs from the already-saved bulk odds file. Skips if props meta is fresh.
     Uses a props_meta_{date}.json timestamp (not file mtime) so CI cache restores don't
-    incorrectly skip a re-fetch after loading a stale cache from a prior day."""
+    incorrectly skip a re-fetch after loading a stale cache from a prior day.
+    Pass force=True to bypass the throttle and fetch all games including started ones."""
     key = config.ODDS_API_KEY
     if not key:
         return
     props_path = data_dir / f"props_{date_str}.json"
     props_meta_path = data_dir / f"props_meta_{date_str}.json"
-    age = _meta_age_minutes(props_meta_path)
-    if age < max_age_minutes:
-        print(f"  [props] Props fetched {age:.0f}m ago — skipping")
-        return
+    if not force:
+        age = _meta_age_minutes(props_meta_path)
+        if age < max_age_minutes:
+            print(f"  [props] Props fetched {age:.0f}m ago — skipping")
+            return
     odds_path = data_dir / f"odds_{date_str}.json"
     if not odds_path.exists():
         print(f"  [props] No odds file — skipping pitcher props")
@@ -229,13 +232,22 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
         return
 
     now = datetime.now(timezone.utc)
-    all_props: dict = {}
+    # Preserve existing props for games the API no longer serves (finished games
+    # may not return from the per-event endpoint once they're done).
+    existing_props: dict = {}
+    if props_path.exists():
+        try:
+            existing_props = json.loads(props_path.read_text())
+        except Exception:
+            pass
+    all_props: dict = dict(existing_props)  # start with existing, overwrite with fresh
+
     for game in games:
         event_id = game.get("id")
         if not event_id:
             continue
         away, home = game.get("away_team", "?"), game.get("home_team", "?")
-        if _parse_utc(game.get("commence_time", "")) < now:
+        if not force and _parse_utc(game.get("commence_time", "")) < now:
             print(f"  [props] {away}@{home}: already started — skipping")
             continue
         url = (
@@ -268,8 +280,9 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
 
 
 def download_all(target_date: date, data_dir: Path, slot: str = "today",
-                 starters_only: bool = False) -> bool:
+                 starters_only: bool = False, force_odds: bool = False) -> bool:
     """Fetch Handigraphs endpoints and (unless starters_only) odds/props.
+    force_odds=True bypasses throttle and fetches props for all games (including started).
     Returns True if all attempted downloads succeeded."""
     date_str = target_date.strftime("%Y-%m-%d")
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -315,10 +328,10 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today",
 
     if not starters_only:
         print("  Fetching odds...")
-        download_odds(data_dir, date_str)
+        download_odds(data_dir, date_str, max_age_minutes=0 if force_odds else 360)
 
         print("  Fetching pitcher props...")
-        download_pitcher_props(data_dir, date_str)
+        download_pitcher_props(data_dir, date_str, force=force_odds)
 
     return ok
 
@@ -375,6 +388,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Only refresh the starters file (skip odds/props — no API credit cost)",
     )
+    ap.add_argument(
+        "--force-odds",
+        action="store_true",
+        help="Bypass throttle and re-fetch odds + props for ALL games (including started/finished)",
+    )
     args = ap.parse_args()
 
     today = datetime.now(_ET).date()
@@ -391,7 +409,9 @@ if __name__ == "__main__":
     if args.inspect:
         inspect_fields(data_dir, target)
     else:
-        success = download_all(target, data_dir, slot, starters_only=args.starters_only)
+        success = download_all(target, data_dir, slot,
+                               starters_only=args.starters_only,
+                               force_odds=args.force_odds)
         if success and not args.starters_only:
             print("\nRun with --inspect to see field names for handicap.py mapping.")
         sys.exit(0 if success else 1)

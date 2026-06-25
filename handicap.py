@@ -3003,14 +3003,14 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: "date")
     unstarted = []
     for _g in games:
         _gt = _g.get("game_time_utc", "")
-        if _gt:
-            try:
-                if datetime.fromisoformat(_gt.replace("Z", "+00:00")) > _now:
-                    unstarted.append(_g)
-                    continue
-            except Exception:
-                pass
-        unstarted.append(_g)  # no time = include by default
+        if not _gt:
+            unstarted.append(_g)  # no time info — include by default
+            continue
+        try:
+            if datetime.fromisoformat(_gt.replace("Z", "+00:00")) > _now:
+                unstarted.append(_g)
+        except Exception:
+            unstarted.append(_g)  # parse failure — include by default
     if not unstarted:
         print("[suggestions] All games have started — skipping AI call", file=__import__("sys").stderr)
         return json.loads(sugg_path.read_text()) if sugg_path.exists() else None

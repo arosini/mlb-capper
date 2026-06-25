@@ -71,9 +71,12 @@ def _extract_picks(sugg: dict) -> list:
 
 def _canon_pick_key(pick: dict) -> tuple:
     """
-    Canonical dedup key insensitive to minor bet text and bet_type naming differences.
-    Uses (game, normalized_bet_type, line, team_side) so 'Pitcher_Ks' vs 'Props'
-    and 'K Over 6.5' vs 'Ks Over 6.5' all collapse to the same key.
+    Canonical dedup key: (game, normalized_bet_type, direction_or_pitcher).
+
+    Line is intentionally excluded — once we've picked a direction (over/under/team)
+    for a game, we never add a second pick for the same direction even if the line moves.
+    For pitcher props, direction is the pitcher's last name so away/home pitchers in
+    the same game each get one slot.
     """
     game = pick.get("game", "")
     bt   = (pick.get("bet_type") or "").lower().replace("_", "").replace(" ", "")
@@ -84,7 +87,14 @@ def _canon_pick_key(pick: dict) -> tuple:
             bt = "pitcherks"
         elif "out" in bet:
             bt = "pitcherouts"
-    return (game, bt, pick.get("line"), pick.get("team_side") or "")
+    # Pitcher props: use pitcher's last name (words[1], or words[0] if single name)
+    # so two pitchers in the same game each get their own dedup slot.
+    if bt in ("pitcherks", "pitcherouts"):
+        words = bet.split()
+        pitcher_last = words[1] if len(words) >= 2 else (words[0] if words else "")
+        return (game, bt, pitcher_last)
+    # All other markets: direction only (no line) — same over/under/team side = same bet
+    return (game, bt, pick.get("team_side") or "")
 
 
 def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
