@@ -1534,6 +1534,13 @@ header{background:#030712}
 .ai-other{border:1px solid #e5e7eb;border-radius:7px;padding:.38rem .55rem;margin-bottom:.32rem}
 .ai-other:last-child{margin-bottom:0}
 .ai-disclaimer{font-size:.61rem;color:#9ca3af;text-align:center;padding:.3rem .875rem .45rem;border-top:1px solid #f0f0f0;margin-top:.1rem}
+.ai-check{display:inline-flex;align-items:center;justify-content:center;width:1.1rem;height:1.1rem;background:#16a34a;color:#fff;border-radius:50%;font-size:.62rem;font-weight:800;margin-left:.4rem;vertical-align:middle;flex-shrink:0;line-height:1}
+.ai-pick-card .sec-sum{color:#15803d}
+.ai-pick-inline{font-size:.78rem;padding:.05rem 0}
+.ai-pick-inline .ai-bet{font-size:.88rem;font-weight:700;margin:.1rem 0}
+.ai-pick-inline .ai-odds{font-size:.74rem;color:#6b7280}
+.ai-pick-inline .ai-reason{font-size:.73rem;color:#374151;margin-top:.2rem;line-height:1.45}
+.ai-pass-reason{font-size:.76rem;color:#6b7280;font-style:italic;padding:.1rem 0}
 @media(prefers-color-scheme:dark){
 .ai-picks{background:#1a1a1a;border-color:#2a2a2a}
 .ai-picks-hd{border-bottom-color:#2a2a2a}
@@ -1548,6 +1555,9 @@ header{background:#030712}
 .ai-others-wrap .ai-game{color:#d1d5db}
 .ai-others-wrap .ai-reason{color:#9ca3af}
 .ai-disclaimer{border-top-color:#2a2a2a;color:#6b7280}
+.ai-pick-card .sec-sum{color:#4ade80}
+.ai-pick-inline .ai-reason{color:#d1d5db}
+.ai-pass-reason{color:#9ca3af}
 }
 """
 
@@ -1678,7 +1688,7 @@ def _wx_summary(wx: dict) -> tuple[str, str]:
     return ", ".join(parts), cls or ("wx-warn" if parts else "")
 
 
-def _html_game(g: dict) -> str:
+def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
     away, home = g["away"], g["home"]
     sp_a, sp_h = g["away_sp"], g["home_sp"]
     of_a, of_h = g["away_off"], g["home_off"]
@@ -2101,12 +2111,46 @@ def _html_game(g: dict) -> str:
         f'</details>'
     )
 
+    # AI pick section for this game card
+    ai_check = ""
+    ai_sec_html = ""
+    if ai_pick is not None:
+        if ai_pick.get("has_bet"):
+            ai_check = '<span class="ai-check">✓</span>'
+            pick = ai_pick["pick"]
+            is_best = pick.get("_is_best")
+            best_badge = ' <span class="ai-conf">Best Bet</span>' if is_best else ""
+            bet_type_s = (pick.get("bet_type") or "").replace("_", " ")
+            type_note = (f' <span class="dim" style="font-size:.68rem;font-weight:400">'
+                         f'· {_h(bet_type_s)}</span>') if bet_type_s else ""
+            ai_sec_html = (
+                f'<details class="sec ai-pick-card" id="{g_id}-ai">'
+                f'<summary class="sec-sum">AI Suggestion{best_badge}{type_note}</summary>'
+                f'<div class="sec-body">'
+                f'<div class="ai-pick-inline">'
+                f'<div class="ai-bet">{_h(pick.get("bet",""))}</div>'
+                f'<div class="ai-odds">{_h(pick.get("odds",""))}</div>'
+                f'<div class="ai-reason">{_h(pick.get("reason",""))}</div>'
+                f'</div>'
+                f'</div>'
+                f'</details>'
+            )
+        else:
+            reason = _h(ai_pick.get("pass_reason") or "No strong edge identified for this game.")
+            ai_sec_html = (
+                f'<details class="sec" id="{g_id}-ai">'
+                f'<summary class="sec-sum">AI Analysis</summary>'
+                f'<div class="sec-body"><div class="ai-pass-reason">{reason}</div></div>'
+                f'</details>'
+            )
+
     return (
         f'\n<details class="game" data-start-min="{_time_sort_key(g)}" id="{g_id}">'
         f'\n  <summary>'
-        f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}</div>{venue_html}</div>'
+        f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}{ai_check}</div>{venue_html}</div>'
         f'\n  </summary>'
         f'\n  <div class="gd">'
+        f'\n    {ai_sec_html}'
         f'\n    {matchup_html}'
         f'\n    {odds_html}'
         f'\n    {outings_html}'
@@ -2390,32 +2434,13 @@ PRICING RULES (CRITICAL):
 - If you like a play at -151 to -200: include in other_bets with "line_warning": true and "alt_suggestion" (e.g., "Try Ks Over 6.5 at a better price instead")
 - Nothing at -201 or worse. No parlays.
 
-OUTPUT: Return ONLY valid JSON — no markdown, no extra text:
-{
-  "best_bet": {
-    "game": "AWAY @ HOME",
-    "bet_type": "ML|F5_ML|Spread|F5_Spread|Total|F5_Total|Team_Total|F5_Team_Total|Pitcher_Ks|Pitcher_Outs",
-    "bet": "specific wager",
-    "odds": "-110",
-    "confidence": "high|medium",
-    "reason": "2-3 sentences referencing the specific recent-form and matchup factors driving the pick."
-  },
-  "other_bets": [
-    {
-      "game": "AWAY @ HOME",
-      "bet_type": "ML|F5_ML|Spread|F5_Spread|Total|F5_Total|Team_Total|F5_Team_Total|Pitcher_Ks|Pitcher_Outs",
-      "bet": "...",
-      "odds": "...",
-      "line_warning": false,
-      "alt_suggestion": null,
-      "reason": "1-2 sentences."
-    }
-  ],
-  "no_best_bet_reason": null
-}
+When you have completed your analysis, call the report_betting_suggestions tool with your results.
 
-Set best_bet to null and populate no_best_bet_reason if nothing qualifies.
-other_bets: 0–3 entries only; no forced picks.
+best_bet: the single strongest play, or null if nothing qualifies.
+other_bets: 0–3 additional plays only; no forced picks.
+no_best_bet_reason: brief explanation when best_bet is null.
+pass_reasons: include a 1-sentence entry for EVERY game that has no bet in best_bet or other_bets.
+  The key must exactly match the game header format "AWAY @ HOME" from the input (e.g. "Texas Rangers @ Miami Marlins").
 """
 
 
@@ -2703,21 +2728,65 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: "date")
         f"identify any strong betting opportunities:\n\n{game_blocks}"
     )
 
+    # Tool schema guarantees structured output — no JSON text parsing needed
+    _tool = {
+        "name": "report_betting_suggestions",
+        "description": "Submit today's MLB betting suggestions after completing analysis.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "best_bet": {
+                    "type": ["object", "null"],
+                    "properties": {
+                        "game":       {"type": "string"},
+                        "bet_type":   {"type": "string"},
+                        "bet":        {"type": "string"},
+                        "odds":       {"type": "string"},
+                        "confidence": {"type": "string", "enum": ["high", "medium"]},
+                        "reason":     {"type": "string"},
+                    },
+                },
+                "other_bets": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "game":           {"type": "string"},
+                            "bet_type":       {"type": "string"},
+                            "bet":            {"type": "string"},
+                            "odds":           {"type": "string"},
+                            "line_warning":   {"type": "boolean"},
+                            "alt_suggestion": {"type": ["string", "null"]},
+                            "reason":         {"type": "string"},
+                        },
+                    },
+                },
+                "no_best_bet_reason": {"type": ["string", "null"]},
+                "pass_reasons": {
+                    "type": "object",
+                    "description": "Key = 'AWAY @ HOME' (exactly as in game headers). Value = 1-sentence reason. Include every game that has no bet in best_bet or other_bets.",
+                    "additionalProperties": {"type": "string"},
+                },
+            },
+            "required": ["best_bet", "other_bets", "no_best_bet_reason", "pass_reasons"],
+        },
+    }
+
     try:
         client = _ant.Anthropic(api_key=api_key)
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=1024,
+            max_tokens=4096,
             system=_AI_SYSTEM_PROMPT,
+            tools=[_tool],
+            tool_choice={"type": "tool", "name": "report_betting_suggestions"},
             messages=[{"role": "user", "content": user_msg}],
         )
-        raw = response.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```", 2)[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.rsplit("```", 1)[0]
-        result = json.loads(raw.strip())
+        tool_block = next((b for b in response.content if getattr(b, "type", "") == "tool_use"), None)
+        if not tool_block:
+            print("[suggestions] No tool_use block in response", file=__import__("sys").stderr)
+            return None
+        result = tool_block.input
     except Exception as e:
         print(f"[suggestions] API error: {e}", file=__import__("sys").stderr)
         return None
@@ -2744,6 +2813,9 @@ def _render_suggestions_html(sugg: Optional[dict], target_date: "date") -> str:
 
     if not best and not others and not no_best:
         return ""
+
+    n_bets = (1 if best else 0) + len(others)
+    bets_lbl = f"{n_bets} Bet{'s' if n_bets != 1 else ''}" if n_bets else "No Bets"
 
     def _pick_block(pick: dict, is_best: bool = False) -> str:
         game   = _h(pick.get("game", ""))
@@ -2797,11 +2869,32 @@ def _render_suggestions_html(sugg: Optional[dict], target_date: "date") -> str:
 
     return (
         f'<div class="ai-picks">'
-        f'<div class="ai-picks-hd">AI Picks · {_h(date_s)}</div>'
+        f'<div class="ai-picks-hd">AI Picks · {_h(bets_lbl)} · {_h(date_s)}</div>'
         f'{inner}'
         f'{disclaimer}'
         f'</div>'
     )
+
+
+def _ai_game_map(suggestions: Optional[dict]) -> dict:
+    """Build per-game AI lookup: {"AWAY @ HOME": {has_bet, pick, pass_reason}}."""
+    if not suggestions:
+        return {}
+    bets_by_game: dict = {}
+    best = suggestions.get("best_bet")
+    if best and best.get("game"):
+        bets_by_game[best["game"]] = {**best, "_is_best": True}
+    for o in (suggestions.get("other_bets") or []):
+        if o.get("game"):
+            bets_by_game.setdefault(o["game"], o)
+    pass_reasons = suggestions.get("pass_reasons") or {}
+    result: dict = {}
+    for key, pick in bets_by_game.items():
+        result[key] = {"has_bet": True, "pick": pick, "pass_reason": None}
+    for key, reason in pass_reasons.items():
+        if key not in result:
+            result[key] = {"has_bet": False, "pick": None, "pass_reason": reason}
+    return result
 
 
 def render_html_page(games: list[dict], target_date: date, generated_at: str,
@@ -2809,7 +2902,8 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
     date_long = target_date.strftime(f"%A, %B {target_date.day}, %Y")
     date_short = target_date.strftime(f"%b {target_date.day}")
     games = sorted(games, key=_time_sort_key)
-    cards = "".join(_html_game(g) for g in games)
+    ai_by_game = _ai_game_map(suggestions)
+    cards = "".join(_html_game(g, ai_by_game.get(f"{g['away']} @ {g['home']}")) for g in games)
     gen_span  = _ts_span(generated_at)
     odds_sub  = f" · Odds Updated {_ts_span(odds_at)}" if odds_at else ""
     ai_html   = _render_suggestions_html(suggestions, target_date)
