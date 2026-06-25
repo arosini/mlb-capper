@@ -77,6 +77,7 @@ jobs:
         run: python3 history.py --save
 
       - name: Save AI picks
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: python3 picks.py --save
 
       - name: Annotate results
@@ -91,27 +92,48 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Picks are only saved/committed on scheduled or manually dispatched runs.
+          IS_SCHEDULED=false
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            IS_SCHEDULED=true
+          fi
+
           _save_and_annotate() {
             python3 history.py --save
             python3 history.py --annotate --date yesterday
             python3 history.py --annotate
-            python3 picks.py   --save
+            if [ "$IS_SCHEDULED" = "true" ]; then
+              python3 picks.py --save
+            fi
             python3 picks.py   --annotate --date yesterday
             python3 picks.py   --annotate
           }
 
-          git add history/ picks/ data/starters_last3g_today_*.json
+          if [ "$IS_SCHEDULED" = "true" ]; then
+            git add history/ picks/ data/starters_last3g_today_*.json
+          else
+            git add history/ data/starters_last3g_today_*.json
+          fi
           if git diff --staged --quiet; then exit 0; fi
           git commit -m "History: odds $CACHE_DATE"
           git push && exit 0
 
           for _retry in 1 2; do
             git reset HEAD~1
-            git clean -f history/ picks/ data/starters_last3g_today_*.json 2>/dev/null || true
-            git checkout -- history/ picks/ data/starters_last3g_today_*.json 2>/dev/null || true
+            if [ "$IS_SCHEDULED" = "true" ]; then
+              git clean -f history/ picks/ data/starters_last3g_today_*.json 2>/dev/null || true
+              git checkout -- history/ picks/ data/starters_last3g_today_*.json 2>/dev/null || true
+            else
+              git clean -f history/ data/starters_last3g_today_*.json 2>/dev/null || true
+              git checkout -- history/ data/starters_last3g_today_*.json 2>/dev/null || true
+            fi
             git pull origin main
             _save_and_annotate
-            git add history/ picks/ data/starters_last3g_today_*.json
+            if [ "$IS_SCHEDULED" = "true" ]; then
+              git add history/ picks/ data/starters_last3g_today_*.json
+            else
+              git add history/ data/starters_last3g_today_*.json
+            fi
             git diff --staged --quiet && exit 0
             git commit -m "History: odds $CACHE_DATE"
             git push && exit 0

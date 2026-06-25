@@ -71,24 +71,14 @@ def _extract_picks(sugg: dict) -> list:
 
 def _canon_pick_key(pick: dict) -> tuple:
     """
-    Canonical dedup key. Rules:
+    Canonical dedup key. Once a market group is picked for a game, the whole group is
+    locked — no second pick regardless of direction, line, or period.
 
-    - Pitcher Ks / Outs: one pick per pitcher per game — key (game, bt, pitcher_last).
-      Two pitchers in the same game each get their own slot. Over and under for the same
-      pitcher both collapse to the same slot (we don't revisit a pitcher we've already
-      given a K bet on).
-
-    - Team Total: one pick per team per game — key (game, "teamtotal", "home"|"away").
-      home/away is stripped from team_side ("home_over" → "home"). The Cardinals TT Over
-      and Cardinals TT Under would both occupy the same slot.
-
-    - All other markets (Total, F5_Total, Spread, ML, Moneyline, …):
-      one pick per market per game — key (game, bt).
-      Over and Under for the same full-game total occupy the same slot.
-      Full-game total and F5 total are separate (different bt).
-
-    Line is always excluded — once a market is picked we never revisit it regardless
-    of line movement.
+    Groups:
+    - "winner"   : ML, Spread, F5_ML, F5_Spread — correlated; one per game
+    - "runstotal": Total, F5_Total — correlated; one per game
+    - "teamtotal": one per team (home/away), direction stripped from team_side
+    - "pitcherks" / "pitcherouts": one per pitcher (keyed on pitcher last name)
     """
     game = pick.get("game", "")
     bt   = (pick.get("bet_type") or "").lower().replace("_", "").replace(" ", "")
@@ -104,12 +94,18 @@ def _canon_pick_key(pick: dict) -> tuple:
         words = bet.split()
         pitcher_last = words[1] if len(words) >= 2 else (words[0] if words else "")
         return (game, bt, pitcher_last)
-    # Team totals: keyed on which team (home/away), not direction (over/under)
+    # Team totals: keyed on which team (home/away), direction stripped
     if bt == "teamtotal":
         ts = (pick.get("team_side") or "").lower()
-        team_side = ts.split("_")[0] if ts else ""  # "home_over" → "home"
-        return (game, bt, team_side)
-    # Everything else: one pick per market per game — direction and line don't matter
+        team = ts.split("_")[0] if ts else ""  # "home_over" → "home"
+        return (game, "teamtotal", team)
+    # Correlated total markets: full game total and F5 total share one slot
+    if bt in ("total", "f5total"):
+        return (game, "runstotal")
+    # Correlated winner markets: ML, Spread, F5 ML, F5 Spread share one slot
+    if bt in ("ml", "moneyline", "spread", "f5ml", "f5spread"):
+        return (game, "winner")
+    # Unknown market type — fall back to (game, bt) so nothing is silently dropped
     return (game, bt)
 
 
