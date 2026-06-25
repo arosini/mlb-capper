@@ -1743,14 +1743,13 @@ def _pick_dom_id(pick: dict) -> str:
 
 
 def _pick_summary_title(pick: dict) -> str:
-    """Return 'Bet (Odds) (H:MM AM/PM ET)' for use as a collapsed pick row title."""
+    """Return 'Bet (Odds)' for use as a collapsed pick row title."""
     bet_type  = (pick.get("bet_type") or "").lower()
     bet       = pick.get("bet", "")
     game      = pick.get("game", "")
     odds      = pick.get("odds", "")
     team_side = (pick.get("team_side") or "")
     line      = pick.get("line")
-    gt        = pick.get("game_time_utc", "")
 
     # Totals: concise "TEAM u/o{line}" format
     if "total" in bet_type and game and line is not None and team_side:
@@ -1776,20 +1775,9 @@ def _pick_summary_title(pick: dict) -> str:
         if game and "total" in bet_type:
             bet_text = bet_text.replace("Game Total", game)
 
-    time_s = ""
-    if gt:
-        try:
-            dt = datetime.fromisoformat(gt.replace("Z", "+00:00")).astimezone(_ET)
-            hour = str(dt.hour % 12 or 12)
-            time_s = f"{hour}:{dt.strftime('%M %p')} ET"
-        except Exception:
-            pass
-
     title = bet_text
     if odds:
         title += f" ({odds})"
-    if time_s:
-        title += f" ({time_s})"
     return title
 
 

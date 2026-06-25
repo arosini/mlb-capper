@@ -66,10 +66,28 @@ def _extract_picks(sugg: dict) -> list:
     return result
 
 
+def _canon_pick_key(pick: dict) -> tuple:
+    """
+    Canonical dedup key insensitive to minor bet text and bet_type naming differences.
+    Uses (game, normalized_bet_type, line, team_side) so 'Pitcher_Ks' vs 'Props'
+    and 'K Over 6.5' vs 'Ks Over 6.5' all collapse to the same key.
+    """
+    game = pick.get("game", "")
+    bt   = (pick.get("bet_type") or "").lower().replace("_", "").replace(" ", "")
+    bet  = (pick.get("bet") or "").lower()
+    # Normalize generic 'props' type by inferring from bet text
+    if bt == "props":
+        if any(x in bet for x in (" k ", "ks ", " ks", "strikeout", " k over", " k under")):
+            bt = "pitcherks"
+        elif "out" in bet:
+            bt = "pitcherouts"
+    return (game, bt, pick.get("line"), pick.get("team_side") or "")
+
+
 def save_picks(data_dir: Path, picks_dir: Path, target_date: date) -> int:
     """
     Merge picks from today's suggestions cache into picks/YYYY-MM-DD.json.
-    Deduplicates by (game, bet_type, bet) — only adds truly new picks.
+    Deduplicates by canonical (game, bet_type, line, team_side) — keeps first price found.
     Enriches each pick with away_code, home_code, and game_time_utc from history.
     Returns count of new picks added.
     """
@@ -107,7 +125,12 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date) -> int:
 
     picks_path = picks_dir / f"{date_str}.json"
     existing = _read_json(picks_path) or []
-    by_key = {(p["game"], p.get("bet_type", ""), p["bet"]): p for p in existing}
+    # Build by canonical key, keeping first occurrence (= first price found)
+    by_key: dict[tuple, dict] = {}
+    for p in existing:
+        ck = _canon_pick_key(p)
+        if ck not in by_key:
+            by_key[ck] = p
 
     found_at = datetime.now(timezone.utc).isoformat()
     added = 0
@@ -116,8 +139,8 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date) -> int:
         game_key = pick.get("game", "")
         if not game_key:
             continue
-        key = (game_key, pick.get("bet_type", ""), pick.get("bet", ""))
-        if key in by_key:
+        ck = _canon_pick_key(pick)
+        if ck in by_key:
             continue
 
         # Enrich with game_time_utc and codes from history
