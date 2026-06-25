@@ -180,5 +180,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-06-25",
+    "game": "PHI @ WSN",
+    "away": "Philadelphia Phillies",
+    "away_code": "PHI",
+    "home": "Washington Nationals",
+    "home_code": "WSN",
+    "game_time_utc": "2026-06-25T22:46:00Z",
+    "bet_type": "Pitcher_Ks",
+    "bet": "C. Sanchez K Over 6.5",
+    "team_side": null,
+    "line": 6.5,
+    "period": "props",
+    "odds": "+110",
+    "odds_num": 110,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Sanchez is scorching hot (recent ERA 1.29, averaging 9.0 K/start across last 3). His K% is 24.0% and he's been racking up Ks vs high-K lineups (TOR 26%, MIL 25%), which inflated recent counts slightly \u2014 but today's WSN lineup has a 25.0% K% vs LHP, the highest among today's matchups. This is actually a favorable adjustment: today's opponent strikes out even MORE than recent opponents. Sanchez's last 3 starts: 10K, 8K, 9K \u2014 all well above the 6.5 line. His historical splits vs WSN show 6.5 K/gs avg. The +110 price on Over 6.5 is genuine value given his adjusted expectation of ~8-9 Ks. Outs line at 20.5 implies the market expects 6.8+ IP, giving him plenty of innings to accumulate.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-06-25T16:37:55.362428+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
