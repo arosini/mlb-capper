@@ -3007,8 +3007,9 @@ def _render_suggestions_html(all_picks: list, target_date: "date") -> str:
         found_s = ""
         if found:
             try:
-                _ft = datetime.fromisoformat(found).strftime("%I:%M %p")
-                found_s = f'<div class="ai-found-at">Found at {_h(_ft)} ET</div>'
+                _ft = datetime.fromisoformat(found).astimezone(_ET)
+                _ft_s = f"{int(_ft.strftime('%I'))}:{_ft.strftime('%M %p')}"
+                found_s = f'<div class="ai-found-at">Found at {_h(_ft_s)} ET</div>'
             except Exception:
                 pass
         row_cls = "ai-pick-row ai-best-row" if is_best else "ai-pick-row"
