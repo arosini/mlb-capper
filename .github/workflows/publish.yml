@@ -77,9 +77,13 @@ jobs:
           if ! git diff --staged --quiet; then
             git commit -m "History: odds $CACHE_DATE"
             if ! git push; then
-              # Another run committed first; reset our commit, pull, reapply
+              # Another run committed first; reset, clean, pull upstream, re-save, re-commit
               git reset HEAD~1
+              git clean -f history/ picks/ 2>/dev/null || true
+              git checkout -- history/ 2>/dev/null || true
               git pull origin main
+              python3 history.py --save
+              python3 picks.py --save
               git add history/ picks/
               git diff --staged --quiet || (git commit -m "History: odds $CACHE_DATE" && git push) || echo "[history] Push skipped — will retry next run"
             fi
