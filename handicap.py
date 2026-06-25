@@ -16,6 +16,7 @@ Usage:
 import argparse
 import csv
 import json
+import re
 import sys
 from datetime import date, timedelta, datetime, timezone
 
@@ -181,7 +182,7 @@ def _fmt_ml(price) -> str:
 
 def _fmt_spread(point, price) -> str:
     if point is None: return "—"
-    pt = f"+{point}" if point > 0 else str(point)
+    pt = f"+{point}" if point >= 0 else str(point)
     pr = f"+{int(price)}" if price > 0 else str(int(price))
     return f"{pt} ({pr})"
 
@@ -364,7 +365,6 @@ def _team_stats_entry(r: dict) -> dict:
         "GB/FB":     r.get("gb_fb"),
         "K%":        r.get("k_perc") or r.get("k_pct"),
         "BB%":       r.get("bb_perc") or r.get("bb_pct"),
-        "Hard-Hit%": r.get("hard_perc"),
         "HardHit%":  r.get("hard_perc"),
         "FB%":       r.get("fb_perc"),
         "LD%":       r.get("ld_perc"),
@@ -920,11 +920,17 @@ def get_weather(home_team: str, target_date: date) -> dict:
         )
         r.raise_for_status()
         daily = r.json().get("daily", {})
+        precip = (daily.get("precipitation_probability_max") or [None])[0]
+        temp   = (daily.get("temperature_2m_max") or [None])[0]
+        wind   = (daily.get("windspeed_10m_max") or [None])[0]
         return {
-            "city": city,
-            "rain_pct": (daily.get("precipitation_probability_max") or [None])[0],
-            "temp_f":   (daily.get("temperature_2m_max") or [None])[0],
-            "wind_mph": (daily.get("windspeed_10m_max") or [None])[0],
+            "venue_name":        city,
+            "roof_status":       "Open Air",
+            "temperature":       temp,
+            "precip_probability": precip,
+            "precip_risk_during_game": precip is not None and precip >= 50,
+            "wind_speed":        wind,
+            "wind_effect_label": ("Out" if wind and wind > 15 else ""),
         }
     except Exception:
         return {}
@@ -1120,6 +1126,8 @@ def analyze_game(
 
     def _off(batting: str, pitcher: dict) -> Optional[dict]:
         hand = (pitcher.get("Throws") or "?")[0]
+        if hand not in ("R", "L"):
+            return None
         pool = rhp if hand == "R" else lhp
         s = pool.get(to_stats(batting), {})
         if not s:
@@ -1131,7 +1139,7 @@ def analyze_game(
             "label":    wrc_label(wrc) if wrc is not None else "",
             "woba":     fp3(s.get("wOBA")),
             "k":        fp1(s.get("K%")),
-            "hard":     fp1(s.get("HardHit%", s.get("Hard-Hit%"))),
+            "hard":     fp1(s.get("HardHit%")),
             "vs_hand":  "RHP" if hand == "R" else "LHP",
         }
 
@@ -1895,12 +1903,12 @@ def _html_game(g: dict) -> str:
         props_html = ""
         away_k_s = _fmt_k_line(od.get("away_k"))
         home_k_s = _fmt_k_line(od.get("home_k"))
-        away_outs_s = _fmt_k_line(od.get("away_outs"))
-        home_outs_s = _fmt_k_line(od.get("home_outs"))
+        away_outs_s = _fmt_outs_line(od.get("away_outs"))
+        home_outs_s = _fmt_outs_line(od.get("home_outs"))
         if away_k_s or home_k_s or away_outs_s or home_outs_s:
             has_outs = away_outs_s or home_outs_s
             cols = "1fr 1fr 1fr" if has_outs else "1fr 1fr"
-            def _prop_val(s): return _h(s.replace("K O/U ", "")) if s else "—"
+            def _prop_val(s): return _h(re.sub(r'^(?:K|Outs) O/U ', '', s)) if s else "—"
             def _prop_row(name, k_s, outs_s):
                 outs_cell = f'<span class="odds-val">{_prop_val(outs_s)}</span>' if has_outs else ""
                 return (f'<span class="tm">{_h(name)}</span>'
@@ -2084,7 +2092,6 @@ def _html_game(g: dict) -> str:
 
 
 def _time_sort_key(g: dict) -> int:
-    import re as _re
     # MLB schedule game_date is authoritative (queried for the correct target date).
     # wx.game_time_local is a fallback only — Handigraphs may show tomorrow's times by evening.
     gd = g.get("game_date", "")
@@ -2096,7 +2103,7 @@ def _time_sort_key(g: dict) -> int:
         except Exception:
             pass
     t = (g.get("wx") or {}).get("game_time_local", "")
-    m = _re.match(r'(\d+):(\d+)\s*(AM|PM)', t)
+    m = re.match(r'(\d+):(\d+)\s*(AM|PM)', t)
     if m:
         h, mn, ampm = int(m.group(1)), int(m.group(2)), m.group(3)
         if ampm == "PM" and h != 12: h += 12
@@ -2237,7 +2244,7 @@ DISQUALIFYING FACTORS
 Any one of these eliminates the bet:
 - Pitcher has "NO STATS" — never bet on an unknown first-time starter
 - RAIN RISK flag — avoid any game with meaningful precipitation risk
-- Bullpen xERA > 5.0 for a team you're backing on the side (not a disqualifier for totals where that shaky pen actually supports an over)
+- Bullpen xERA > 5.0 disqualifies full-game ML/spread for that team — but does NOT eliminate F5, pitcher props, team total over for the offense, or game total bets; route to the appropriate bet type instead
 - Pitcher on fewer than 5 days rest AND had 100+ pitch count last start
 - Recent ERA is 3+ runs higher than xERA (pitcher in acute struggle this month, not just bad luck)
 
@@ -2272,15 +2279,26 @@ BULLPEN → FULL GAME VS F5:
 SIDE ANALYSIS (ML / Spread / Team Total)
 ═══════════════════════════════════════════
 
-A side advantage is clear when BOTH apply:
-- One pitcher has better xERA AND better recent form (last 3 starts)
-- The matchup history confirms it: vs-opponent splits show this pitcher handles this lineup
+CRITICAL RULE: Match the bet type to the actual edge. A pitching edge is not an offensive edge. Don't express one as the other.
 
-Then choose bet type by bullpen:
-- Favored bullpen strong (xERA <3.75): full-game ML or spread
-- Favored bullpen average (3.75–4.75): team total OVER for the favored offense
-- Favored bullpen weak (>4.75): team total OVER only (don't trust them to hold a lead)
-- Other team has severe compounding issues (weak L12 offense + bad bullpen + bad trends): still cap risk at team total
+── PITCHING EDGE (one starter is clearly dominant) ──
+Signals: better xERA, better recent form, good matchup history vs today's opponent, opposing wRC+ is weak.
+The dominant starter IS the edge. Express it in a way that captures their performance:
+
+- Own bullpen strong (xERA <3.75): full-game ML or spread — trust the whole 9
+- Own bullpen average (3.75–4.75): F5 ML or F5 spread — back the starter, exit before the pen
+- Own bullpen weak (>4.75): pitcher K or Outs prop (pure starter bet, zero bullpen dependency); F5 if the price is reasonable
+- Under the total is also a valid pitching-edge play if the opposing offense is also cold (wRC+ <100) — the dominant starter holds down the run environment
+
+── OFFENSIVE EDGE (one offense outmatches the opposing starter) ──
+Signals: high wRC+ vs a weak or struggling pitcher (high xERA or high recent ERA), good recent run production in trends.
+Express this as scoring, not as winning:
+
+- Team total OVER for the hot offense — you're betting they score, not that their team wins; own bullpen quality is irrelevant here
+- If compound edge (good offense + also a decent own pitcher): full-game ML or spread becomes reasonable
+
+── COMPOUND EDGE (pitching + offense both favor one team) ──
+Both a dominant starter AND a strong offense vs a weak opposing starter with a weak opposing offense — this is the rare case where full-game ML or spread is clearly justified regardless of bullpen.
 
 ═══════════════════════════════════════════
 PITCHER PROPS
@@ -2445,7 +2463,7 @@ def _serialize_game_for_ai(g: dict) -> str:
             if val not in ("?", "—", None):
                 parts.append(f"{lbl} {val}")
         if sp.get("depth") not in ("—", None):
-            parts.append(f"{sp['depth']} IP/gs")
+            parts.append(sp["depth"])
         base = f"  {name} ({hand}): " + ", ".join(parts)
         if outings:
             outing_strs = []
