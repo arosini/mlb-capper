@@ -275,12 +275,16 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today") -> bool
         url = url_tmpl.format(slot=slot)
         fname = FILE_NAMES[key].format(date=date_str, slot=slot)
         dest = data_dir / fname
-        # Starters: skip re-download if a file already exists for this date.
-        # Handigraphs switches to the next day's slate by ~10 PM ET, so later
-        # runs would overwrite today's correct data with tomorrow's games.
+        # Starters: after 8 PM ET, Handigraphs switches to tomorrow's slate, so
+        # skip re-download to avoid overwriting today's confirmed lineups.
+        # Before 8 PM ET, always re-download so afternoon lineup confirmations
+        # (typically posted 3-4h before first pitch) replace early-morning TBD data.
         if key == "starters" and dest.exists():
-            print(f"  [starters] Already have {fname} — skipping (prevents late-night slate swap)")
-            continue
+            et_hour = datetime.now(_ET).hour
+            if et_hour >= 20:
+                print(f"  [starters] After 8 PM ET — keeping {fname} (prevents tomorrow's slate overwrite)")
+                continue
+            print(f"  [starters] Re-downloading {fname} to pick up confirmed lineups...")
         print(f"  Fetching {key}...")
         data = _fetch(session, url)
         if data is None:
