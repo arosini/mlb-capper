@@ -1,0 +1,45 @@
+name: Annotate Game Results
+
+on:
+  schedule:
+    - cron: '0 7 * * *'  # 3 AM ET (UTC-4) — after all US games finish
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Date to annotate (YYYY-MM-DD, default: yesterday)'
+        required: false
+        default: 'yesterday'
+
+permissions:
+  contents: write
+
+jobs:
+  annotate:
+    runs-on: ubuntu-latest
+    env:
+      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node24
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Annotate results
+        run: |
+          DATE="${{ github.event.inputs.date }}"
+          python3 history.py --annotate --date "${DATE:-yesterday}"
+
+      - name: Commit annotations
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add history/
+          git diff --staged --quiet || git commit -m "Annotate: results $(python3 -c \"from datetime import datetime,timezone,timedelta; d=datetime.now(timezone(timedelta(hours=-4)))-__import__('datetime').timedelta(days=1); print(d.strftime('%Y-%m-%d'))\")" && git push

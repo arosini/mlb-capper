@@ -8,7 +8,7 @@ on:
     branches: [main]        # redeploy on every push to main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-and-deploy:
@@ -62,3 +62,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy _site --project-name=mlb-capper --commit-dirty=true
+
+      - name: Save odds history
+        run: python3 history.py --save
+
+      - name: Commit odds history
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add history/
+          git diff --staged --quiet || git commit -m "History: odds $(python3 -c \"from datetime import datetime,timezone,timedelta; print(datetime.now(timezone(timedelta(hours=-4))).strftime('%Y-%m-%d'))\")" && git push
