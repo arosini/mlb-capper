@@ -188,6 +188,7 @@ def save_odds_history(data_dir: Path, history_dir: Path, target_date: date) -> i
         if not away_name or not home_name:
             continue
 
+        commence = game.get("commence_time", "")
         key = (away_name, home_name, commence)
         existing_rec = by_game.get(key, {})
 
@@ -196,7 +197,6 @@ def save_odds_history(data_dir: Path, history_dir: Path, target_date: date) -> i
             continue
 
         # Determine if game has started
-        commence = game.get("commence_time", "")
         game_started = False
         if commence:
             try:
