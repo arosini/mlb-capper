@@ -1736,6 +1736,12 @@ def _wx_summary(wx: dict) -> tuple[str, str]:
     return ", ".join(parts), cls or ("wx-warn" if parts else "")
 
 
+def _pick_dom_id(pick: dict) -> str:
+    """Stable DOM id for a pick <details> row, used for localStorage persistence."""
+    raw = f"pick-{pick.get('game','')} {pick.get('bet_type','')} {pick.get('bet','')}"
+    return re.sub(r'[^a-z0-9]+', '-', raw.lower()).strip('-')[:64]
+
+
 def _pick_summary_title(pick: dict) -> str:
     """Return 'Bet (Odds) (H:MM AM/PM ET)' for use as a collapsed pick row title."""
     bet_type  = (pick.get("bet_type") or "").lower()
@@ -2302,6 +2308,7 @@ _SPLIT_SCRIPT = """
 (function(){
   var GAME_STORE='mlb_open';
   var SEC_STORE='mlb_sec_closed';
+  var PICKS_STORE='mlb_picks_open';
   function etMin(){
     var et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
     return et.getHours()*60+et.getMinutes();
@@ -2350,6 +2357,31 @@ _SPLIT_SCRIPT = """
       }
     });
   }
+  function savePicksState(){
+    var state={};
+    var card=document.getElementById('ai-picks-card');
+    if(card)state['ai-picks-card']=card.hasAttribute('open');
+    document.querySelectorAll('details.ai-pick-row[id]').forEach(function(d){
+      state[d.id]=d.hasAttribute('open');
+    });
+    try{localStorage.setItem(PICKS_STORE,JSON.stringify(state));}catch(e){}
+  }
+  function restorePicksState(){
+    var saved;
+    try{saved=JSON.parse(localStorage.getItem(PICKS_STORE)||'null');}catch(e){saved=null;}
+    if(!saved)return;
+    var card=document.getElementById('ai-picks-card');
+    if(card&&'ai-picks-card' in saved){
+      if(saved['ai-picks-card'])card.setAttribute('open','');
+      else card.removeAttribute('open');
+    }
+    document.querySelectorAll('details.ai-pick-row[id]').forEach(function(d){
+      if(d.id in saved){
+        if(saved[d.id])d.setAttribute('open','');
+        else d.removeAttribute('open');
+      }
+    });
+  }
   function localTs(){
     document.querySelectorAll('.local-ts[data-utc]').forEach(function(el){
       try{
@@ -2362,12 +2394,18 @@ _SPLIT_SCRIPT = """
     split();
     restoreGames();
     restoreSections();
+    restorePicksState();
     localTs();
     document.querySelectorAll('details.game').forEach(function(d){
       d.addEventListener('toggle',saveGames);
     });
     document.querySelectorAll('details.sec').forEach(function(d){
       d.addEventListener('toggle',saveSections);
+    });
+    var card=document.getElementById('ai-picks-card');
+    if(card)card.addEventListener('toggle',savePicksState);
+    document.querySelectorAll('details.ai-pick-row[id]').forEach(function(d){
+      d.addEventListener('toggle',savePicksState);
     });
   });
 })();
@@ -2982,8 +3020,9 @@ def _render_suggestions_html(all_picks: list, target_date: "date") -> str:
                 pass
         row_cls = "ai-pick-row ai-best-row" if is_best else "ai-pick-row"
         title   = _h(_pick_summary_title(pick))
+        pid     = _pick_dom_id(pick)
         return (
-            f'<details class="{row_cls}">'
+            f'<details class="{row_cls}" id="{pid}">'
             f'<summary class="ai-pick-sum">{title}{best_s}{conf_s}</summary>'
             f'<div class="ai-pick-body">'
             f'<div class="ai-game">{game}</div>'
@@ -3017,7 +3056,7 @@ def _render_suggestions_html(all_picks: list, target_date: "date") -> str:
     )
 
     return (
-        f'<details class="ai-picks">'
+        f'<details class="ai-picks" id="ai-picks-card">'
         f'<summary class="ai-picks-hd">AI Picks · {_h(bets_lbl)} · {_h(date_s)}</summary>'
         f'{inner}'
         f'{disclaimer}'
