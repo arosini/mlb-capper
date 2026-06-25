@@ -17,7 +17,9 @@ import argparse
 import csv
 import json
 import sys
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
+
+_ET = timezone(timedelta(hours=-4))  # EDT (UTC-4); correct for MLB season Apr-Oct
 from pathlib import Path
 from typing import Optional
 
@@ -126,6 +128,20 @@ def _best_total(bookmakers: list, side: str, market_key: str = "totals") -> tupl
                         best_price, best_point = p, pt
     return best_point, best_price
 
+def _best_team_total(bookmakers: list, team_name: str, side: str) -> tuple:
+    """Return (point, price) for the best-priced team total over or under for the given team."""
+    best_price, best_point = None, None
+    for bk in bookmakers:
+        for mkt in bk.get("markets", []):
+            if mkt["key"] != "team_totals":
+                continue
+            for oc in mkt.get("outcomes", []):
+                if oc.get("name") == side and oc.get("description") == team_name:
+                    p, pt = oc.get("price"), oc.get("point")
+                    if p is not None and (best_price is None or p > best_price):
+                        best_price, best_point = p, pt
+    return best_point, best_price
+
 def _find_prop_line(bookmakers: list, pitcher_name: str, market_key: str) -> Optional[dict]:
     """Find best-priced over/under line for a named pitcher on a given prop market."""
     if not pitcher_name or pitcher_name in ("TBD", ""):
@@ -214,6 +230,13 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
     has_f5 = any(v is not None for v in (away_f5_sp_pt, f5_over_pt,
                                           _best_price(prop_bks, "h2h_1st_5_innings", away_name)))
 
+    # Team totals (from per-event endpoint)
+    away_tt_ov_pt, away_tt_ov_pr = _best_team_total(prop_bks, away_name, "Over")
+    away_tt_un_pt, away_tt_un_pr = _best_team_total(prop_bks, away_name, "Under")
+    home_tt_ov_pt, home_tt_ov_pr = _best_team_total(prop_bks, home_name, "Over")
+    home_tt_un_pt, home_tt_un_pr = _best_team_total(prop_bks, home_name, "Under")
+    has_tt = away_tt_ov_pt is not None or home_tt_ov_pt is not None
+
     return {
         # Full game
         "away_ml":       _fmt_ml(_best_price(bks, "h2h", away_name)),
@@ -230,6 +253,12 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
         "home_f5_spread":_fmt_spread(home_f5_sp_pt, home_f5_sp_pr),
         "f5_over":       _fmt_total("O", f5_over_pt, f5_over_pr),
         "f5_under":      _fmt_total("U", f5_under_pt, f5_under_pr),
+        # Team totals
+        "has_tt":         has_tt,
+        "away_tt_over":   _fmt_total("O", away_tt_ov_pt, away_tt_ov_pr),
+        "away_tt_under":  _fmt_total("U", away_tt_un_pt, away_tt_un_pr),
+        "home_tt_over":   _fmt_total("O", home_tt_ov_pt, home_tt_ov_pr),
+        "home_tt_under":  _fmt_total("U", home_tt_un_pt, home_tt_un_pr),
         # Pitcher props
         "away_k":        away_k,
         "home_k":        home_k,
@@ -514,72 +543,45 @@ def build_games(starters: list[dict]) -> list[tuple[dict, dict]]:
     return games
 
 
-# ── Pitcher flags (from CSV data) ─────────────────────────────────────────────
+# ── Pitcher flags (from Handigraphs aggregate, last 3 starts) ─────────────────
 def pitcher_csv_flags(row: dict) -> list[str]:
     flags = []
     status = row.get("lineup_status", "")
     if status and status not in ("confirmed", "expected", ""):
-        flags.append(f"lineup status '{status}' — confirm this pitcher is actually starting")
-    ip    = flt(row.get("IP"))
-    era   = flt(row.get("ERA"))
-    xera  = flt(row.get("xERA"))
-    hh    = flt(row.get("Hard-Hit%", ""))
-    barrel= flt(row.get("Barrel%", ""))
-    kbb   = flt(row.get("K-BB%", ""))
-    lob   = flt(row.get("LOB%", ""))
-    ogs   = flt(row.get("Outs/GS"))
+        flags.append(f"lineup: {status}")
+
+    ip     = flt(row.get("IP"))
+    xera   = flt(row.get("xERA"))
 
     if ip is None and xera is None:
-        flags.append("no stats — likely TBD or skipping this start")
+        flags.append("no stats — likely TBD")
         return flags
 
-    if ip is not None:
-        if ip < 9:
-            flags.append(f"tiny sample ({ip:.1f} IP over 3 starts) — xERA is unreliable")
-        elif ip < 13:
-            flags.append(f"small sample ({ip:.1f} IP over 3 starts)")
+    if ip is not None and ip < 9:
+        flags.append(f"small sample ({ip:.1f} IP over 3 starts)")
 
-    if era is not None and xera is not None:
-        gap = era - xera
-        if gap > 2.5:
-            flags.append(
-                f"ERA {era:.2f} >> xERA {xera:.2f} — likely unlucky; "
-                "may be better than ERA shows (check LOB%/BABIP)"
-            )
-        elif gap < -2.5:
-            flags.append(
-                f"ERA {era:.2f} << xERA {xera:.2f} — overperforming; "
-                "regression risk"
-            )
+    hh     = flt(row.get("Hard-Hit%", ""))
+    barrel = flt(row.get("Barrel%", ""))
+    bb     = flt(row.get("BB%"))
+    ogs    = flt(row.get("Outs/GS"))
 
-    if hh is not None and hh > 45:
-        flags.append(f"getting squared up (Hard-Hit% {hh:.0f}%)")
-    if barrel is not None and barrel > 15:
-        flags.append(f"elevated Barrel% {barrel:.0f}%")
-    if kbb is not None and kbb < 5:
-        flags.append(f"poor K-BB% {kbb:.0f}% — limited command/stuff separation")
-    if lob is not None and lob > 85:
-        flags.append(f"high LOB% {lob:.0f}% — ERA flattered by strand luck")
-    if lob is not None and lob < 48:
-        flags.append(f"low LOB% {lob:.0f}% — ERA penalized by bad sequencing")
+    if hh is not None and hh > 44:
+        flags.append(f"HH% {hh:.0f}%")
+    if barrel is not None and barrel > 12:
+        flags.append(f"Barrel% {barrel:.0f}%")
+    if bb is not None and bb > 12:
+        flags.append(f"BB% {bb:.0f}%")
     if ogs is not None and (ogs / 3) < 4.0:
-        flags.append(f"averaging only {ogs/3:.1f} IP/start — heavy bullpen usage")
+        flags.append(f"avg {ogs/3:.1f} IP/gs")
 
     return flags
 
 
 def bullpen_flags(row: dict) -> list[str]:
     flags = []
-    era  = flt(row.get("ERA"))
     xera = flt(row.get("xERA"))
     if xera is not None and xera > 5.0:
-        flags.append(f"bullpen is a liability (xERA {xera:.2f})")
-    if era is not None and xera is not None:
-        gap = era - xera
-        if gap > 2.0:
-            flags.append(f"bullpen ERA {era:.2f} >> xERA {xera:.2f} — may be getting unlucky")
-        elif gap < -2.0:
-            flags.append(f"bullpen ERA {era:.2f} << xERA {xera:.2f} — ERA flatters the pen")
+        flags.append(f"bullpen xERA {xera:.2f}")
     return flags
 
 
@@ -640,74 +642,114 @@ def get_recent_starts(player_id: int) -> list[dict]:
         return []
 
 
-def pitcher_history_flags(starts: list[dict]) -> list[str]:
+def pitcher_history_flags(
+    starts: list[dict],
+    hand: str,
+    rhp_pool: dict,
+    lhp_pool: dict,
+    today: "date",
+) -> list[str]:
     """Derive context flags from MLB game log entries."""
     flags = []
     if not starts:
         return flags
 
-    # Check for missed turn (gap > 10 days between consecutive starts)
-    dates = []
-    for s in starts:
-        d = s.get("date") or s.get("game", {}).get("officialDate", "")
+    def _raw_date(s: dict) -> str:
+        return (s.get("date") or s.get("game", {}).get("officialDate", ""))[:10]
+
+    def _parse_date(s: dict):
         try:
-            dates.append(datetime.strptime(d[:10], "%Y-%m-%d").date())
+            return datetime.strptime(_raw_date(s), "%Y-%m-%d").date()
         except (ValueError, TypeError):
-            pass
-    if len(dates) >= 2:
-        for a, b in zip(sorted(dates), sorted(dates)[1:]):
-            if (b - a).days > 10:
-                flags.append(f"missed a turn ({(b-a).days}-day gap between starts)")
-                break
+            return None
 
-    # Check last start
-    last = starts[-1].get("stat", {})
-    ip = flt(last.get("inningsPitched"))
-    er = flt(last.get("earnedRuns"))
-    pitches = last.get("numberOfPitches")
+    all_appearances = starts  # includes starts + relief
+    start_entries   = [s for s in all_appearances if int(s.get("stat", {}).get("gamesStarted", 0)) > 0]
+    recent_3        = start_entries[-3:]
 
-    if pitches is not None:
-        pitches = int(pitches)
-        if pitches < 80:
-            flags.append(f"low pitch count last start ({pitches} pitches) — may have been managing something")
-        elif pitches > 100:
-            flags.append(f"high pitch count last start ({pitches} pitches) — monitor workload today")
+    # ── Days since last start ─────────────────────────────────────────────────
+    if start_entries:
+        last_dt = _parse_date(start_entries[-1])
+        if last_dt:
+            days = (today - last_dt).days
+            if days > 10:
+                flags.append(f"{days} days since last start ({_raw_date(start_entries[-1])})")
 
-    # xERA outlier check: look at all starts in the 3-game window and flag if one outing
-    # is dramatically inflating the aggregate xERA
-    game_starts = [s for s in starts if int(s.get("stat", {}).get("gamesStarted", 0)) > 0]
-    recent_3 = game_starts[-3:]
+    # ── Recent relief appearances ─────────────────────────────────────────────
+    relief_dates = []
+    for s in all_appearances[-6:]:
+        if int(s.get("stat", {}).get("gamesStarted", 0)) == 0:
+            relief_dates.append(_raw_date(s))
+    if relief_dates:
+        flags.append("recent bullpen appearance: " + ", ".join(sorted(relief_dates, reverse=True)[:2]))
+
+    # ── Pitch count on last start ─────────────────────────────────────────────
+    if start_entries:
+        last_stat = start_entries[-1].get("stat", {})
+        pc = last_stat.get("numberOfPitches")
+        if pc is not None:
+            pc = int(pc)
+            if pc < 80:
+                flags.append(f"last start: {pc} pitches")
+            elif pc > 100:
+                flags.append(f"last start: {pc} pitches")
+
+    # ── One rough outing skewing the 3-game ERA ───────────────────────────────
     if len(recent_3) >= 2:
         outings = []
         for s in recent_3:
             stat = s.get("stat", {})
             oip = flt(stat.get("inningsPitched"))
             oer = int(stat.get("earnedRuns") or 0)
-            d = (s.get("date") or s.get("game", {}).get("officialDate", ""))[:10]
             if oip and oip > 0:
-                outings.append({"ip": oip, "er": oer, "era_eq": (oer / oip) * 9, "date": d})
-
+                outings.append({"ip": oip, "er": oer, "era_eq": (oer / oip) * 9, "date": _raw_date(s)})
         if len(outings) >= 2:
-            worst = max(outings, key=lambda x: x["era_eq"])
+            worst  = max(outings, key=lambda x: x["era_eq"])
             others = [o for o in outings if o is not worst]
-            avg_other_era = sum(o["era_eq"] for o in others) / len(others)
-
-            # Flag if worst start was a disaster AND the other starts were genuinely clean
-            # (avg_other_era <= 3.75 avoids false positives when all starts were mediocre)
-            if worst["era_eq"] >= 9.0 and avg_other_era <= 3.75:
-                other_label = "other start" if len(others) == 1 else f"other {len(others)} starts"
-                # Skip ERA equiv display when IP is too small to be meaningful
-                if worst["ip"] >= 2.0:
-                    outing_str = (
-                        f"{worst['er']} ER in {worst['ip']:.1f} IP "
-                        f"(ERA equiv {worst['era_eq']:.0f})"
-                    )
-                else:
-                    outing_str = f"{worst['er']} ER in just {worst['ip']:.1f} IP"
-                flags.append(
-                    f"{worst['date']}: {outing_str} is inflating 3-game xERA — "
-                    f"{other_label} averaged {avg_other_era:.2f} ERA equiv"
+            avg_other = sum(o["era_eq"] for o in others) / len(others)
+            if worst["era_eq"] >= 7.0 and avg_other <= 4.50:
+                outing_str = (
+                    f"{worst['er']} ER in {worst['ip']:.1f} IP"
+                    + (f" (ERA equiv {worst['era_eq']:.0f})" if worst["ip"] >= 2.0 else "")
                 )
+                flags.append(f"{worst['date']}: {outing_str} skewing 3-game ERA")
+
+    # ── K outlier in last 3 starts ────────────────────────────────────────────
+    k_pairs = []
+    for s in recent_3:
+        stat = s.get("stat", {})
+        k_val = stat.get("strikeOuts")
+        if k_val is not None:
+            k_pairs.append((int(k_val), _raw_date(s)))
+    if len(k_pairs) >= 2:
+        avg_k = sum(k for k, _ in k_pairs) / len(k_pairs)
+        for k, d in k_pairs:
+            if k >= max(avg_k * 1.75, 9) and k >= avg_k + 3:
+                flags.append(f"high-K outing {d} ({k} Ks, avg {avg_k:.1f})")
+            elif avg_k >= 5 and k <= avg_k * 0.4 and k <= avg_k - 3:
+                flags.append(f"low-K outing {d} ({k} Ks, avg {avg_k:.1f})")
+
+    # ── Opponent K-rate context ───────────────────────────────────────────────
+    opp_pool = lhp_pool if hand == "L" else rhp_pool
+    opp_ks: list[tuple[str, float]] = []
+    for s in recent_3:
+        opp_full = (s.get("opponent") or {}).get("name", "")
+        opp_code = _MLB_NAME_TO_CODE.get(opp_full, "")
+        if not opp_code:
+            continue
+        row = opp_pool.get(opp_code) or opp_pool.get(to_stats(opp_code), {})
+        k = flt(row.get("K%")) if row else None
+        if k is not None:
+            opp_ks.append((opp_code, k))
+    if len(opp_ks) >= 2:
+        high_k = [(t, k) for t, k in opp_ks if k > 25]
+        low_k  = [(t, k) for t, k in opp_ks if k < 19]
+        if len(high_k) >= 2:
+            detail = ", ".join(f"{t} {k:.0f}%" for t, k in high_k)
+            flags.append(f"recent opponents high-K: {detail}")
+        elif len(low_k) >= 2:
+            detail = ", ".join(f"{t} {k:.0f}%" for t, k in low_k)
+            flags.append(f"recent opponents low-K: {detail}")
 
     return flags
 
@@ -792,50 +834,38 @@ def weather_flags(wx: dict) -> list[str]:
     if not wx:
         return flags
 
-    apf         = wx.get("adjusted_park_factor")
-    pitch_cond  = wx.get("pitching_conditions", "Neutral")
-    hit_cond    = wx.get("hitting_conditions", "Average")
+    roof = wx.get("roof_status", "")
+    if not roof or roof in ("Open Air", "N/A") or "open" in roof.lower():
+        is_outdoor = True
+    elif "dome" in roof.lower() or "closed" in roof.lower():
+        is_outdoor = False
+    else:
+        is_outdoor = True
+
+    if not is_outdoor:
+        return flags
+
     precip_risk = wx.get("precip_risk_during_game", False)
     precip_prob = wx.get("precip_probability")
     wind_lbl    = wx.get("wind_effect_label", "")
     wind_speed  = wx.get("wind_speed")
-    roof        = wx.get("roof_status", "")
-    is_outdoor  = roof not in ("Dome", "Roof Closed")
+    apf         = wx.get("adjusted_park_factor")
 
-    # Park factor — flag when meaningfully off neutral
+    if precip_risk:
+        prob_s = f" {precip_prob:.0f}%" if precip_prob is not None else ""
+        flags.append(f"rain risk{prob_s}")
+    elif precip_prob is not None and precip_prob >= 30:
+        flags.append(f"rain chance {precip_prob:.0f}%")
+
+    if wind_lbl and wind_lbl not in ("Calm", "Indoor", ""):
+        speed_s = f" {wind_speed:.0f} mph" if wind_speed is not None else ""
+        flags.append(f"wind: {wind_lbl}{speed_s}")
+
     if apf is not None:
         if apf >= 108:
-            flags.append(
-                f"extreme hitter's park (adj factor {apf:.0f}) — "
-                f"xERAs will play higher than usual"
-            )
-        elif apf >= 104 and hit_cond not in ("Average",):
-            flags.append(f"hitter-friendly park today (adj factor {apf:.0f})")
+            flags.append(f"hitter-friendly park (APF {apf:.0f})")
         elif apf <= 92:
-            flags.append(
-                f"extreme pitcher's park (adj factor {apf:.0f}) — "
-                f"xERAs will play lower than usual"
-            )
-
-    # Pitching conditions label (combines park + weather)
-    if pitch_cond == "Hitter Friendly":
-        apf_s = f" (adj factor {apf:.0f})" if apf is not None else ""
-        flags.append(
-            f"hitter-friendly conditions{apf_s} — "
-            f"adjust pitcher xERA expectations up"
-        )
-
-    # Weather — only relevant for outdoor/open-roof parks
-    if is_outdoor:
-        if precip_risk:
-            prob_s = f" ({precip_prob:.0f}%)" if precip_prob is not None else ""
-            flags.append(f"rain risk{prob_s} — possible delay or postponement")
-        elif precip_prob is not None and precip_prob >= 25:
-            flags.append(f"rain chance {precip_prob:.0f}%")
-
-        if wind_lbl and wind_lbl not in ("Calm", "Indoor", ""):
-            speed_s = f" {wind_speed:.0f} mph" if wind_speed is not None else ""
-            flags.append(f"wind: {wind_lbl}{speed_s} — check direction for park impact")
+            flags.append(f"pitcher-friendly park (APF {apf:.0f})")
 
     return flags
 
@@ -870,7 +900,6 @@ def _extract_outings(history: list[dict], n: int = 5) -> list[dict]:
         except Exception:
             date_s = raw_date[:10]
 
-        # isWin = team game result (not pitcher decision)
         is_win = s.get("isWin")
         if is_win is True:
             result_s = "W"
@@ -882,19 +911,21 @@ def _extract_outings(history: list[dict], n: int = 5) -> list[dict]:
         opp_full = (s.get("opponent") or {}).get("name", "")
         opp_code = _MLB_NAME_TO_CODE.get(opp_full, opp_full[:3].upper() if opp_full else "?")
         is_home  = s.get("isHome")
+        is_relief = int(stat.get("gamesStarted", 1)) == 0
 
         result.append({
-            "date":    date_s,
-            "ha":      "H" if is_home else ("@" if is_home is False else "?"),
-            "opp":     opp_code,
-            "result":  result_s,
-            "ip":      stat.get("inningsPitched", "?"),
-            "pc":      stat.get("numberOfPitches"),
-            "k":       stat.get("strikeOuts"),
-            "h":       stat.get("hits"),
-            "bb":      stat.get("baseOnBalls"),
-            "er":      stat.get("earnedRuns"),
-            "r":       stat.get("runs"),
+            "date":      date_s,
+            "ha":        "H" if is_home else ("@" if is_home is False else "?"),
+            "opp":       opp_code,
+            "result":    result_s,
+            "ip":        stat.get("inningsPitched", "?"),
+            "pc":        stat.get("numberOfPitches"),
+            "k":         stat.get("strikeOuts"),
+            "h":         stat.get("hits"),
+            "bb":        stat.get("baseOnBalls"),
+            "er":        stat.get("earnedRuns"),
+            "r":         stat.get("runs"),
+            "is_relief": is_relief,
         })
         if len(result) >= n:
             break
@@ -908,8 +939,10 @@ def analyze_game(
     bullpen: dict,
     mlb_info: dict,
     wx: dict,
+    today: Optional[date] = None,
 ) -> dict:
     """Return structured analysis dict — used by both terminal and HTML renderers."""
+    today = today or date.today()
     t1, t2 = p1.get("Team", "?"), p2.get("Team", "?")
     home_abbr = mlb_info.get("home", "")
     away_abbr = mlb_info.get("away", "")
@@ -1038,7 +1071,11 @@ def analyze_game(
         for f in bullpen_flags(b):
             flags.append(f"{team} bullpen: {f}")
     for team, p in [(away_team, p_away), (home_team, p_home)]:
-        for f in pitcher_history_flags(mlb_info.get(f"history_{team}", [])):
+        hand = (p.get("Throws") or "?")[0]
+        for f in pitcher_history_flags(
+            mlb_info.get(f"history_{team}", []),
+            hand, rhp, lhp, today,
+        ):
             flags.append(f"{team} — {p.get('Name', '?')}: {f}")
     for f in weather_flags(wx):
         flags.append(f"WEATHER: {f}")
@@ -1511,11 +1548,12 @@ def _html_game(g: dict) -> str:
             opp_slug = _LOGO.get(opp_code, opp_code.lower())
             opp_url  = f"https://a.espncdn.com/combiner/i?img=/i/teamlogos/mlb/500/{opp_slug}.png&h=28&w=28"
             opp_logo = f'<img src="{opp_url}" class="tm-logo-sm" alt="{_h(opp_code)}" onerror="this.style.display=\'none\'">'
+            ip_s = (_v(o["ip"]) + "*") if o.get("is_relief") else _v(o["ip"])
             rows += (f'<div class="ot-row">'
                      f'<span class="dim">{_h(o["date"])}</span>'
                      f'<span class="dim">{pfx} {opp_logo}</span>'
                      f'<span class="{rc}">{_h(o["result"])}</span>'
-                     f'<span>{_h(_v(o["ip"]))}</span>'
+                     f'<span>{_h(ip_s)}</span>'
                      f'<span class="dim">{_h(_v(o["pc"]))}</span>'
                      f'<span>{_h(_v(o["k"]))}</span>'
                      f'<span class="dim">{_h(_v(o["h"]))}</span>'
@@ -1610,6 +1648,20 @@ def _html_game(g: dict) -> str:
                              od["f5_over"], od["f5_under"])
                 + f'</div>'
             )
+        tt_html = ""
+        if od.get("has_tt"):
+            def _tt_row(team_name, over_s, under_s):
+                return (f'<span class="tm">{_h(team_name)}</span>'
+                        f'<span class="odds-val">{_h(over_s)}</span>'
+                        f'<span class="odds-val">{_h(under_s)}</span>')
+            tt_html = (
+                f'<div class="odds-sub">Team Totals</div>'
+                f'<div class="odds-grid" style="grid-template-columns:1fr 1fr 1fr">'
+                f'<span></span><span class="odds-hd">Over</span><span class="odds-hd">Under</span>'
+                + _tt_row(away, od["away_tt_over"], od["away_tt_under"])
+                + _tt_row(home, od["home_tt_over"], od["home_tt_under"])
+                + f'</div>'
+            )
         props_html = ""
         away_k_s = _fmt_k_line(od.get("away_k"))
         home_k_s = _fmt_k_line(od.get("home_k"))
@@ -1642,7 +1694,7 @@ def _html_game(g: dict) -> str:
             + _odds_rows(od["away_ml"], od["home_ml"],
                          od["away_spread"], od["home_spread"],
                          od["over"], od["under"])
-            + f'</div>{f5_html}{props_html}</div></details>'
+            + f'</div>{f5_html}{tt_html}{props_html}</div></details>'
         )
 
     away_outings = g.get("away_sp_outings", [])
@@ -1860,7 +1912,7 @@ def main():
     _log = (lambda msg: print(msg, file=sys.stderr)) if args.html else print
 
     # Resolve date
-    today_d = date.today()
+    today_d = datetime.now(_ET).date()
     if args.date == "today":
         target_date, slot = today_d, "today"
     elif args.date == "tomorrow":
@@ -1949,7 +2001,7 @@ def main():
             wx = get_weather(home_t, target_date)
 
         if args.html:
-            g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
+            g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx, target_date)
             g["odds"] = get_game_odds(odds_data, g["away"], g["home"],
                                        g["away_sp"]["name"], g["home_sp"]["name"],
                                        props_data)

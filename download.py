@@ -13,6 +13,8 @@ Or call download_all() from handicap.py via --refresh.
 import json
 import sys
 from datetime import date, timedelta, datetime, timezone
+
+_ET = timezone(timedelta(hours=-4))  # EDT (UTC-4); correct for MLB season Apr-Oct
 from pathlib import Path
 
 try:
@@ -225,6 +227,7 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
             "&regions=us"
             "&markets=pitcher_strikeouts,pitcher_outs"
             ",h2h_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings"
+            ",team_totals"
             "&bookmakers=draftkings,fanduel,fanatics"
             "&oddsFormat=american"
         )
@@ -336,7 +339,7 @@ if __name__ == "__main__":
     )
     args = ap.parse_args()
 
-    today = date.today()
+    today = datetime.now(_ET).date()
     if args.date == "today":
         target, slot = today, "today"
     elif args.date == "tomorrow":
