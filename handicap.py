@@ -1602,8 +1602,8 @@ def _html_game(g: dict) -> str:
         rows += _row("ERA",     sp["era_s"])
         rows += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
         rows += f'<span class="mu-lbl">H/gs</span><span class="dim">{_h(sp["h_per_gs"])}</span>'
-        if pc_avg and sp.get("has_stats"):
-            rows += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_avg)}</span>'
+        pc_display = pc_avg if (pc_avg and sp.get("has_stats")) else "?"
+        rows += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_display)}</span>'
         rows += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
         hb = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
         return (f'<div class="mu-card"><div class="mu-card-hd">{_h(sp["name"])} {hb}</div>'
