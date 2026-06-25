@@ -554,11 +554,11 @@ def pitcher_csv_flags(row: dict) -> list[str]:
     xera   = flt(row.get("xERA"))
 
     if ip is None and xera is None:
-        flags.append("no stats — likely TBD")
+        flags.append("first start of the season — no stats available yet")
         return flags
 
     if ip is not None and ip < 9:
-        flags.append(f"small sample ({ip:.1f} IP over 3 starts)")
+        flags.append(f"small sample ({ip:.1f} IP over 3 starts) — stats may not reflect true ability")
 
     hh     = flt(row.get("Hard-Hit%", ""))
     barrel = flt(row.get("Barrel%", ""))
@@ -566,13 +566,13 @@ def pitcher_csv_flags(row: dict) -> list[str]:
     ogs    = flt(row.get("Outs/GS"))
 
     if hh is not None and hh > 44:
-        flags.append(f"HH% {hh:.0f}%")
+        flags.append(f"HH% {hh:.0f}% — batters are squaring up the ball at an elevated rate")
     if barrel is not None and barrel > 12:
-        flags.append(f"Barrel% {barrel:.0f}%")
+        flags.append(f"Barrel% {barrel:.0f}% — high hard contact rate, elevated home run risk")
     if bb is not None and bb > 12:
-        flags.append(f"BB% {bb:.0f}%")
+        flags.append(f"BB% {bb:.0f}% — command concerns, elevated walk rate")
     if ogs is not None and (ogs / 3) < 4.0:
-        flags.append(f"avg {ogs/3:.1f} IP/gs")
+        flags.append(f"avg {ogs/3:.1f} IP/gs — short outings, bullpen likely needed early")
 
     return flags
 
@@ -581,7 +581,7 @@ def bullpen_flags(row: dict) -> list[str]:
     flags = []
     xera = flt(row.get("xERA"))
     if xera is not None and xera > 5.0:
-        flags.append(f"bullpen xERA {xera:.2f}")
+        flags.append(f"bullpen xERA {xera:.2f} — bullpen performing well below average by expected ERA")
     return flags
 
 
@@ -681,7 +681,7 @@ def pitcher_history_flags(
         if last_dt:
             days = (today - last_dt).days
             if days > 10:
-                flags.append(f"{days} days since last start ({_raw_date(start_entries[-1])})")
+                flags.append(f"{days} days since last start ({_raw_date(start_entries[-1])}) — may not be fully stretched out")
 
     # ── Recent relief appearances ─────────────────────────────────────────────
     relief_dates = []
@@ -689,7 +689,7 @@ def pitcher_history_flags(
         if int(s.get("stat", {}).get("gamesStarted", 0)) == 0:
             relief_dates.append(_raw_date(s))
     if relief_dates:
-        flags.append("recent bullpen appearance: " + ", ".join(sorted(relief_dates, reverse=True)[:2]))
+        flags.append("recent bullpen appearance: " + ", ".join(sorted(relief_dates, reverse=True)[:2]) + " — may affect pitch count or availability")
 
     # ── Pitch count on last start ─────────────────────────────────────────────
     if start_entries:
@@ -698,9 +698,9 @@ def pitcher_history_flags(
         if pc is not None:
             pc = int(pc)
             if pc < 80:
-                flags.append(f"last start: {pc} pitches")
+                flags.append(f"last start: {pc} pitches — short outing, possible injury concern or early hook")
             elif pc > 100:
-                flags.append(f"last start: {pc} pitches")
+                flags.append(f"last start: {pc} pitches — high pitch count, may be on shorter leash today")
 
     # ── One rough outing skewing the 3-game ERA ───────────────────────────────
     if len(recent_3) >= 2:
@@ -720,7 +720,7 @@ def pitcher_history_flags(
                     f"{worst['er']} ER in {worst['ip']:.1f} IP"
                     + (f" (ERA equiv {worst['era_eq']:.0f})" if worst["ip"] >= 2.0 else "")
                 )
-                flags.append(f"{worst['date']}: {outing_str} skewing 3-game ERA")
+                flags.append(f"{worst['date']}: {outing_str} skewing 3-game ERA — other starts look better, don't overweight the ERA")
 
     # ── K outlier in last 3 starts ────────────────────────────────────────────
     k_pairs = []
@@ -733,9 +733,9 @@ def pitcher_history_flags(
         avg_k = sum(k for k, _ in k_pairs) / len(k_pairs)
         for k, d in k_pairs:
             if k >= max(avg_k * 1.75, 9) and k >= avg_k + 3:
-                flags.append(f"high-K outing {d} ({k} Ks, avg {avg_k:.1f})")
+                flags.append(f"high-K outing {d} ({k} Ks vs avg {avg_k:.1f}) — stuff can dominate; may not repeat")
             elif avg_k >= 5 and k <= avg_k * 0.4 and k <= avg_k - 3:
-                flags.append(f"low-K outing {d} ({k} Ks, avg {avg_k:.1f})")
+                flags.append(f"low-K outing {d} ({k} Ks vs avg {avg_k:.1f}) — stuff was flat that day")
 
     # ── Opponent K-rate context ───────────────────────────────────────────────
     opp_pool = lhp_pool if hand == "L" else rhp_pool
@@ -754,10 +754,10 @@ def pitcher_history_flags(
         low_k  = [(t, k) for t, k in opp_ks if k < 19]
         if len(high_k) >= 2:
             detail = ", ".join(f"{t} {k:.0f}%" for t, k in high_k)
-            flags.append(f"recent opponents high-K: {detail}")
+            flags.append(f"recent opponents high-K: {detail} — K stats may be inflated vs strikeout-prone lineups")
         elif len(low_k) >= 2:
             detail = ", ".join(f"{t} {k:.0f}%" for t, k in low_k)
-            flags.append(f"recent opponents low-K: {detail}")
+            flags.append(f"recent opponents low-K: {detail} — recent opponents make less contact; today's lineup may be tougher")
 
     return flags
 
@@ -861,19 +861,19 @@ def weather_flags(wx: dict) -> list[str]:
 
     if precip_risk:
         prob_s = f" {precip_prob:.0f}%" if precip_prob is not None else ""
-        flags.append(f"rain risk{prob_s}")
+        flags.append(f"rain risk{prob_s} — game delay or conditions may affect performance")
     elif precip_prob is not None and precip_prob >= 30:
-        flags.append(f"rain chance {precip_prob:.0f}%")
+        flags.append(f"rain chance {precip_prob:.0f}% — monitor for delays")
 
     if wind_lbl and wind_lbl not in ("Calm", "Indoor", ""):
         speed_s = f" {wind_speed:.0f} mph" if wind_speed is not None else ""
-        flags.append(f"wind: {wind_lbl}{speed_s}")
+        flags.append(f"wind: {wind_lbl}{speed_s} — factor into total and HR expectations")
 
     if apf is not None:
         if apf >= 108:
-            flags.append(f"hitter-friendly park (APF {apf:.0f})")
+            flags.append(f"hitter-friendly park (APF {apf:.0f}) — park boosts offense, favor the over and HR props")
         elif apf <= 92:
-            flags.append(f"pitcher-friendly park (APF {apf:.0f})")
+            flags.append(f"pitcher-friendly park (APF {apf:.0f}) — park suppresses offense, favor the under")
 
     return flags
 
