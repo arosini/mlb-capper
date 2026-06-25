@@ -99,18 +99,18 @@ jobs:
             python3 picks.py   --annotate
           }
 
-          git add history/ picks/
+          git add history/ picks/ data/starters_last3g_today_*.json
           if git diff --staged --quiet; then exit 0; fi
           git commit -m "History: odds $CACHE_DATE"
           git push && exit 0
 
           for _retry in 1 2; do
             git reset HEAD~1
-            git clean -f history/ picks/ 2>/dev/null || true
-            git checkout -- history/ picks/ 2>/dev/null || true
+            git clean -f history/ picks/ data/starters_last3g_today_*.json 2>/dev/null || true
+            git checkout -- history/ picks/ data/starters_last3g_today_*.json 2>/dev/null || true
             git pull origin main
             _save_and_annotate
-            git add history/ picks/
+            git add history/ picks/ data/starters_last3g_today_*.json
             git diff --staged --quiet && exit 0
             git commit -m "History: odds $CACHE_DATE"
             git push && exit 0
