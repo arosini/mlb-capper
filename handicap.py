@@ -2233,12 +2233,10 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             ai_check = '<span class="ai-check">✓</span>'
             sections = []
             for i, pick in enumerate(game_picks):
-                is_best = pick.get("is_best")
-                best_badge = ' <span class="ai-conf">Best Bet</span>' if is_best else ""
                 sec_id = f'{g_id}-ai-{i}'
                 sections.append(
                     f'<details class="sec ai-pick-card" id="{sec_id}">'
-                    f'<summary class="sec-sum">{_h(_pick_summary_title(pick))}{best_badge}</summary>'
+                    f'<summary class="sec-sum">{_h(_pick_summary_title(pick))}</summary>'
                     f'<div class="sec-body">'
                     f'<div class="ai-pick-inline">'
                     f'<div class="ai-reason">{_h(pick.get("reason",""))}</div>'
@@ -2997,10 +2995,6 @@ def _render_suggestions_html(all_picks: list, target_date: "date") -> str:
         reason  = _h(pick.get("reason", ""))
         warn    = pick.get("line_warning")
         alt     = pick.get("alt_suggestion")
-        conf    = pick.get("confidence", "")
-        best_s  = ' <span class="ai-conf">Best Bet</span>' if is_best else ""
-        conf_s  = (f' <span class="ai-conf-dim">{_h(conf)}</span>'
-                   if conf and not is_best else "")
         warn_s  = (f'<div class="ai-line-warn">Line Warning: {_h(alt)}</div>'
                    if warn and alt else "")
         found   = pick.get("found_at", "")
@@ -3017,7 +3011,7 @@ def _render_suggestions_html(all_picks: list, target_date: "date") -> str:
         pid     = _pick_dom_id(pick)
         return (
             f'<details class="{row_cls}" id="{pid}">'
-            f'<summary class="ai-pick-sum">{title}{best_s}{conf_s}</summary>'
+            f'<summary class="ai-pick-sum">{title}</summary>'
             f'<div class="ai-pick-body">'
             f'<div class="ai-reason">{reason}</div>'
             f'{found_s}'
