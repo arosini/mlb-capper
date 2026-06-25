@@ -1760,7 +1760,7 @@ def _pick_summary_title(pick: dict) -> str:
             home_team = parts[1].strip() if len(parts) == 2 else game
             team = away_team if team_side.startswith("away") else home_team
             ou = "u" if "under" in team_side else "o"
-            bet_text = f"{team} {f5_tag}{ou}{line}"
+            bet_text = f"{team} {f5_tag}Team Total {ou}{line}"
         else:
             bet_text = bet.replace("Over ", "o").replace("Under ", "u")
             if game:
