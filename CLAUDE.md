@@ -8,7 +8,7 @@ A daily MLB handicapping dashboard published to Cloudflare Pages at `mlbautocap.
 - **Local**: `.env` file (gitignored) — auto-loaded by `config.py` at import time
 - **CI**: GitHub Secrets → passed as env vars in the workflow `Download data` step
 
-Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
+Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHROPIC_API_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 
 ## Data Sources
 
@@ -17,6 +17,7 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `CLOUD
 | Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L12RHP/LHP), bullpen stats (last 12), ballpark weather |
 | MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs |
 | The Odds API | API key (query param) | Full-game ML/spread/total + F5 ML/spread/total + pitcher K/outs props for DK, FanDuel, Fanatics — 500 req/month free |
+| Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Sonnet 4.6 for AI Picks section — called once per odds refresh, cached to `data/suggestions_{date}.json` |
 
 ## File Overview
 

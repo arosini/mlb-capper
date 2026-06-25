@@ -27,7 +27,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests anthropic
 
       - name: Set cache date
         run: python3 -c "from datetime import datetime,timezone,timedelta; print('CACHE_DATE='+datetime.now(timezone(timedelta(hours=-4))).strftime('%Y-%m-%d'))" >> $GITHUB_ENV
@@ -48,6 +48,8 @@ jobs:
         run: python3 download.py
 
       - name: Generate HTML
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           mkdir -p _site
           python3 handicap.py --html > _site/index.html

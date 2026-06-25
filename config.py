@@ -24,6 +24,7 @@ if _env.exists():
 HANDIGRAPHS_EMAIL    = os.environ.get("HANDIGRAPHS_EMAIL", "")
 HANDIGRAPHS_PASSWORD = os.environ.get("HANDIGRAPHS_PASSWORD", "")
 ODDS_API_KEY         = os.environ.get("ODDS_API_KEY", "")
+ANTHROPIC_API_KEY    = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # ── Handigraphs API ───────────────────────────────────────────────────────────
 HANDIGRAPHS_BASE_URL  = "https://www.handigraphs.com"

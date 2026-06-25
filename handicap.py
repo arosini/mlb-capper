@@ -199,6 +199,15 @@ def _fmt_k_line(k: Optional[dict]) -> str:
     up = _fmt_ml(k.get("under"))
     return f"K O/U {pt} ({op} / {up})"
 
+def _fmt_outs_line(o: Optional[dict]) -> str:
+    """Format pitcher outs O/U as 'Outs O/U 17.5 (-120 / +100)'."""
+    if not o or o.get("point") is None:
+        return ""
+    pt = o["point"]
+    op = _fmt_ml(o.get("over"))
+    up = _fmt_ml(o.get("under"))
+    return f"Outs O/U {pt} ({op} / {up})"
+
 def get_game_odds(odds_data: dict, away_code: str, home_code: str,
                   away_sp_name: str = "", home_sp_name: str = "",
                   props_data: Optional[dict] = None) -> Optional[dict]:
@@ -1485,6 +1494,38 @@ header{background:#030712}
 .spl-hd span{color:#6b7280}
 .spl-sp-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
 }
+.ai-picks{background:white;margin:.5rem 0 .75rem;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
+.ai-picks-hd{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;padding:.45rem .875rem .3rem;border-bottom:1px solid #f0f0f0}
+.ai-best-wrap{padding:.55rem .875rem .5rem;border-bottom:1px solid #f0f0f0}
+.ai-best-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#b45309;margin-bottom:.22rem}
+.ai-best{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.45rem .6rem}
+.ai-game{font-size:.76rem;font-weight:700;color:#374151}
+.ai-bet{font-size:.95rem;font-weight:700;margin:.12rem 0}
+.ai-odds{font-size:.76rem;color:#6b7280;font-variant-numeric:tabular-nums}
+.ai-reason{font-size:.76rem;color:#374151;margin-top:.28rem;line-height:1.45}
+.ai-conf{font-size:.54rem;background:#fde68a;color:#92400e;padding:.04rem .26rem;border-radius:3px;font-weight:700;vertical-align:middle;margin-left:.3rem;text-transform:uppercase;letter-spacing:.04em}
+.ai-line-warn{font-size:.71rem;color:#b45309;background:#fff7ed;border-left:3px solid #f97316;padding:.15rem .42rem;margin-top:.28rem;border-radius:0 4px 4px 0}
+.ai-no-best{font-size:.77rem;color:#6b7280;padding:.5rem .875rem;font-style:italic}
+.ai-others-wrap{padding:.45rem .875rem .5rem}
+.ai-others-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:.28rem}
+.ai-other{border:1px solid #e5e7eb;border-radius:7px;padding:.38rem .55rem;margin-bottom:.32rem}
+.ai-other:last-child{margin-bottom:0}
+.ai-disclaimer{font-size:.61rem;color:#9ca3af;text-align:center;padding:.3rem .875rem .45rem;border-top:1px solid #f0f0f0;margin-top:.1rem}
+@media(prefers-color-scheme:dark){
+.ai-picks{background:#1a1a1a;border-color:#2a2a2a}
+.ai-picks-hd{border-bottom-color:#2a2a2a}
+.ai-best-wrap{border-bottom-color:#2a2a2a}
+.ai-best{background:#1c1400;border-color:#b45309}
+.ai-game{color:#d1d5db}
+.ai-reason{color:#d1d5db}
+.ai-conf{background:#92400e;color:#fde68a}
+.ai-line-warn{background:#2a1500;color:#fbbf24;border-left-color:#f97316}
+.ai-no-best{color:#9ca3af}
+.ai-other{border-color:#2a2a2a}
+.ai-others-wrap .ai-game{color:#d1d5db}
+.ai-others-wrap .ai-reason{color:#9ca3af}
+.ai-disclaimer{border-top-color:#2a2a2a;color:#6b7280}
+}
 """
 
 def _h(text) -> str:
@@ -2153,14 +2194,412 @@ def _ts_span(iso: str) -> str:
     return f'<span class="local-ts" data-utc="{_h(iso)}">{_h(fallback)}</span>'
 
 
+# ── AI Betting Suggestions ─────────────────────────────────────────────────────
+
+_AI_SYSTEM_PROMPT = """\
+You are a sharp MLB sports betting analyst. Identify high-confidence betting opportunities for today's games.
+
+PHILOSOPHY: Be VERY conservative. Only recommend a bet when multiple factors clearly align AND there are no disqualifying factors. "No strong plays today" is a valid and often correct answer.
+
+DISQUALIFYING FACTORS — any one eliminates the bet entirely:
+- Pitcher has "NO STATS" (first start of season) — never bet on an unknown starter
+- RAIN RISK flag in weather — avoid games with meaningful precipitation risk
+- Bullpen xERA > 5.0 for the team you're backing (exception: F5 or pitcher props that don't depend on the bullpen)
+- Pitcher ERA is inflated by a rough outing within last 2 starts AND ERA is >2.5 runs above xERA
+- Pitcher had very high pitch count (100+) last start AND is on fewer than 5 days rest
+
+STRONG POSITIVE SIGNALS (need 3+ for best bet, 2+ for other bets):
+- Elite/good xERA pitcher (<3.75) vs weak offense (wRC+ <100)
+- High K% pitcher (≥23%) vs lineup with high K% against that pitcher's hand
+- Pitcher consistently going deep (≥6.0 IP/gs avg) with low walk rate (BB% <7%)
+- Strong team trends (4-1 or 5-0) in this pitcher's recent starts
+- Good run support in those starts (avg ≥5 RS)
+- Pitcher outs/K prop aligns with demonstrated workload depth
+- Park or weather clearly favors pitcher (pitcher-friendly APF <95, wind blowing in, cold temps)
+
+BET TYPE GUIDANCE:
+- Prefer F5 lines when confident in starter but not bullpen
+- Prefer pitcher K or outs props when pitcher consistently goes deep with high K%
+- Prefer team totals when one offense is clearly outmatched vs today's starter
+- Full-game totals/ML only when both matchup sides justify it
+
+PITCHER OUTS PROP ANALYSIS:
+- Outs O/U X means pitcher must record X outs (X÷3 = innings equivalent)
+- Recent 3 starts are the primary workload signal: if avg IP >= (X÷3)+0.5, lean Over; if pitcher frequently exits at or before that threshold, lean Under
+- High avg pitch count (≥100) suggests going deep; low avg (<85) suggests short outings
+- If team bullpen xERA >5.0, manager may pull starter early even when pitching well — lean Under outs
+- Never suggest a prop for a pitcher with NO STATS
+
+PRICING RULES (CRITICAL — enforce strictly):
+- NEVER suggest a bet with American odds more negative than -150 (e.g., -160, -200 are too expensive)
+- If you'd otherwise like a play but it's -151 to -200: include in other_bets with "line_warning": true and an "alt_suggestion" (e.g., "Look for Ks Over 6.5 at a better price instead of 5.5")
+- Never include anything at -201 or worse, not even with a warning
+- No parlays, no same-game parlays
+
+OUTPUT: Return ONLY valid JSON — no markdown fences, no extra text:
+{
+  "best_bet": {
+    "game": "AWAY @ HOME",
+    "bet_type": "ML|F5_ML|Spread|F5_Spread|Total|F5_Total|Team_Total|Pitcher_Ks|Pitcher_Outs",
+    "bet": "specific wager description",
+    "odds": "-110",
+    "confidence": "high|medium",
+    "reason": "2-3 sentences explaining the key factors."
+  },
+  "other_bets": [
+    {
+      "game": "AWAY @ HOME",
+      "bet_type": "...",
+      "bet": "...",
+      "odds": "...",
+      "line_warning": false,
+      "alt_suggestion": null,
+      "reason": "1-2 sentences."
+    }
+  ],
+  "no_best_bet_reason": null
+}
+
+Set best_bet to null and populate no_best_bet_reason if there is no strong best bet.
+other_bets: 0–3 entries; only genuinely interesting plays, not forced picks.
+"""
+
+
+def _serialize_game_for_ai(g: dict) -> str:
+    """Serialize a compiled game dict into a compact text block for the AI prompt."""
+    away, home = g["away"], g["home"]
+    sp_a = g["away_sp"]
+    sp_h = g["home_sp"]
+    of_a = g.get("away_off") or {}
+    of_h = g.get("home_off") or {}
+    bp_a = g.get("away_bp") or {}
+    bp_h = g.get("home_bp") or {}
+    od   = g.get("odds") or {}
+    wx   = g.get("wx") or {}
+    tr_a = g.get("away_trends") or {}
+    tr_h = g.get("home_trends") or {}
+    outs_a = g.get("away_sp_outings", [])
+    outs_h = g.get("home_sp_outings", [])
+    flags  = g.get("flags", [])
+
+    # Time
+    time_s = ""
+    if g.get("game_date"):
+        try:
+            dt = datetime.fromisoformat(g["game_date"].replace("Z", "+00:00")).astimezone(_ET)
+            h12 = dt.hour % 12 or 12
+            time_s = f" | {h12}:{dt.minute:02d} {'PM' if dt.hour >= 12 else 'AM'} ET"
+        except Exception:
+            pass
+
+    # Venue / weather
+    venue = g.get("venue", "")
+    roof  = (wx.get("roof_status") or "").lower()
+    if "dome" in roof or "retractable" in roof:
+        venue_tag = "Dome"
+    elif "closed" in roof:
+        venue_tag = "Roof Closed"
+    else:
+        apf = wx.get("adjusted_park_factor")
+        apf_s = f", APF {apf:.0f}" if apf else ""
+        venue_tag = f"Open Air{apf_s}"
+
+    wx_parts = []
+    if wx.get("precip_risk_during_game"):
+        prob = wx.get("precip_probability")
+        wx_parts.append(f"RAIN RISK {prob:.0f}%" if prob else "RAIN RISK")
+    elif (wx.get("precip_probability") or 0) >= 30:
+        wx_parts.append(f"Rain {wx['precip_probability']:.0f}%")
+    wind_lbl = wx.get("wind_effect_label", "")
+    wind_mph = wx.get("wind_speed")
+    if wind_lbl and wind_lbl not in ("Calm", "Indoor", ""):
+        mph = f" {wind_mph:.0f}mph" if wind_mph else ""
+        wx_parts.append(f"Wind: {wind_lbl}{mph}")
+    wx_s = ", ".join(wx_parts) if wx_parts else "Clear/Calm"
+
+    def _sp_line(sp, outings):
+        name = sp["name"]
+        hand = (sp.get("hand") or "?")[0]
+        if not sp.get("has_stats"):
+            return f"  {name} ({hand}): NO STATS (first start this season)"
+        parts = []
+        if sp.get("label"):
+            parts.append(f"xERA {sp['xera_s']} ({sp['label']})")
+        else:
+            parts.append(f"xERA {sp['xera_s']}")
+        for key, lbl in [("k", "K%"), ("hard", "HH%"), ("bb", "BB%"), ("barrel", "Barrel%"), ("era_s", "ERA")]:
+            val = sp.get(key)
+            if val not in ("?", "—", None):
+                parts.append(f"{lbl} {val}")
+        if sp.get("depth") not in ("—", None):
+            parts.append(f"{sp['depth']} IP/gs")
+        base = f"  {name} ({hand}): " + ", ".join(parts)
+        if outings:
+            outing_strs = []
+            for o in outings[-3:]:
+                pc_s = f"/{o['pc']}pc" if o.get("pc") else ""
+                er = o.get("er") if o.get("er") is not None else "?"
+                outing_strs.append(f"{o['ip']}IP/{er}ER{pc_s}")
+            base += f"\n    Recent 3: {' | '.join(outing_strs)}"
+        return base
+
+    def _off_line(team, off, vs_hand):
+        if not off:
+            return f"  {team} vs {vs_hand}HP: No data"
+        lbl = f" ({off['label']})" if off.get("label") else ""
+        parts = [f"wRC+ {off.get('wrc_s', '?')}{lbl}"]
+        if off.get("k") not in ("?", None):    parts.append(f"K% {off['k']}")
+        if off.get("hard") not in ("?", None): parts.append(f"HH% {off['hard']}")
+        return f"  {team} vs {vs_hand}HP: " + ", ".join(parts)
+
+    def _bp_line(team, bp):
+        if not bp:
+            return f"  {team}: No data"
+        parts = [f"xERA {bp.get('xera_s', '?')}"]
+        era_s = bp.get("era_s")
+        if era_s not in ("?", "N/A", None):
+            parts.append(f"ERA {era_s}")
+        return f"  {team}: " + ", ".join(parts)
+
+    def _trend_line(team, tr):
+        if not tr:
+            return f"  {team}: No trend data"
+        side = "home" if tr.get("is_home") else "away"
+        w10, l10 = tr["last10"]
+        ws10, ls10 = tr["last10_side"]
+        parts = [f"{w10}-{l10} L{tr['n_last10']}", f"{ws10}-{ls10} {side} L{tr['n_side10']}"]
+        w5, l5 = tr["last5"]
+        if tr["n_last5"]:
+            parts.append(f"{w5}-{l5} SP L{tr['n_last5']}")
+            if tr["avg_runs"] is not None:
+                parts.append(f"avg {tr['avg_runs']:.1f} RS")
+        ws5, ls5 = tr["last5_side"]
+        if tr["n_side5"]:
+            parts.append(f"{ws5}-{ls5} SP {side} L{tr['n_side5']}")
+            if tr["avg_runs_side"] is not None:
+                parts.append(f"{side} avg {tr['avg_runs_side']:.1f} RS")
+        return f"  {team}: " + ", ".join(parts)
+
+    hand_h = (sp_h.get("hand") or "?")[0]  # away offense bats vs home pitcher
+    hand_a = (sp_a.get("hand") or "?")[0]  # home offense bats vs away pitcher
+
+    odds_lines = []
+    def _o(s): return s if s and s != "—" else None
+    if _o(od.get("away_ml")):
+        odds_lines.append(f"  ML: {away} {od['away_ml']} / {home} {od['home_ml']}")
+    if _o(od.get("away_spread")):
+        odds_lines.append(f"  Spread: {away} {od['away_spread']} / {home} {od['home_spread']}")
+    if _o(od.get("over")):
+        odds_lines.append(f"  Total: {od['over']} / {od['under']}")
+    if od.get("has_f5"):
+        if _o(od.get("away_f5_ml")):
+            odds_lines.append(f"  F5 ML: {away} {od['away_f5_ml']} / {home} {od['home_f5_ml']}")
+        if _o(od.get("f5_over")):
+            odds_lines.append(f"  F5 Total: {od['f5_over']} / {od['f5_under']}")
+        if _o(od.get("away_f5_spread")):
+            odds_lines.append(f"  F5 Spread: {away} {od['away_f5_spread']} / {home} {od['home_f5_spread']}")
+    if od.get("has_tt"):
+        if _o(od.get("away_tt_over")):
+            odds_lines.append(f"  {away} Team Total: {od['away_tt_over']} / {od['away_tt_under']}")
+        if _o(od.get("home_tt_over")):
+            odds_lines.append(f"  {home} Team Total: {od['home_tt_over']} / {od['home_tt_under']}")
+    k_a  = _fmt_k_line(od.get("away_k"))
+    k_h  = _fmt_k_line(od.get("home_k"))
+    ou_a = _fmt_outs_line(od.get("away_outs"))
+    ou_h = _fmt_outs_line(od.get("home_outs"))
+    prop_parts = []
+    if k_a or ou_a:
+        prop_parts.append(f"{sp_a['name']}: {', '.join(p for p in [k_a, ou_a] if p)}")
+    if k_h or ou_h:
+        prop_parts.append(f"{sp_h['name']}: {', '.join(p for p in [k_h, ou_h] if p)}")
+    if prop_parts:
+        odds_lines.append("  Props: " + " | ".join(prop_parts))
+
+    lines = [f"=== {away} @ {home}{time_s} | {venue} ({venue_tag}) ==="]
+    lines.append(f"Weather: {wx_s}")
+    lines.append("PITCHERS:")
+    lines.append(_sp_line(sp_a, outs_a))
+    lines.append(_sp_line(sp_h, outs_h))
+    lines.append("OFFENSE:")
+    lines.append(_off_line(away, of_a, hand_h))
+    lines.append(_off_line(home, of_h, hand_a))
+    lines.append("BULLPEN:")
+    lines.append(_bp_line(away, bp_a))
+    lines.append(_bp_line(home, bp_h))
+    lines.append("ODDS:")
+    lines.extend(odds_lines if odds_lines else ["  None available"])
+    lines.append("TRENDS:")
+    lines.append(_trend_line(away, tr_a))
+    lines.append(_trend_line(home, tr_h))
+    if flags:
+        lines.append("FLAGS:")
+        lines.extend(f"  {f}" for f in flags)
+    return "\n".join(lines)
+
+
+def generate_suggestions(games: list[dict], data_dir: Path, target_date: "date") -> Optional[dict]:
+    """
+    Call Claude to generate betting suggestions. Caches to data/suggestions_{date}.json
+    and regenerates whenever odds are updated. Returns parsed dict or None on failure.
+    """
+    date_str = target_date.strftime("%Y-%m-%d")
+    sugg_path = data_dir / f"suggestions_{date_str}.json"
+    sugg_meta = data_dir / f"suggestions_meta_{date_str}.json"
+    odds_meta  = data_dir / f"odds_meta_{date_str}.json"
+
+    # Serve cached result if it's still fresh (generated after last odds update)
+    if sugg_path.exists() and sugg_meta.exists():
+        try:
+            s_ts = datetime.fromisoformat(json.loads(sugg_meta.read_text())["generated_at"])
+            if odds_meta.exists():
+                o_ts = datetime.fromisoformat(json.loads(odds_meta.read_text())["fetched_at"])
+                if s_ts >= o_ts:
+                    return json.loads(sugg_path.read_text())
+            else:
+                from datetime import timezone as _tz
+                if (datetime.now(_tz.utc) - s_ts).total_seconds() < 14400:
+                    return json.loads(sugg_path.read_text())
+        except Exception:
+            pass
+
+    try:
+        import anthropic as _ant
+    except ImportError:
+        print("[suggestions] anthropic package not installed — skipping", file=__import__("sys").stderr)
+        return None
+
+    api_key = ""
+    try:
+        import config as _cfg
+        api_key = _cfg.ANTHROPIC_API_KEY
+    except Exception:
+        pass
+    if not api_key:
+        import os as _os
+        api_key = _os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        print("[suggestions] ANTHROPIC_API_KEY not set — skipping", file=__import__("sys").stderr)
+        return None
+
+    if not games:
+        return None
+
+    game_blocks = "\n\n".join(_serialize_game_for_ai(g) for g in games)
+    user_msg = (
+        f"Today is {date_str}. Analyze these {len(games)} MLB games and "
+        f"identify any strong betting opportunities:\n\n{game_blocks}"
+    )
+
+    try:
+        client = _ant.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            system=_AI_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_msg}],
+        )
+        raw = response.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```", 2)[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.rsplit("```", 1)[0]
+        result = json.loads(raw.strip())
+    except Exception as e:
+        print(f"[suggestions] API error: {e}", file=__import__("sys").stderr)
+        return None
+
+    try:
+        from datetime import timezone as _tz
+        sugg_path.write_text(json.dumps(result, indent=2))
+        sugg_meta.write_text(json.dumps({"generated_at": datetime.now(_tz.utc).isoformat()}))
+    except Exception:
+        pass
+
+    return result
+
+
+def _render_suggestions_html(sugg: Optional[dict], target_date: "date") -> str:
+    """Render the AI Picks section to HTML. Returns empty string if no picks."""
+    if not sugg:
+        return ""
+
+    best    = sugg.get("best_bet")
+    others  = sugg.get("other_bets") or []
+    no_best = sugg.get("no_best_bet_reason") or ""
+    date_s  = target_date.strftime(f"%b {target_date.day}")
+
+    if not best and not others and not no_best:
+        return ""
+
+    def _pick_block(pick: dict, is_best: bool = False) -> str:
+        game   = _h(pick.get("game", ""))
+        bet    = _h(pick.get("bet", ""))
+        odds   = _h(pick.get("odds", ""))
+        reason = _h(pick.get("reason", ""))
+        warn   = pick.get("line_warning")
+        alt    = pick.get("alt_suggestion")
+        conf   = pick.get("confidence", "")
+        conf_s = f' <span class="ai-conf">{_h(conf)}</span>' if is_best and conf else ""
+        warn_s = (
+            f'<div class="ai-line-warn">Line Warning: {_h(alt)}</div>'
+            if warn and alt else ""
+        )
+        cls = "ai-best" if is_best else "ai-other"
+        return (
+            f'<div class="{cls}">'
+            f'<div class="ai-game">{game}{conf_s}</div>'
+            f'<div class="ai-bet">{bet}</div>'
+            f'<div class="ai-odds">{odds}</div>'
+            f'<div class="ai-reason">{reason}</div>'
+            f'{warn_s}'
+            f'</div>'
+        )
+
+    inner = ""
+    if best:
+        inner += (
+            f'<div class="ai-best-wrap">'
+            f'<div class="ai-best-label">Best Bet</div>'
+            f'{_pick_block(best, is_best=True)}'
+            f'</div>'
+        )
+    elif no_best:
+        inner += f'<div class="ai-no-best">{_h(no_best)}</div>'
+
+    if others:
+        picks_html = "".join(_pick_block(o) for o in others[:3])
+        inner += (
+            f'<div class="ai-others-wrap">'
+            f'<div class="ai-others-label">Other Plays</div>'
+            f'{picks_html}'
+            f'</div>'
+        )
+
+    disclaimer = (
+        '<div class="ai-disclaimer">'
+        'AI-generated · For entertainment only · Not financial advice'
+        '</div>'
+    )
+
+    return (
+        f'<div class="ai-picks">'
+        f'<div class="ai-picks-hd">AI Picks · {_h(date_s)}</div>'
+        f'{inner}'
+        f'{disclaimer}'
+        f'</div>'
+    )
+
+
 def render_html_page(games: list[dict], target_date: date, generated_at: str,
-                     odds_at: str = "") -> str:
+                     odds_at: str = "", suggestions: Optional[dict] = None) -> str:
     date_long = target_date.strftime(f"%A, %B {target_date.day}, %Y")
     date_short = target_date.strftime(f"%b {target_date.day}")
     games = sorted(games, key=_time_sort_key)
     cards = "".join(_html_game(g) for g in games)
     gen_span  = _ts_span(generated_at)
     odds_sub  = f" · Odds Updated {_ts_span(odds_at)}" if odds_at else ""
+    ai_html   = _render_suggestions_html(suggestions, target_date)
     return (
         f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
         f'<meta charset="utf-8">\n'
@@ -2171,7 +2610,7 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'<header><h1>MLB Game Overviews</h1>'
         f'<p class="sub">{_h(date_long)}</p>'
         f'<p class="sub">Updated {gen_span}{odds_sub}</p></header>\n'
-        f'<main>{cards}\n</main>'
+        f'<main>{ai_html}{cards}\n</main>'
         f'<footer style="text-align:center;padding:1.5rem 1rem;font-size:.75rem;color:#9ca3af">'
         f'Powered by <a href="https://handigraphs.com" target="_blank" rel="noopener" style="color:#9ca3af">Handigraphs</a>'
         f'</footer>'
@@ -2315,7 +2754,8 @@ def main():
     if args.html:
         from datetime import timezone as _tz
         generated_at = datetime.now(_tz.utc).isoformat()
-        print(render_html_page(game_data, target_date, generated_at, odds_at))
+        suggestions = generate_suggestions(game_data, data_dir, target_date)
+        print(render_html_page(game_data, target_date, generated_at, odds_at, suggestions))
     else:
         print()
 
