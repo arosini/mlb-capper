@@ -34,6 +34,9 @@ _CODE_TO_FULL = {
     "TOR": "Toronto Blue Jays",     "WSN": "Washington Nationals",
 }
 
+# Reverse of _CODE_TO_FULL — used to look up a team code from a full name
+_NAME_TO_CODE = {v: k for k, v in _CODE_TO_FULL.items()}
+
 
 def _read_json(path: Path):
     if not path.exists():
@@ -84,7 +87,8 @@ def _canon_pick_key(pick: dict) -> tuple:
     return (game, bt, pick.get("line"), pick.get("team_side") or "")
 
 
-def save_picks(data_dir: Path, picks_dir: Path, target_date: date) -> int:
+def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
+               history_dir: Path = Path("./history")) -> int:
     """
     Merge picks from today's suggestions cache into picks/YYYY-MM-DD.json.
     Deduplicates by canonical (game, bet_type, line, team_side) — keeps first price found.
@@ -104,17 +108,13 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date) -> int:
         return 0
 
     # Build game info lookup from history file: full_name_key → {game_time_utc, away_code, home_code}
-    history_path = Path("./history") / f"{date_str}.json"
+    history_path = history_dir / f"{date_str}.json"
     game_info: dict = {}
     for rec in (_read_json(history_path) or []):
         away_full = rec.get("away", "")
         home_full = rec.get("home", "")
-        away_code = rec.get("away_code", "")
-        home_code = rec.get("home_code", "")
-        if not away_code and away_full:
-            from history import _NAME_TO_CODE
-            away_code = _NAME_TO_CODE.get(away_full, "")
-            home_code = _NAME_TO_CODE.get(home_full, "")
+        away_code = rec.get("away_code", "") or _NAME_TO_CODE.get(away_full, "")
+        home_code = rec.get("home_code", "") or _NAME_TO_CODE.get(home_full, "")
         game_info[(away_full, home_full)] = {
             "game_time_utc": rec.get("game_time_utc", ""),
             "away_code":     away_code,
@@ -178,7 +178,7 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date) -> int:
             "home_score_final": None,
             "annotated_at":  None,
         }
-        by_key[key] = record
+        by_key[ck] = record
         added += 1
 
     records = list(by_key.values())
@@ -236,10 +236,15 @@ def annotate_picks(picks_dir: Path, history_dir: Path, target_date: date) -> int
         return 0
 
     history = _read_json(history_path) or []
+    # Include both completed games (away_score set) and non-playing games (status set).
+    # Keyed by (away, home) — sufficient since picks already store the full name.
     scores_by_game = {
         (r.get("away", ""), r.get("home", "")): r
         for r in history
-        if r.get("annotated_at") and r.get("away_score") is not None
+        if r.get("annotated_at") and (
+            r.get("away_score") is not None
+            or r.get("status") in ("postponed", "cancelled", "canceled", "suspended")
+        )
     }
 
     now = datetime.now(timezone.utc).isoformat()
@@ -251,6 +256,17 @@ def annotate_picks(picks_dir: Path, history_dir: Path, target_date: date) -> int
             continue
         game_rec = scores_by_game.get((pick.get("away", ""), pick.get("home", "")))
         if not game_rec:
+            continue
+
+        # Game did not complete — void the pick so we stop retrying
+        if game_rec.get("status") in ("postponed", "cancelled", "canceled", "suspended"):
+            pick["result"] = "void"
+            pick["away_score_final"] = None
+            pick["home_score_final"] = None
+            pick["annotated_at"] = now
+            updated += 1
+            determined += 1
+            print(f"  {pick['game']} | {pick['bet']} → VOID ({game_rec['status']})")
             continue
 
         away_score = int(game_rec["away_score"])
@@ -275,8 +291,8 @@ def annotate_picks(picks_dir: Path, history_dir: Path, target_date: date) -> int
             print(f"  {pick['game']} | {pick['bet']} → {icon} "
                   f"({away_score}-{home_score})")
         else:
-            print(f"  {pick['game']} | {pick['bet']} → unresolvable "
-                  f"({away_score}-{home_score}) [no team_side/line set]")
+            print(f"  {pick['game']} | {pick['bet']} → scored {away_score}-{home_score}"
+                  f" [F5/props — manual review needed]")
 
     if updated:
         picks_path.write_text(json.dumps(picks, indent=2))
@@ -355,7 +371,7 @@ if __name__ == "__main__":
             sys.exit(f"Invalid date: {args.date}")
 
     if args.save:
-        save_picks(Path(args.data_dir), Path(args.picks_dir), target)
+        save_picks(Path(args.data_dir), Path(args.picks_dir), target, Path(args.history_dir))
 
     if args.annotate:
         annotate_picks(Path(args.picks_dir), Path(args.history_dir), target)

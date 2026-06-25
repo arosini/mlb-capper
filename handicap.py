@@ -2580,12 +2580,6 @@ MULTIPLE PICKS PER GAME: You may include more than one pick for the same game if
 Set is_best=true on your single strongest pick of the day. All other picks have is_best=false. If there are no strong plays, return an empty picks array.
 
 When you have completed your analysis, call the report_betting_suggestions tool with your results.
-
-best_bet: the single strongest play, or null if nothing qualifies.
-other_bets: 0–3 additional plays only; no forced picks.
-no_best_bet_reason: brief explanation when best_bet is null.
-pass_reasons: include a 1-sentence entry for EVERY game that has no bet in best_bet or other_bets.
-  The key must exactly match the game header format "AWAY @ HOME" from the input (e.g. "Texas Rangers @ Miami Marlins").
 """
 
 
@@ -3220,6 +3214,11 @@ def main():
 
         mlb_info = mlb_schedule.get(key, {})
 
+        # Skip games not on today's MLB schedule — guards against stale or multi-date starters data
+        if mlb_schedule and not mlb_info:
+            _log(f"  Skipping {p1.get('Team','')} @ {p2.get('Team','')}: not on today's schedule")
+            continue
+
         if not args.no_mlb and HAS_REQUESTS:
             for p in (p1, p2):
                 pid = p.get("mlbam_id")
@@ -3260,15 +3259,15 @@ def main():
         from datetime import timezone as _tz
         generated_at = datetime.now(_tz.utc).isoformat()
         suggestions = generate_suggestions(game_data, data_dir, target_date)
-        # Load all picks for the day (including games that have already started)
+        # Load all picks for the day (including started/completed games)
         try:
             from picks import load_all_picks as _lap
             picks_dir = Path("./picks")
-            valid_picks = _lap(picks_dir, target_date)
+            all_picks = _lap(picks_dir, target_date)
         except Exception:
-            valid_picks = []
+            all_picks = []
         print(render_html_page(game_data, target_date, generated_at, odds_at,
-                               suggestions, valid_picks))
+                               suggestions, all_picks))
     else:
         print()
 
