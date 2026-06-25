@@ -629,17 +629,24 @@ def get_mlb_schedule(target_date: date) -> dict:
 def get_recent_starts(player_id: int) -> list[dict]:
     if not HAS_REQUESTS or not player_id:
         return []
-    try:
-        r = requests.get(
-            f"{MLB_API}/people/{player_id}/stats",
-            params={"stats": "gameLog", "season": 2026, "group": "pitching"},
-            timeout=10,
-        )
-        r.raise_for_status()
-        splits = r.json().get("stats", [{}])[0].get("splits", [])
-        return [s for s in splits if flt(s.get("stat", {}).get("inningsPitched")) is not None][-6:]
-    except Exception:
-        return []
+    current_year = datetime.now(_ET).year
+    all_splits: list[dict] = []
+    for season in [current_year - 1, current_year]:  # oldest first so chronological order is preserved
+        try:
+            r = requests.get(
+                f"{MLB_API}/people/{player_id}/stats",
+                params={"stats": "gameLog", "season": season, "group": "pitching"},
+                timeout=10,
+            )
+            r.raise_for_status()
+            splits = r.json().get("stats", [{}])[0].get("splits", [])
+            all_splits.extend(
+                s for s in splits
+                if flt(s.get("stat", {}).get("inningsPitched")) is not None
+            )
+        except Exception:
+            pass
+    return all_splits
 
 
 def pitcher_history_flags(
@@ -933,6 +940,34 @@ def _extract_outings(history: list[dict], n: int = 5) -> list[dict]:
 
 
 # ── Per-game output ───────────────────────────────────────────────────────────
+def _situational_avg(entries: list[dict]) -> Optional[dict]:
+    """Average pitching stats (starts only) over a list of game log splits."""
+    starts = [
+        s for s in entries
+        if int(s.get("stat", {}).get("gamesStarted", 0)) > 0
+        and flt(s.get("stat", {}).get("inningsPitched")) is not None
+    ]
+    if not starts:
+        return None
+    n = len(starts)
+    total_ip = sum(flt(s["stat"]["inningsPitched"]) or 0 for s in starts)
+    total_er = sum(int(s["stat"].get("earnedRuns") or 0) for s in starts)
+    total_k  = sum(int(s["stat"].get("strikeOuts") or 0) for s in starts)
+    total_h  = sum(int(s["stat"].get("hits") or 0) for s in starts)
+    total_bb = sum(int(s["stat"].get("baseOnBalls") or 0) for s in starts)
+    era = (total_er / total_ip * 9) if total_ip > 0 else None
+    return {
+        "n":     n,
+        "ip":    f"{total_ip / n:.1f}",
+        "era":   f"{era:.2f}" if era is not None else "?",
+        "era_f": era,
+        "k":     f"{total_k / n:.1f}",
+        "h":     f"{total_h / n:.1f}",
+        "bb":    f"{total_bb / n:.1f}",
+        "er":    f"{total_er / n:.1f}",
+    }
+
+
 def analyze_game(
     p1: dict, p2: dict,
     rhp: dict, lhp: dict,
@@ -1061,6 +1096,33 @@ def analyze_game(
     else:
         verdict, verdict_team = f"{leaders[0]}  ({best} of 3 categories)", leaders[0]
 
+    # ── SP situational splits ─────────────────────────────────────────────────
+    away_full = _ODDS_TEAM.get(away_team, "")
+    home_full = _ODDS_TEAM.get(home_team, "")
+    away_hist = mlb_info.get(f"history_{away_team}", [])
+    home_hist = mlb_info.get(f"history_{home_team}", [])
+
+    away_sp_splits = {
+        "vs": _situational_avg(
+            [s for s in away_hist
+             if (s.get("opponent") or {}).get("name", "") == home_full][-3:]
+        ),
+        "at": _situational_avg(
+            [s for s in away_hist
+             if s.get("isHome") is False
+             and (s.get("opponent") or {}).get("name", "") == home_full][-3:]
+        ),
+    }
+    home_sp_splits = {
+        "vs": _situational_avg(
+            [s for s in home_hist
+             if (s.get("opponent") or {}).get("name", "") == away_full][-3:]
+        ),
+        "at": _situational_avg(
+            [s for s in home_hist if s.get("isHome") is True][-3:]
+        ),
+    }
+
     flags: list[str] = []
     for team, p in [(away_team, p_away), (home_team, p_home)]:
         name = p.get("Name", "?")
@@ -1101,6 +1163,8 @@ def analyze_game(
         "flags":        flags,
         "away_sp_outings": _extract_outings(mlb_info.get(f"history_{away_team}", [])),
         "home_sp_outings": _extract_outings(mlb_info.get(f"history_{home_team}", [])),
+        "away_sp_splits":  away_sp_splits,
+        "home_sp_splits":  home_sp_splits,
     }
 
 
@@ -1302,6 +1366,18 @@ header{background:#030712}
 .wx-badge.wx-hot{background:#2d0a0a;color:#fca5a5}
 .wx-badge.wx-hitter{background:#2d1a00;color:#fbbf24}
 .wx-badge.wx-pitcher{background:#022c22;color:#6ee7b7}
+}
+.spl-row{display:grid;grid-template-columns:6rem 2.4rem 2.8rem 1.8rem 1.8rem 1.8rem 1.5rem;gap:.05rem .3rem;align-items:center;padding:.15rem 0;font-size:.79rem}
+.spl-hd span{font-size:.6rem;font-weight:700;color:#9ca3af;text-align:center;text-transform:uppercase;letter-spacing:.03em}
+.spl-hd span:first-child{text-align:left}
+.spl-ctx{font-weight:600;font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spl-val{text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+.spl-n{text-align:center;color:#9ca3af;font-size:.65rem}
+.spl-sp-hd{font-size:.72rem;font-weight:700;color:#374151;padding:.32rem 0 .08rem;border-top:1px solid rgba(0,0,0,.07)}
+.spl-sp-hd:first-child{border-top:none;padding-top:0}
+@media(prefers-color-scheme:dark){
+.spl-hd span{color:#6b7280}
+.spl-sp-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
 }
 """
 
@@ -1731,6 +1807,57 @@ def _html_game(g: dict) -> str:
             f'</details>'
         )
 
+    def _spl_row(ctx: str, stats: Optional[dict]) -> str:
+        if not stats:
+            return (f'<div class="spl-row">'
+                    f'<span class="spl-ctx dim">{_h(ctx)}</span>'
+                    f'<span class="dim" style="grid-column:2/-1">—</span>'
+                    f'</div>')
+        era_f = stats.get("era_f")
+        ec = _era_cls(xera_label(era_f)) if era_f is not None else "era-na"
+        return (
+            f'<div class="spl-row">'
+            f'<span class="spl-ctx">{_h(ctx)}</span>'
+            f'<span class="spl-val">{_h(stats["ip"])}</span>'
+            f'<span class="spl-val {ec}">{_h(stats["era"])}</span>'
+            f'<span class="spl-val">{_h(stats["k"])}</span>'
+            f'<span class="spl-val">{_h(stats["h"])}</span>'
+            f'<span class="spl-val">{_h(stats["bb"])}</span>'
+            f'<span class="spl-n">({stats["n"]})</span>'
+            f'</div>'
+        )
+
+    def _spl_hdr() -> str:
+        return (
+            '<div class="spl-row spl-hd">'
+            '<span></span><span>IP</span><span>ERA</span>'
+            '<span>K</span><span>H</span><span>BB</span><span></span>'
+            '</div>'
+        )
+
+    def _spl_block(sp_name: str, spl: dict, vs_lbl: str, at_lbl: str) -> str:
+        if not spl.get("vs") and not spl.get("at"):
+            return ""
+        return (
+            f'<div class="spl-sp-hd">{_h(sp_name)}</div>'
+            + _spl_hdr()
+            + _spl_row(vs_lbl, spl.get("vs"))
+            + _spl_row(at_lbl, spl.get("at"))
+        )
+
+    away_spl = g.get("away_sp_splits", {})
+    home_spl = g.get("home_sp_splits", {})
+    splits_inner = (
+        _spl_block(sp_a["name"], away_spl, f"vs {home}", f"at {home}")
+        + _spl_block(sp_h["name"], home_spl, f"vs {away}", "home starts")
+    )
+    splits_html = (
+        f'<details class="sec" id="{g_id}-splits">'
+        f'<summary class="sec-sum">SP vs Opp / At Park · last 3 (2 seasons)</summary>'
+        f'<div class="sec-body">{splits_inner}</div>'
+        f'</details>'
+    ) if splits_inner.strip() else ""
+
     bullpen_html = (
         f'<details class="sec" id="{g_id}-bullpen">'
         f'<summary class="sec-sum">Bullpens · Last 12</summary>'
@@ -1747,6 +1874,7 @@ def _html_game(g: dict) -> str:
         f'\n    {matchup_html}'
         f'\n    {odds_html}'
         f'\n    {outings_html}'
+        f'\n    {splits_html}'
         f'\n    {bullpen_html}'
         f'\n    {wx_html}'
         f'\n    {flags_html}'
