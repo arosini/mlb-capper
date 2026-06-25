@@ -267,8 +267,10 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
     print(f"  ✓  props_{date_str}.json ({len(all_props)} games)")
 
 
-def download_all(target_date: date, data_dir: Path, slot: str = "today") -> bool:
-    """Fetch all endpoints and save as JSON files.  Returns True if all succeeded."""
+def download_all(target_date: date, data_dir: Path, slot: str = "today",
+                 starters_only: bool = False) -> bool:
+    """Fetch Handigraphs endpoints and (unless starters_only) odds/props.
+    Returns True if all attempted downloads succeeded."""
     date_str = target_date.strftime("%Y-%m-%d")
     data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -279,7 +281,9 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today") -> bool
     print("  Login OK")
 
     ok = True
-    for key, url_tmpl in config.API_URLS.items():
+    keys_to_fetch = ["starters"] if starters_only else list(config.API_URLS.keys())
+    for key in keys_to_fetch:
+        url_tmpl = config.API_URLS[key]
         url = url_tmpl.format(slot=slot)
         fname = FILE_NAMES[key].format(date=date_str, slot=slot)
         dest = data_dir / fname
@@ -309,11 +313,12 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today") -> bool
         count = len(rows) if rows else "?"
         print(f"  ✓  {fname}  ({count} rows)")
 
-    print("  Fetching odds...")
-    download_odds(data_dir, date_str)
+    if not starters_only:
+        print("  Fetching odds...")
+        download_odds(data_dir, date_str)
 
-    print("  Fetching pitcher props...")
-    download_pitcher_props(data_dir, date_str)
+        print("  Fetching pitcher props...")
+        download_pitcher_props(data_dir, date_str)
 
     return ok
 
@@ -365,6 +370,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Show field names from saved JSON files (run after first download)",
     )
+    ap.add_argument(
+        "--starters-only",
+        action="store_true",
+        help="Only refresh the starters file (skip odds/props — no API credit cost)",
+    )
     args = ap.parse_args()
 
     today = datetime.now(_ET).date()
@@ -381,7 +391,7 @@ if __name__ == "__main__":
     if args.inspect:
         inspect_fields(data_dir, target)
     else:
-        success = download_all(target, data_dir, slot)
-        if success:
+        success = download_all(target, data_dir, slot, starters_only=args.starters_only)
+        if success and not args.starters_only:
             print("\nRun with --inspect to see field names for handicap.py mapping.")
         sys.exit(0 if success else 1)
