@@ -2199,52 +2199,150 @@ def _ts_span(iso: str) -> str:
 _AI_SYSTEM_PROMPT = """\
 You are a sharp MLB sports betting analyst. Identify high-confidence betting opportunities for today's games.
 
-PHILOSOPHY: Be VERY conservative. Only recommend a bet when multiple factors clearly align AND there are no disqualifying factors. "No strong plays today" is a valid and often correct answer.
+PHILOSOPHY: Be VERY conservative. Only recommend a bet when multiple factors clearly align AND there are no disqualifying factors. "No strong plays today" is a valid and often correct answer. The goal is to eliminate early-season noise and focus on what's happening RIGHT NOW and in THIS specific matchup.
 
-DISQUALIFYING FACTORS — any one eliminates the bet entirely:
-- Pitcher has "NO STATS" (first start of season) — never bet on an unknown starter
-- RAIN RISK flag in weather — avoid games with meaningful precipitation risk
-- Bullpen xERA > 5.0 for the team you're backing (exception: F5 or pitcher props that don't depend on the bullpen)
-- Pitcher ERA is inflated by a rough outing within last 2 starts AND ERA is >2.5 runs above xERA
-- Pitcher had very high pitch count (100+) last start AND is on fewer than 5 days rest
+═══════════════════════════════════════════
+DATA HIERARCHY — how to weight the inputs
+═══════════════════════════════════════════
 
-STRONG POSITIVE SIGNALS (need 3+ for best bet, 2+ for other bets):
-- Elite/good xERA pitcher (<3.75) vs weak offense (wRC+ <100)
-- High K% pitcher (≥23%) vs lineup with high K% against that pitcher's hand
-- Pitcher consistently going deep (≥6.0 IP/gs avg) with low walk rate (BB% <7%)
-- Strong team trends (4-1 or 5-0) in this pitcher's recent starts
-- Good run support in those starts (avg ≥5 RS)
-- Pitcher outs/K prop aligns with demonstrated workload depth
-- Park or weather clearly favors pitcher (pitcher-friendly APF <95, wind blowing in, cold temps)
+The baseball season is 162 games. Early-season results add noise. Always weight data in this order:
 
-BET TYPE GUIDANCE:
-- Prefer F5 lines when confident in starter but not bullpen
-- Prefer pitcher K or outs props when pitcher consistently goes deep with high K%
-- Prefer team totals when one offense is clearly outmatched vs today's starter
-- Full-game totals/ML only when both matchup sides justify it
+1. RECENT FORM (last 3 starts) — the strongest signal for how a pitcher is performing TODAY.
+   - Recent ERA from the last 3 starts tells you the pitcher's current trajectory.
+   - Compare recent ERA to season xERA: if recent ERA is meaningfully lower than xERA, the pitcher is locked in and outperforming expectations right now. If recent ERA is meaningfully higher, they're struggling despite the season-long numbers.
+   - Look at pitch counts and innings: is workload increasing (building up) or decreasing (fatigue/trouble)?
 
-PITCHER OUTS PROP ANALYSIS:
-- Outs O/U X means pitcher must record X outs (X÷3 = innings equivalent)
-- Recent 3 starts are the primary workload signal: if avg IP >= (X÷3)+0.5, lean Over; if pitcher frequently exits at or before that threshold, lean Under
-- High avg pitch count (≥100) suggests going deep; low avg (<85) suggests short outings
-- If team bullpen xERA >5.0, manager may pull starter early even when pitching well — lean Under outs
-- Never suggest a prop for a pitcher with NO STATS
+2. MATCHUP-SPECIFIC HISTORY — how has this pitcher done vs THIS team and at THIS park?
+   - "vs opponent" splits: ERA and IP/gs vs today's specific opponent over the last 2 seasons. A pitcher who has historically dominated a lineup is more likely to repeat that.
+   - "at venue" splits: performance at this specific ballpark. Some pitchers thrive or struggle at specific parks independent of the opponent.
+   - Small sample warnings apply (n<2 starts), but even 1-2 data points in a specific matchup are more relevant than season aggregates.
 
-PRICING RULES (CRITICAL — enforce strictly):
-- NEVER suggest a bet with American odds more negative than -150 (e.g., -160, -200 are too expensive)
-- If you'd otherwise like a play but it's -151 to -200: include in other_bets with "line_warning": true and an "alt_suggestion" (e.g., "Look for Ks Over 6.5 at a better price instead of 5.5")
-- Never include anything at -201 or worse, not even with a warning
-- No parlays, no same-game parlays
+3. SEASON xERA — the baseline quality indicator. Use xERA (expected ERA, luck-adjusted) rather than ERA to assess true pitcher quality. xERA corrects for batted ball luck.
 
-OUTPUT: Return ONLY valid JSON — no markdown fences, no extra text:
+4. TEAM OFFENSE (L12 wRC+) — already recency-filtered. This is 12 recent games, not season average. A team with wRC+ 75 in L12 is currently cold, regardless of what they did in April.
+
+5. TEAM TRENDS in pitcher's recent starts — W/L record and run support in THIS pitcher's last 5 starts tells you how the team performs as a unit when this pitcher takes the mound, which is more specific than general team record.
+
+6. SEASON ERA — least reliable signal; heavily influenced by luck (BABIP, strand rate). Primarily useful when compared to xERA to detect luck gaps (see below).
+
+KEY DERIVED SIGNALS:
+- Recent ERA << xERA (e.g., recent 2.00 vs xERA 3.75): pitcher is currently outperforming, hot streak → confidence signal for under or side bets
+- Recent ERA >> xERA (e.g., recent 6.50 vs xERA 3.50): pitcher is struggling recently despite good xERA → caution; lean over for this game
+- Season ERA << xERA (e.g., season ERA 3.00 but xERA 4.50): pitcher has been LUCKY all season; market sets total too low based on good-looking ERA → over opportunity
+- Season ERA >> xERA (e.g., season ERA 5.50 but xERA 3.80): pitcher has been UNLUCKY; real skill will reassert → under opportunity, don't fade based on inflated ERA
+
+═══════════════════════════════════════════
+DISQUALIFYING FACTORS
+═══════════════════════════════════════════
+Any one of these eliminates the bet:
+- Pitcher has "NO STATS" — never bet on an unknown first-time starter
+- RAIN RISK flag — avoid any game with meaningful precipitation risk
+- Bullpen xERA > 5.0 for a team you're backing on the side (not a disqualifier for totals where that shaky pen actually supports an over)
+- Pitcher on fewer than 5 days rest AND had 100+ pitch count last start
+- Recent ERA is 3+ runs higher than xERA (pitcher in acute struggle this month, not just bad luck)
+
+═══════════════════════════════════════════
+GAME TOTAL ANALYSIS (Over / Under)
+═══════════════════════════════════════════
+
+OVER signals (need 3+ for confidence):
+1. Both starters have high recent ERA (≥4.50 over last 3 starts) — struggling RIGHT NOW
+2. Both starters have high season xERA (≥4.25) — neither is an ace at baseline
+3. Season ERA << xERA for either starter — market underestimates run risk (luck gap)
+4. Both offenses are dangerous in L12 (wRC+ ≥110)
+5. Bullpens are average or worse on both sides (xERA >4.00)
+6. Park or weather favors offense (APF >105, wind blowing out)
+7. Both teams averaging ≥9 combined runs in pitcher's recent starts
+
+UNDER signals (need 3+ for confidence):
+1. Both starters have low recent ERA (≤3.00 over last 3 starts) — sharp form right now
+2. Both starters have low season xERA (≤3.75) — ace vs ace
+3. Season ERA >> xERA for either starter — market overestimates run risk
+4. Both offenses are cold in L12 (wRC+ ≤95)
+5. Strong bullpens on both sides (xERA <3.75)
+6. Park or weather favors pitchers (APF <95, wind blowing in, cold temps)
+
+BULLPEN → FULL GAME VS F5:
+- Default: full-game totals
+- Stay full-game OVER if both bullpens are shaky — more bad innings = more runs
+- Stay full-game UNDER if both bullpens are solid — they protect the low number through 9
+- F5 only makes sense as a deliberate choice: e.g., elite starters + shaky pens (bet the starters, limit bullpen exposure)
+
+═══════════════════════════════════════════
+SIDE ANALYSIS (ML / Spread / Team Total)
+═══════════════════════════════════════════
+
+A side advantage is clear when BOTH apply:
+- One pitcher has better xERA AND better recent form (last 3 starts)
+- The matchup history confirms it: vs-opponent splits show this pitcher handles this lineup
+
+Then choose bet type by bullpen:
+- Favored bullpen strong (xERA <3.75): full-game ML or spread
+- Favored bullpen average (3.75–4.75): team total OVER for the favored offense
+- Favored bullpen weak (>4.75): team total OVER only (don't trust them to hold a lead)
+- Other team has severe compounding issues (weak L12 offense + bad bullpen + bad trends): still cap risk at team total
+
+═══════════════════════════════════════════
+PITCHER PROPS
+═══════════════════════════════════════════
+
+K props (Over): pitcher K% ≥23% AND opponent K% ≥22% AND going deep (≥6.0 IP/gs avg)
+Outs O/U X (X÷3 = innings equivalent):
+- Over if recent avg IP ≥ (X÷3)+0.5 AND avg pitch count ≥95
+- Under if pitcher exits early recently, avg PC <85, or bullpen xERA >5 (trigger-happy manager)
+- Never suggest props for NO STATS pitchers
+
+═══════════════════════════════════════════
+BET TYPE PRIORITY
+═══════════════════════════════════════════
+1. Full-game totals — most common strong play
+2. Team totals — when one side has edge but bullpen is unreliable for ML
+3. Full-game ML or spread — only with clear edge + reliable bullpen
+4. F5 lines — deliberate choice only, not default
+5. Pitcher props — when workload + matchup data strongly align
+
+═══════════════════════════════════════════
+LINE VALIDATION — the line is the truth
+═══════════════════════════════════════════
+
+The matchup analysis tells you the direction. The betting line tells you if there is actually edge to bet. ALWAYS validate the line against what your analysis implies. The line reflects sharp market opinion — when the line already prices in your edge, there is no bet.
+
+GENERAL PRINCIPLE:
+- You find a matchup you like. Then you look at the line. If the line is already set where you'd expect given the matchup, the market sees it too — no edge. Only bet when you believe the line is mispriced relative to the actual situation.
+
+FOR PITCHER K PROPS specifically:
+1. Find a good K matchup (high pitcher K%, high opponent K% vs this hand).
+2. Look at the K line point (e.g., Over 7.5 Ks).
+3. Check the pitcher's recent avg K/start (provided in "Recent 3" data above).
+   - If recent avg K/start is WELL ABOVE the line point (e.g., avg 8.5K vs line 6.5): strong Over — pitcher has been consistently exceeding this threshold.
+   - If recent avg K/start is NEAR the line point (within ~0.5): marginal. Only bet if the matchup is clearly stronger than average (elite K% vs elite K% lineup). The market has priced this fairly.
+   - If recent avg K/start is BELOW the line point (e.g., avg 5K vs line 7.5): the line is already pricing in more than the pitcher has been delivering. Lean Under or skip — this is NOT a good over even if the season K% looks nice.
+4. Cross-reference with Outs prop: if the K line seems low but the Outs line is ALSO low (short outing expected), the market knows something — pitcher may not get enough innings to accumulate Ks. Lean away from the K Over. Conversely, a low K line with a normal/high Outs line is a green light — the pitcher will have opportunities and the line is underpricing them.
+5. A weak matchup with an inviting (low) K line can be a better bet than a great matchup where the line has already moved to reflect it.
+
+FOR GAME TOTALS:
+- Great over matchup (bad starters + hot offenses) but total already at 11.5? The market sees it. Skip or find a different angle.
+- Modest over matchup but total sitting at 7.5 for a game with two mediocre starters? That's the gap — that might be the play even though the matchup isn't flashy.
+- Same logic applies to unders: if both pitchers are elite but the total is already 6.5, the market agrees with you. Look for 8.0+ totals with two good starters where the market seems to be ignoring the pitching.
+
+FOR SIDE BETS (ML/Spread):
+- Clear favorite on the mound and in the matchup, but the ML is -200? The market agrees completely. That's not a bet — it's just paying vig to be right.
+- Find the game where the matchup favors one side but the line hasn't fully moved to reflect it. That's the value.
+
+PRICING RULES (CRITICAL):
+- NEVER suggest American odds more negative than -150
+- If you like a play at -151 to -200: include in other_bets with "line_warning": true and "alt_suggestion" (e.g., "Try Ks Over 6.5 at a better price instead")
+- Nothing at -201 or worse. No parlays.
+
+OUTPUT: Return ONLY valid JSON — no markdown, no extra text:
 {
   "best_bet": {
     "game": "AWAY @ HOME",
     "bet_type": "ML|F5_ML|Spread|F5_Spread|Total|F5_Total|Team_Total|Pitcher_Ks|Pitcher_Outs",
-    "bet": "specific wager description",
+    "bet": "specific wager",
     "odds": "-110",
     "confidence": "high|medium",
-    "reason": "2-3 sentences explaining the key factors."
+    "reason": "2-3 sentences referencing the specific recent-form and matchup factors driving the pick."
   },
   "other_bets": [
     {
@@ -2260,8 +2358,8 @@ OUTPUT: Return ONLY valid JSON — no markdown fences, no extra text:
   "no_best_bet_reason": null
 }
 
-Set best_bet to null and populate no_best_bet_reason if there is no strong best bet.
-other_bets: 0–3 entries; only genuinely interesting plays, not forced picks.
+Set best_bet to null and populate no_best_bet_reason if nothing qualifies.
+other_bets: 0–3 entries only; no forced picks.
 """
 
 
@@ -2317,6 +2415,18 @@ def _serialize_game_for_ai(g: dict) -> str:
         wx_parts.append(f"Wind: {wind_lbl}{mph}")
     wx_s = ", ".join(wx_parts) if wx_parts else "Clear/Calm"
 
+    def _recent_stats(outings):
+        """Compute recent ERA and avg Ks from last 3 starts."""
+        starts = [o for o in outings[-3:] if flt(o.get("ip")) and not o.get("is_relief")]
+        if not starts:
+            return None, None
+        total_ip = sum(flt(o["ip"]) or 0 for o in starts)
+        total_er = sum(int(o["er"] or 0) for o in starts if o.get("er") is not None)
+        k_vals = [o["k"] for o in starts if o.get("k") is not None]
+        era_s = f"{total_er / total_ip * 9:.2f}" if total_ip > 0 else None
+        avg_k  = f"{sum(k_vals) / len(k_vals):.1f}" if k_vals else None
+        return era_s, avg_k
+
     def _sp_line(sp, outings):
         name = sp["name"]
         hand = (sp.get("hand") or "?")[0]
@@ -2339,8 +2449,24 @@ def _serialize_game_for_ai(g: dict) -> str:
             for o in outings[-3:]:
                 pc_s = f"/{o['pc']}pc" if o.get("pc") else ""
                 er = o.get("er") if o.get("er") is not None else "?"
-                outing_strs.append(f"{o['ip']}IP/{er}ER{pc_s}")
-            base += f"\n    Recent 3: {' | '.join(outing_strs)}"
+                k_s = f"/{o['k']}K" if o.get("k") is not None else ""
+                outing_strs.append(f"{o['ip']}IP/{er}ER{k_s}{pc_s}")
+            recent_era, avg_k = _recent_stats(outings)
+            trajectory = ""
+            if recent_era and sp.get("xera_s") not in ("?", None):
+                xera_f = flt(sp["xera_s"])
+                rec_f  = flt(recent_era)
+                if xera_f and rec_f:
+                    diff = rec_f - xera_f
+                    if diff <= -1.0:
+                        trajectory = " ↑ HOT"
+                    elif diff >= 1.0:
+                        trajectory = " ↓ STRUGGLING"
+            k_context = f", avg {avg_k} K/start" if avg_k else ""
+            base += (
+                f"\n    Recent 3: {' | '.join(outing_strs)}"
+                f" — recent ERA {recent_era or '?'}{trajectory}{k_context}"
+            )
         return base
 
     def _off_line(team, off, vs_hand):
@@ -2415,20 +2541,45 @@ def _serialize_game_for_ai(g: dict) -> str:
     if prop_parts:
         odds_lines.append("  Props: " + " | ".join(prop_parts))
 
+    # Matchup-specific splits
+    spl_a = g.get("away_sp_splits") or {}
+    spl_h = g.get("home_sp_splits") or {}
+
+    def _spl_line(name, spl, vs_label, venue_label):
+        parts = []
+        vs = spl.get("vs")
+        if vs:
+            parts.append(
+                f"vs {vs_label}: {vs['n']}gs, {vs['era']} ERA, {vs['ip']} IP/gs, {vs['k']} K/gs"
+            )
+        else:
+            parts.append(f"vs {vs_label}: no data")
+        at = spl.get("at")
+        if at:
+            parts.append(
+                f"at {venue_label}: {at['n']}gs, {at['era']} ERA, {at['ip']} IP/gs"
+            )
+        else:
+            parts.append(f"at {venue_label}: no data")
+        return f"  {name}: " + " | ".join(parts)
+
     lines = [f"=== {away} @ {home}{time_s} | {venue} ({venue_tag}) ==="]
     lines.append(f"Weather: {wx_s}")
     lines.append("PITCHERS:")
     lines.append(_sp_line(sp_a, outs_a))
     lines.append(_sp_line(sp_h, outs_h))
-    lines.append("OFFENSE:")
+    lines.append("OFFENSE (L12):")
     lines.append(_off_line(away, of_a, hand_h))
     lines.append(_off_line(home, of_h, hand_a))
-    lines.append("BULLPEN:")
+    lines.append("BULLPEN (L12):")
     lines.append(_bp_line(away, bp_a))
     lines.append(_bp_line(home, bp_h))
+    lines.append("MATCHUP HISTORY (last 3 starts, 2yr):")
+    lines.append(_spl_line(sp_a["name"], spl_a, home, "this park"))
+    lines.append(_spl_line(sp_h["name"], spl_h, away, "home"))
     lines.append("ODDS:")
     lines.extend(odds_lines if odds_lines else ["  None available"])
-    lines.append("TRENDS:")
+    lines.append("TEAM TRENDS (in this starter's recent starts):")
     lines.append(_trend_line(away, tr_a))
     lines.append(_trend_line(home, tr_h))
     if flags:
