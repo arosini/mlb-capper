@@ -1546,9 +1546,6 @@ header{background:#030712}
 .ai-picks{background:white;margin:.5rem 0 .75rem;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
 .ai-picks-hd{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;padding:.45rem .875rem .3rem;cursor:pointer;list-style:none}
 .ai-picks[open] .ai-picks-hd{border-bottom:1px solid #f0f0f0}
-.ai-best-wrap{padding:.55rem .875rem .5rem;border-bottom:1px solid #f0f0f0}
-.ai-best-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#b45309;margin-bottom:.22rem}
-.ai-best{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.45rem .6rem}
 .ai-game{font-size:.76rem;font-weight:700;color:#374151}
 .ai-bet{font-size:.95rem;font-weight:700;margin:.12rem 0}
 .ai-odds{font-size:.76rem;color:#6b7280;font-variant-numeric:tabular-nums}
@@ -1575,7 +1572,6 @@ header{background:#030712}
 .ai-conf-dim{font-size:.54rem;background:#f3f4f6;color:#6b7280;padding:.04rem .26rem;border-radius:3px;font-weight:700;vertical-align:middle;margin-left:.3rem;text-transform:uppercase;letter-spacing:.04em}
 .ai-pick-row{border:1px solid #e5e7eb;border-radius:7px;margin-bottom:.32rem;overflow:hidden}
 .ai-pick-row:last-child{margin-bottom:0}
-.ai-best-row{border-color:#fde68a;background:#fffbeb}
 .ai-pick-sum{display:flex;align-items:center;padding:.38rem .55rem;cursor:pointer;font-size:.8rem;font-weight:600;color:#374151;list-style:none;user-select:none;gap:.4rem}
 .ai-pick-sum::-webkit-details-marker{display:none}
 .ai-pick-sum::after{content:'▸';margin-left:auto;font-size:.6rem;opacity:.7;flex-shrink:0}
@@ -1584,8 +1580,6 @@ header{background:#030712}
 @media(prefers-color-scheme:dark){
 .ai-picks{background:#1a1a1a;border-color:#2a2a2a}
 .ai-picks[open] .ai-picks-hd{border-bottom-color:#2a2a2a}
-.ai-best-wrap{border-bottom-color:#2a2a2a}
-.ai-best{background:#1c1400;border-color:#b45309}
 .ai-game{color:#d1d5db}
 .ai-reason{color:#d1d5db}
 .ai-conf{background:#92400e;color:#fde68a}
@@ -1603,7 +1597,6 @@ header{background:#030712}
 .ai-started-label{color:#4b5563}
 .ai-conf-dim{background:#2a2a2a;color:#9ca3af}
 .ai-pick-row{border-color:#2a2a2a}
-.ai-best-row{border-color:#b45309;background:#1c1400}
 .ai-pick-sum{color:#d1d5db}
 .ai-pick-body{border-top-color:#2a2a2a}
 }
@@ -2577,7 +2570,7 @@ PRICING RULES (CRITICAL):
 
 MULTIPLE PICKS PER GAME: You may include more than one pick for the same game if multiple edges are independent (e.g., Game Total Under AND a pitcher K prop — different markets, different edges). Do not stack correlated bets on the same game.
 
-Set is_best=true on your single strongest pick of the day. All other picks have is_best=false. If there are no strong plays, return an empty picks array.
+If there are no strong plays, return an empty picks array.
 
 When you have completed your analysis, call the report_betting_suggestions tool with your results.
 """
@@ -2914,13 +2907,12 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: "date")
                             "period":      {"type": "string", "enum": ["full_game", "f5", "props"], "description": "full_game, f5 (first 5 innings), or props"},
                             "odds":        {"type": "string", "description": "American odds string, e.g. '-110' or '+145'"},
                             "odds_num":    {"type": ["integer", "null"], "description": "Odds as integer, e.g. -110 or 145"},
-                            "is_best":     {"type": "boolean", "description": "True for the single strongest pick of the day. Only one pick should have is_best=true."},
                             "confidence":  {"type": "string", "enum": ["high", "medium"]},
                             "reason":      {"type": "string"},
                             "line_warning":   {"type": "boolean"},
                             "alt_suggestion": {"type": ["string", "null"]},
                         },
-                        "required": ["game", "bet_type", "bet", "team_side", "line", "period", "odds", "is_best", "confidence", "reason"],
+                        "required": ["game", "bet_type", "bet", "team_side", "line", "period", "odds", "confidence", "reason"],
                     },
                 },
                 "pass_reasons": {
@@ -2984,8 +2976,6 @@ def _render_suggestions_html(all_picks: list, target_date: "date") -> str:
     started_picks = sorted([p for p in all_picks if _game_dt(p) <= now], key=_game_dt)
 
     def _pick_block(pick: dict) -> str:
-        is_best = pick.get("is_best")
-        game    = _h(pick.get("game", ""))
         reason  = _h(pick.get("reason", ""))
         warn    = pick.get("line_warning")
         alt     = pick.get("alt_suggestion")
@@ -3000,11 +2990,10 @@ def _render_suggestions_html(all_picks: list, target_date: "date") -> str:
                 found_s = f'<div class="ai-found-at">Found at {_h(_ft_s)} ET</div>'
             except Exception:
                 pass
-        row_cls = "ai-pick-row ai-best-row" if is_best else "ai-pick-row"
         title   = _h(_pick_summary_title(pick))
         pid     = _pick_dom_id(pick)
         return (
-            f'<details class="{row_cls}" id="{pid}">'
+            f'<details class="ai-pick-row" id="{pid}">'
             f'<summary class="ai-pick-sum">{title}</summary>'
             f'<div class="ai-pick-body">'
             f'<div class="ai-reason">{reason}</div>'
