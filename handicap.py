@@ -622,6 +622,7 @@ def get_mlb_schedule(target_date: date) -> dict:
                 "venue": g.get("venue", {}).get("name", ""),
                 "home_pid": hp.get("id"), "home_pname": hp.get("fullName", ""),
                 "away_pid": ap.get("id"), "away_pname": ap.get("fullName", ""),
+                "game_date": g.get("gameDate", ""),
             }
     return games
 
@@ -1146,6 +1147,7 @@ def analyze_game(
         "away":         away_team,
         "home":         home_team,
         "venue":        mlb_info.get("venue", ""),
+        "game_date":    mlb_info.get("game_date", ""),
         "away_sp":      away_sp,
         "home_sp":      home_sp,
         "pitch_edge":   pitch_edge,
@@ -1529,6 +1531,13 @@ def _html_game(g: dict) -> str:
     roof_paren = f" ({indoor_label})" if indoor_label else ""
     venue_str = (g["venue"] or "") + roof_paren
     time_str = wx.get("game_time_local", "").replace(" ET", "").strip()
+    if not time_str and g.get("game_date"):
+        try:
+            _dt = datetime.fromisoformat(g["game_date"].replace("Z", "+00:00")).astimezone(_ET)
+            _h12 = _dt.hour % 12 or 12
+            time_str = f"{_h12}:{_dt.minute:02d} {'PM' if _dt.hour >= 12 else 'AM'}"
+        except Exception:
+            pass
     venue_parts = [p for p in [time_str, venue_str] if p.strip()]
     wx_lbl, wx_cls = _wx_summary(wx)
     apf_raw = wx.get("adjusted_park_factor") if wx else None
@@ -1884,15 +1893,23 @@ def _html_game(g: dict) -> str:
 
 
 def _time_sort_key(g: dict) -> int:
-    t = (g.get("wx") or {}).get("game_time_local", "")
     import re as _re
+    t = (g.get("wx") or {}).get("game_time_local", "")
     m = _re.match(r'(\d+):(\d+)\s*(AM|PM)', t)
-    if not m:
-        return 9999
-    h, mn, ampm = int(m.group(1)), int(m.group(2)), m.group(3)
-    if ampm == "PM" and h != 12: h += 12
-    elif ampm == "AM" and h == 12: h = 0
-    return h * 60 + mn
+    if m:
+        h, mn, ampm = int(m.group(1)), int(m.group(2)), m.group(3)
+        if ampm == "PM" and h != 12: h += 12
+        elif ampm == "AM" and h == 12: h = 0
+        return h * 60 + mn
+    gd = g.get("game_date", "")
+    if gd:
+        try:
+            dt_utc = datetime.fromisoformat(gd.replace("Z", "+00:00"))
+            dt_et = dt_utc.astimezone(_ET)
+            return dt_et.hour * 60 + dt_et.minute
+        except Exception:
+            pass
+    return 9999
 
 
 _SPLIT_SCRIPT = """
