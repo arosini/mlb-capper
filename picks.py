@@ -71,12 +71,24 @@ def _extract_picks(sugg: dict) -> list:
 
 def _canon_pick_key(pick: dict) -> tuple:
     """
-    Canonical dedup key: (game, normalized_bet_type, direction_or_pitcher).
+    Canonical dedup key. Rules:
 
-    Line is intentionally excluded — once we've picked a direction (over/under/team)
-    for a game, we never add a second pick for the same direction even if the line moves.
-    For pitcher props, direction is the pitcher's last name so away/home pitchers in
-    the same game each get one slot.
+    - Pitcher Ks / Outs: one pick per pitcher per game — key (game, bt, pitcher_last).
+      Two pitchers in the same game each get their own slot. Over and under for the same
+      pitcher both collapse to the same slot (we don't revisit a pitcher we've already
+      given a K bet on).
+
+    - Team Total: one pick per team per game — key (game, "teamtotal", "home"|"away").
+      home/away is stripped from team_side ("home_over" → "home"). The Cardinals TT Over
+      and Cardinals TT Under would both occupy the same slot.
+
+    - All other markets (Total, F5_Total, Spread, ML, Moneyline, …):
+      one pick per market per game — key (game, bt).
+      Over and Under for the same full-game total occupy the same slot.
+      Full-game total and F5 total are separate (different bt).
+
+    Line is always excluded — once a market is picked we never revisit it regardless
+    of line movement.
     """
     game = pick.get("game", "")
     bt   = (pick.get("bet_type") or "").lower().replace("_", "").replace(" ", "")
@@ -87,14 +99,18 @@ def _canon_pick_key(pick: dict) -> tuple:
             bt = "pitcherks"
         elif "out" in bet:
             bt = "pitcherouts"
-    # Pitcher props: use pitcher's last name (words[1], or words[0] if single name)
-    # so two pitchers in the same game each get their own dedup slot.
+    # Pitcher props: keyed on pitcher's last name (words[1], or words[0] if single name)
     if bt in ("pitcherks", "pitcherouts"):
         words = bet.split()
         pitcher_last = words[1] if len(words) >= 2 else (words[0] if words else "")
         return (game, bt, pitcher_last)
-    # All other markets: direction only (no line) — same over/under/team side = same bet
-    return (game, bt, pick.get("team_side") or "")
+    # Team totals: keyed on which team (home/away), not direction (over/under)
+    if bt == "teamtotal":
+        ts = (pick.get("team_side") or "").lower()
+        team_side = ts.split("_")[0] if ts else ""  # "home_over" → "home"
+        return (game, bt, team_side)
+    # Everything else: one pick per market per game — direction and line don't matter
+    return (game, bt)
 
 
 def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
