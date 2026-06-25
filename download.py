@@ -127,9 +127,19 @@ def _parse_utc(ts: str) -> datetime:
         return datetime.fromtimestamp(0, tz=timezone.utc)
 
 
+def _file_age_minutes(path: Path) -> float:
+    """Return minutes since the file was last written, or infinity if absent."""
+    if not path.exists():
+        return float("inf")
+    try:
+        mtime = path.stat().st_mtime
+        return (datetime.now(timezone.utc).timestamp() - mtime) / 60
+    except Exception:
+        return float("inf")
+
+
 def _odds_age_minutes(data_dir: Path, date_str: str) -> float:
-    """Return minutes since last odds fetch, or infinity if never fetched."""
-    from datetime import timezone
+    """Return minutes since last odds fetch (from meta file), or infinity if never fetched."""
     meta_path = data_dir / f"odds_meta_{date_str}.json"
     if not meta_path.exists():
         return float("inf")
@@ -192,15 +202,15 @@ def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 180) -> 
 
 def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 180) -> None:
     """Fetch pitcher K and outs props from the per-event endpoint (requires Starter plan+).
-    Reads event IDs from the already-saved bulk odds file. Skips if fetched within max_age_minutes."""
+    Reads event IDs from the already-saved bulk odds file. Skips if props file is fresh."""
     key = config.ODDS_API_KEY
     if not key:
         return
-    age = _odds_age_minutes(data_dir, date_str)
-    if age < max_age_minutes:
-        print(f"  [props] Fetched {age:.0f}m ago — skipping")
-        return
     props_path = data_dir / f"props_{date_str}.json"
+    age = _file_age_minutes(props_path)
+    if age < max_age_minutes:
+        print(f"  [props] Props fetched {age:.0f}m ago — skipping")
+        return
     odds_path = data_dir / f"odds_{date_str}.json"
     if not odds_path.exists():
         print(f"  [props] No odds file — skipping pitcher props")
@@ -227,7 +237,7 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
             "&regions=us"
             "&markets=pitcher_strikeouts,pitcher_outs"
             ",h2h_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings"
-            ",team_totals"
+            ",team_totals,team_totals_1st_5_innings"
             "&bookmakers=draftkings,fanduel,fanatics"
             "&oddsFormat=american"
         )

@@ -129,12 +129,13 @@ def _best_total(bookmakers: list, side: str, market_key: str = "totals") -> tupl
                         best_price, best_point = p, pt
     return best_point, best_price
 
-def _best_team_total(bookmakers: list, team_name: str, side: str) -> tuple:
+def _best_team_total(bookmakers: list, team_name: str, side: str,
+                     market_key: str = "team_totals") -> tuple:
     """Return (point, price) for the best-priced team total over or under for the given team."""
     best_price, best_point = None, None
     for bk in bookmakers:
         for mkt in bk.get("markets", []):
-            if mkt["key"] != "team_totals":
+            if mkt["key"] != market_key:
                 continue
             for oc in mkt.get("outcomes", []):
                 if oc.get("name") == side and oc.get("description") == team_name:
@@ -240,12 +241,20 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
     has_f5 = any(v is not None for v in (away_f5_sp_pt, f5_over_pt,
                                           _best_price(prop_bks, "h2h_1st_5_innings", away_name)))
 
-    # Team totals (from per-event endpoint)
+    # Team totals — full game (from per-event endpoint)
     away_tt_ov_pt, away_tt_ov_pr = _best_team_total(prop_bks, away_name, "Over")
     away_tt_un_pt, away_tt_un_pr = _best_team_total(prop_bks, away_name, "Under")
     home_tt_ov_pt, home_tt_ov_pr = _best_team_total(prop_bks, home_name, "Over")
     home_tt_un_pt, home_tt_un_pr = _best_team_total(prop_bks, home_name, "Under")
     has_tt = away_tt_ov_pt is not None or home_tt_ov_pt is not None
+
+    # Team totals — F5 (from per-event endpoint)
+    _f5tt = "team_totals_1st_5_innings"
+    away_f5tt_ov_pt, away_f5tt_ov_pr = _best_team_total(prop_bks, away_name, "Over",  _f5tt)
+    away_f5tt_un_pt, away_f5tt_un_pr = _best_team_total(prop_bks, away_name, "Under", _f5tt)
+    home_f5tt_ov_pt, home_f5tt_ov_pr = _best_team_total(prop_bks, home_name, "Over",  _f5tt)
+    home_f5tt_un_pt, home_f5tt_un_pr = _best_team_total(prop_bks, home_name, "Under", _f5tt)
+    has_f5tt = away_f5tt_ov_pt is not None or home_f5tt_ov_pt is not None
 
     return {
         # Full game
@@ -255,7 +264,7 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
         "home_spread":   _fmt_spread(home_sp_pt, home_sp_pr),
         "over":          _fmt_total("O", over_pt,  over_pr),
         "under":         _fmt_total("U", under_pt, under_pr),
-        # F5 (from per-event endpoint)
+        # F5
         "has_f5":        has_f5,
         "away_f5_ml":    _fmt_ml(_best_price(prop_bks, "h2h_1st_5_innings", away_name)),
         "home_f5_ml":    _fmt_ml(_best_price(prop_bks, "h2h_1st_5_innings", home_name)),
@@ -263,12 +272,18 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
         "home_f5_spread":_fmt_spread(home_f5_sp_pt, home_f5_sp_pr),
         "f5_over":       _fmt_total("O", f5_over_pt, f5_over_pr),
         "f5_under":      _fmt_total("U", f5_under_pt, f5_under_pr),
-        # Team totals
+        # Team totals — full game
         "has_tt":         has_tt,
         "away_tt_over":   _fmt_total("O", away_tt_ov_pt, away_tt_ov_pr),
         "away_tt_under":  _fmt_total("U", away_tt_un_pt, away_tt_un_pr),
         "home_tt_over":   _fmt_total("O", home_tt_ov_pt, home_tt_ov_pr),
         "home_tt_under":  _fmt_total("U", home_tt_un_pt, home_tt_un_pr),
+        # Team totals — F5
+        "has_f5tt":           has_f5tt,
+        "away_f5tt_over":     _fmt_total("O", away_f5tt_ov_pt, away_f5tt_ov_pr),
+        "away_f5tt_under":    _fmt_total("U", away_f5tt_un_pt, away_f5tt_un_pr),
+        "home_f5tt_over":     _fmt_total("O", home_f5tt_ov_pt, home_f5tt_ov_pr),
+        "home_f5tt_under":    _fmt_total("U", home_f5tt_un_pt, home_f5tt_un_pr),
         # Pitcher props
         "away_k":        away_k,
         "home_k":        home_k,
@@ -1887,17 +1902,27 @@ def _html_game(g: dict) -> str:
                 + f'</div>'
             )
         tt_html = ""
-        if od.get("has_tt"):
-            def _tt_row(team_name, over_s, under_s):
+        if od.get("has_tt") or od.get("has_f5tt"):
+            def _tt_row(team_name, over_s, under_s, f5_over_s="", f5_under_s=""):
+                has_f5 = bool(f5_over_s and f5_over_s != "—")
+                f5_cells = (f'<span class="odds-val dim">{_h(f5_over_s)}</span>'
+                            f'<span class="odds-val dim">{_h(f5_under_s)}</span>') if has_f5 else ""
                 return (f'<span class="tm">{_h(team_name)}</span>'
                         f'<span class="odds-val">{_h(over_s)}</span>'
-                        f'<span class="odds-val">{_h(under_s)}</span>')
+                        f'<span class="odds-val">{_h(under_s)}</span>'
+                        + f5_cells)
+            show_f5tt = od.get("has_f5tt")
+            cols = "1fr 1fr 1fr 1fr 1fr" if show_f5tt else "1fr 1fr 1fr"
+            f5_hdrs = ('<span class="odds-hd">F5 O</span>'
+                       '<span class="odds-hd">F5 U</span>') if show_f5tt else ""
             tt_html = (
                 f'<div class="odds-sub">Team Totals</div>'
-                f'<div class="odds-grid" style="grid-template-columns:1fr 1fr 1fr">'
-                f'<span></span><span class="odds-hd">Over</span><span class="odds-hd">Under</span>'
-                + _tt_row(away, od["away_tt_over"], od["away_tt_under"])
-                + _tt_row(home, od["home_tt_over"], od["home_tt_under"])
+                f'<div class="odds-grid" style="grid-template-columns:{cols}">'
+                f'<span></span><span class="odds-hd">Over</span><span class="odds-hd">Under</span>{f5_hdrs}'
+                + _tt_row(away, od["away_tt_over"], od["away_tt_under"],
+                          od.get("away_f5tt_over",""), od.get("away_f5tt_under",""))
+                + _tt_row(home, od["home_tt_over"], od["home_tt_under"],
+                          od.get("home_f5tt_over",""), od.get("home_f5tt_under",""))
                 + f'</div>'
             )
         props_html = ""
@@ -2283,22 +2308,28 @@ CRITICAL RULE: Match the bet type to the actual edge. A pitching edge is not an 
 
 ── PITCHING EDGE (one starter is clearly dominant) ──
 Signals: better xERA, better recent form, good matchup history vs today's opponent, opposing wRC+ is weak.
-The dominant starter IS the edge. Express it in a way that captures their performance:
+The dominant starter IS the edge. The key question is: do you also like your team's offense vs the opposing pitcher?
 
-- Own bullpen strong (xERA <3.75): full-game ML or spread — trust the whole 9
-- Own bullpen average (3.75–4.75): F5 ML or F5 spread — back the starter, exit before the pen
-- Own bullpen weak (>4.75): pitcher K or Outs prop (pure starter bet, zero bullpen dependency); F5 if the price is reasonable
-- Under the total is also a valid pitching-edge play if the opposing offense is also cold (wRC+ <100) — the dominant starter holds down the run environment
+IF you like the pitcher AND the team's offense vs the opposing starter (compound edge in first 5):
+- Own bullpen strong: full-game ML or spread
+- Own bullpen average/weak: F5 ML or F5 spread — captures both the dominant starter and the offense scoring, cuts off before your shaky pen enters
+
+IF you like the pitcher but NOT the team's offense (or you're neutral on it):
+- Opponent F5 UNDER team total — pure pitcher dominance bet; you're saying the opposing offense scores few runs in the first 5 innings, no dependency on your own offense or bullpen
+- Opponent F5 under the total (F5 Under) also works if both pitchers are decent but one is clearly better
+- Pitcher K or Outs prop — purest single-pitcher bet with zero team dependency
+- Own bullpen strong: full-game ML or spread still works since the starter limits damage and the pen holds
 
 ── OFFENSIVE EDGE (one offense outmatches the opposing starter) ──
-Signals: high wRC+ vs a weak or struggling pitcher (high xERA or high recent ERA), good recent run production in trends.
-Express this as scoring, not as winning:
+Signals: hot offense in L12 (wRC+ ≥110) vs a weak or struggling opposing pitcher (high xERA, high recent ERA), backed by good run-support trends.
+Express this as scoring, not winning:
 
-- Team total OVER for the hot offense — you're betting they score, not that their team wins; own bullpen quality is irrelevant here
-- If compound edge (good offense + also a decent own pitcher): full-game ML or spread becomes reasonable
+- Team total OVER for the hot offense — bet they score regardless of game outcome; own bullpen irrelevant
+- F5 team total OVER — if you specifically like the offense vs this starter in the first 5 innings (before a better reliever might enter)
+- If own pitcher is also decent: F5 ML or full-game ML becomes reasonable as a compound play
 
-── COMPOUND EDGE (pitching + offense both favor one team) ──
-Both a dominant starter AND a strong offense vs a weak opposing starter with a weak opposing offense — this is the rare case where full-game ML or spread is clearly justified regardless of bullpen.
+── COMPOUND EDGE (pitching + offense both favor one team in both directions) ──
+Both a dominant starter AND a stronger offense vs a weaker opposing starter and weaker opposing offense — full-game ML or spread is justified. Still prefer F5 if own bullpen is shaky.
 
 ═══════════════════════════════════════════
 PITCHER PROPS
@@ -2359,7 +2390,7 @@ OUTPUT: Return ONLY valid JSON — no markdown, no extra text:
 {
   "best_bet": {
     "game": "AWAY @ HOME",
-    "bet_type": "ML|F5_ML|Spread|F5_Spread|Total|F5_Total|Team_Total|Pitcher_Ks|Pitcher_Outs",
+    "bet_type": "ML|F5_ML|Spread|F5_Spread|Total|F5_Total|Team_Total|F5_Team_Total|Pitcher_Ks|Pitcher_Outs",
     "bet": "specific wager",
     "odds": "-110",
     "confidence": "high|medium",
@@ -2368,7 +2399,7 @@ OUTPUT: Return ONLY valid JSON — no markdown, no extra text:
   "other_bets": [
     {
       "game": "AWAY @ HOME",
-      "bet_type": "...",
+      "bet_type": "ML|F5_ML|Spread|F5_Spread|Total|F5_Total|Team_Total|F5_Team_Total|Pitcher_Ks|Pitcher_Outs",
       "bet": "...",
       "odds": "...",
       "line_warning": false,
@@ -2551,6 +2582,11 @@ def _serialize_game_for_ai(g: dict) -> str:
             odds_lines.append(f"  {away} Team Total: {od['away_tt_over']} / {od['away_tt_under']}")
         if _o(od.get("home_tt_over")):
             odds_lines.append(f"  {home} Team Total: {od['home_tt_over']} / {od['home_tt_under']}")
+    if od.get("has_f5tt"):
+        if _o(od.get("away_f5tt_over")):
+            odds_lines.append(f"  {away} F5 Team Total: {od['away_f5tt_over']} / {od['away_f5tt_under']}")
+        if _o(od.get("home_f5tt_over")):
+            odds_lines.append(f"  {home} F5 Team Total: {od['home_f5tt_over']} / {od['home_f5tt_under']}")
     k_a  = _fmt_k_line(od.get("away_k"))
     k_h  = _fmt_k_line(od.get("home_k"))
     ou_a = _fmt_outs_line(od.get("away_outs"))
