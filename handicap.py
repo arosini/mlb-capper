@@ -1518,7 +1518,8 @@ header{background:#030712}
 .spl-sp-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
 }
 .ai-picks{background:white;margin:.5rem 0 .75rem;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
-.ai-picks-hd{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;padding:.45rem .875rem .3rem;border-bottom:1px solid #f0f0f0}
+.ai-picks-hd{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;padding:.45rem .875rem .3rem;cursor:pointer;list-style:none}
+.ai-picks[open] .ai-picks-hd{border-bottom:1px solid #f0f0f0}
 .ai-best-wrap{padding:.55rem .875rem .5rem;border-bottom:1px solid #f0f0f0}
 .ai-best-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#b45309;margin-bottom:.22rem}
 .ai-best{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.45rem .6rem}
@@ -1543,7 +1544,7 @@ header{background:#030712}
 .ai-pass-reason{font-size:.76rem;color:#6b7280;font-style:italic;padding:.1rem 0}
 @media(prefers-color-scheme:dark){
 .ai-picks{background:#1a1a1a;border-color:#2a2a2a}
-.ai-picks-hd{border-bottom-color:#2a2a2a}
+.ai-picks[open] .ai-picks-hd{border-bottom-color:#2a2a2a}
 .ai-best-wrap{border-bottom-color:#2a2a2a}
 .ai-best{background:#1c1400;border-color:#b45309}
 .ai-game{color:#d1d5db}
@@ -2150,7 +2151,6 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         f'\n    <div class="gs-matchup"><div class="gs-teams">{_logo_img(away)}{_h(away)} @ {_logo_img(home)}{_h(home)}{ai_check}</div>{venue_html}</div>'
         f'\n  </summary>'
         f'\n  <div class="gd">'
-        f'\n    {ai_sec_html}'
         f'\n    {matchup_html}'
         f'\n    {odds_html}'
         f'\n    {outings_html}'
@@ -2159,6 +2159,7 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         f'\n    {bullpen_html}'
         f'\n    {wx_html}'
         f'\n    {flags_html}'
+        f'\n    {ai_sec_html}'
         f'\n  </div>'
         f'\n</details>'
     )
@@ -2868,11 +2869,11 @@ def _render_suggestions_html(sugg: Optional[dict], target_date: "date") -> str:
     )
 
     return (
-        f'<div class="ai-picks">'
-        f'<div class="ai-picks-hd">AI Picks · {_h(bets_lbl)} · {_h(date_s)}</div>'
+        f'<details class="ai-picks">'
+        f'<summary class="ai-picks-hd">AI Picks · {_h(bets_lbl)} · {_h(date_s)}</summary>'
         f'{inner}'
         f'{disclaimer}'
-        f'</div>'
+        f'</details>'
     )
 
 
