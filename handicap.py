@@ -2075,20 +2075,24 @@ def _html_game(g: dict) -> str:
         if not lines:
             return ""
         items = "".join(f"<li>{ln}</li>" for ln in lines)
-        return f'<div class="trend-hd">{_h(team)}</div><ul class="trends">{items}</ul>'
+        return f'<ul class="trends">{items}</ul>'
 
     away_tr = g.get("away_trends")
     home_tr = g.get("home_trends")
-    trends_inner = (
-        _trend_block(away, sp_a["name"], away_tr)
-        + _trend_block(home, sp_h["name"], home_tr)
-    )
+    def _trends_section(team: str, sp_name: str, tr, tid: str) -> str:
+        inner = _trend_block(team, sp_name, tr)
+        if not inner.strip():
+            return ""
+        return (
+            f'<details class="sec" id="{tid}">'
+            f'<summary class="sec-sum">Trends · {_h(team)}</summary>'
+            f'<div class="sec-body">{inner}</div>'
+            f'</details>'
+        )
     trends_html = (
-        f'<details class="sec" id="{g_id}-trends">'
-        f'<summary class="sec-sum">Trends</summary>'
-        f'<div class="sec-body">{trends_inner}</div>'
-        f'</details>'
-    ) if trends_inner.strip() else ""
+        _trends_section(away, sp_a["name"], away_tr, f"{g_id}-trends-away")
+        + _trends_section(home, sp_h["name"], home_tr, f"{g_id}-trends-home")
+    )
 
     bullpen_html = (
         f'<details class="sec" id="{g_id}-bullpen">'
