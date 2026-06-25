@@ -43,6 +43,7 @@ jobs:
             odds-
 
       - name: Download data
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           HANDIGRAPHS_EMAIL: ${{ secrets.HANDIGRAPHS_EMAIL }}
           HANDIGRAPHS_PASSWORD: ${{ secrets.HANDIGRAPHS_PASSWORD }}

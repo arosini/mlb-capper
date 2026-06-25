@@ -151,9 +151,9 @@ def _odds_age_minutes(data_dir: Path, date_str: str) -> float:
         return float("inf")
 
 
-def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 180) -> None:
+def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 360) -> None:
     """Fetch full-game odds from The Odds API (DK, FanDuel, Fanatics). No auth needed.
-    Skips if odds were fetched within max_age_minutes (default 3 hours)."""
+    Skips if odds were fetched within max_age_minutes (default 6 hours)."""
     key = config.ODDS_API_KEY
     if not key:
         print("  [odds] ODDS_API_KEY not set — skipping odds download")
@@ -200,7 +200,7 @@ def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 180) -> 
         print(f"  [odds] Failed: {e}")
 
 
-def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 180) -> None:
+def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 360) -> None:
     """Fetch pitcher K and outs props from the per-event endpoint (requires Starter plan+).
     Reads event IDs from the already-saved bulk odds file. Skips if props file is fresh."""
     key = config.ODDS_API_KEY
