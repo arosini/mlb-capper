@@ -1778,7 +1778,8 @@ def _pick_summary_title(pick: dict) -> str:
         if game and "total" in bet_type:
             bet_text = bet_text.replace("Game Total", game)
         if is_f5 and "F5" not in bet_text.upper():
-            bet_text = f"F5 {bet_text}"
+            first, _, rest = bet_text.partition(" ")
+            bet_text = f"{first} F5 {rest}" if rest else f"F5 {bet_text}"
     title = bet_text
     if odds:
         title += f" ({odds})"
