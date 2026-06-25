@@ -72,22 +72,41 @@ jobs:
       - name: Save AI picks
         run: python3 picks.py --save
 
+      - name: Annotate results
+        run: |
+          python3 history.py --annotate --date yesterday
+          python3 picks.py   --annotate --date yesterday
+          python3 history.py --annotate
+          python3 picks.py   --annotate
+
       - name: Commit history and picks
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          _save_and_annotate() {
+            python3 history.py --save
+            python3 history.py --annotate --date yesterday
+            python3 history.py --annotate
+            python3 picks.py   --save
+            python3 picks.py   --annotate --date yesterday
+            python3 picks.py   --annotate
+          }
+
           git add history/ picks/
-          if ! git diff --staged --quiet; then
+          if git diff --staged --quiet; then exit 0; fi
+          git commit -m "History: odds $CACHE_DATE"
+          git push && exit 0
+
+          for _retry in 1 2; do
+            git reset HEAD~1
+            git clean -f history/ picks/ 2>/dev/null || true
+            git checkout -- history/ picks/ 2>/dev/null || true
+            git pull origin main
+            _save_and_annotate
+            git add history/ picks/
+            git diff --staged --quiet && exit 0
             git commit -m "History: odds $CACHE_DATE"
-            if ! git push; then
-              # Another run committed first; reset, clean, pull upstream, re-save, re-commit
-              git reset HEAD~1
-              git clean -f history/ picks/ 2>/dev/null || true
-              git checkout -- history/ 2>/dev/null || true
-              git pull origin main
-              python3 history.py --save
-              python3 picks.py --save
-              git add history/ picks/
-              git diff --staged --quiet || (git commit -m "History: odds $CACHE_DATE" && git push) || echo "[history] Push skipped — will retry next run"
-            fi
-          fi
+            git push && exit 0
+          done
+          echo "[history] Push failed after retries — will try again next run"

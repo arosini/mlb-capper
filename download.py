@@ -138,9 +138,8 @@ def _file_age_minutes(path: Path) -> float:
         return float("inf")
 
 
-def _odds_age_minutes(data_dir: Path, date_str: str) -> float:
-    """Return minutes since last odds fetch (from meta file), or infinity if never fetched."""
-    meta_path = data_dir / f"odds_meta_{date_str}.json"
+def _meta_age_minutes(meta_path: Path) -> float:
+    """Return minutes since last fetch recorded in a meta JSON, or infinity if absent."""
     if not meta_path.exists():
         return float("inf")
     try:
@@ -149,6 +148,11 @@ def _odds_age_minutes(data_dir: Path, date_str: str) -> float:
         return (datetime.now(timezone.utc) - fetched_at).total_seconds() / 60
     except Exception:
         return float("inf")
+
+
+def _odds_age_minutes(data_dir: Path, date_str: str) -> float:
+    """Return minutes since last odds fetch (from meta file), or infinity if never fetched."""
+    return _meta_age_minutes(data_dir / f"odds_meta_{date_str}.json")
 
 
 def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 360) -> None:
@@ -202,12 +206,15 @@ def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 360) -> 
 
 def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 360) -> None:
     """Fetch pitcher K and outs props from the per-event endpoint (requires Starter plan+).
-    Reads event IDs from the already-saved bulk odds file. Skips if props file is fresh."""
+    Reads event IDs from the already-saved bulk odds file. Skips if props meta is fresh.
+    Uses a props_meta_{date}.json timestamp (not file mtime) so CI cache restores don't
+    incorrectly skip a re-fetch after loading a stale cache from a prior day."""
     key = config.ODDS_API_KEY
     if not key:
         return
     props_path = data_dir / f"props_{date_str}.json"
-    age = _file_age_minutes(props_path)
+    props_meta_path = data_dir / f"props_meta_{date_str}.json"
+    age = _meta_age_minutes(props_meta_path)
     if age < max_age_minutes:
         print(f"  [props] Props fetched {age:.0f}m ago — skipping")
         return
@@ -256,6 +263,7 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
             print(f"  [props] {away}@{home}: {e}")
 
     props_path.write_text(json.dumps(all_props, indent=2))
+    props_meta_path.write_text(json.dumps({"fetched_at": datetime.now(timezone.utc).isoformat()}))
     print(f"  ✓  props_{date_str}.json ({len(all_props)} games)")
 
 

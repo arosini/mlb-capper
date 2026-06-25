@@ -59,6 +59,28 @@ def _write_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, indent=2))
 
 
+def _pick_best_result(candidates: list, game_time_utc: str) -> dict:
+    """For doubleheaders: pick the result whose game_time is closest to game_time_utc."""
+    if len(candidates) == 1:
+        return candidates[0]
+    if not game_time_utc:
+        return candidates[0]
+    try:
+        target = datetime.fromisoformat(game_time_utc.replace("Z", "+00:00"))
+    except Exception:
+        return candidates[0]
+
+    def _dist(c):
+        try:
+            return abs((datetime.fromisoformat(
+                c.get("game_time", "").replace("Z", "+00:00")) - target
+            ).total_seconds())
+        except Exception:
+            return float("inf")
+
+    return min(candidates, key=_dist)
+
+
 def _best_price(bookmakers: list, market_key: str, outcome_name: str):
     best = None
     for bk in bookmakers:
@@ -147,10 +169,13 @@ def save_odds_history(data_dir: Path, history_dir: Path, target_date: date) -> i
 
     starters = _load_starters_by_team(data_dir, date_str)
 
-    # Load existing records for the day; keep as dict keyed by (away, home)
+    # Load existing records for the day; keyed by (away, home, game_time_utc) to
+    # handle doubleheaders where the same two teams play twice in one day.
     hist_path = history_dir / f"{date_str}.json"
     existing: list[dict] = _read_json(hist_path) or []
-    by_game: dict[tuple, dict] = {(r["away"], r["home"]): r for r in existing}
+    by_game: dict[tuple, dict] = {
+        (r["away"], r["home"], r.get("game_time_utc", "")): r for r in existing
+    }
 
     now = datetime.now(timezone.utc)
     written = 0
@@ -163,7 +188,7 @@ def save_odds_history(data_dir: Path, history_dir: Path, target_date: date) -> i
         if not away_name or not home_name:
             continue
 
-        key = (away_name, home_name)
+        key = (away_name, home_name, commence)
         existing_rec = by_game.get(key, {})
 
         # Don't update records where odds are already locked in
@@ -271,8 +296,19 @@ def annotate_results(history_dir: Path, target_date: date) -> int:
         away_mlb  = _TO_MLB_ABBR.get(away_code, away_code)
         home_mlb  = _TO_MLB_ABBR.get(home_code, home_code)
 
-        result = scores.get(frozenset([away_mlb, home_mlb]))
-        if not result:
+        candidates = scores.get(frozenset([away_mlb, home_mlb]))
+        if not candidates:
+            continue
+
+        # For doubleheaders pick the game whose scheduled time is closest to this record
+        result = _pick_best_result(candidates, rec.get("game_time_utc", ""))
+
+        # Postponed / cancelled / suspended — mark void so we stop retrying
+        if result.get("status"):
+            rec["status"] = result["status"]
+            rec["annotated_at"] = now
+            annotated += 1
+            print(f"  {rec['away']} @ {rec['home']} → {result['status'].upper()}")
             continue
 
         away_score = result["away_score"]
@@ -290,26 +326,34 @@ def annotate_results(history_dir: Path, target_date: date) -> int:
             elif total_runs < total_line:
                 rec["over_hit"] = False
             else:
-                rec["over_hit"] = None  # exact push
+                rec["over_hit"] = None  # push
         rec["annotated_at"] = now
         annotated += 1
         print(f"  {rec['away']} {away_score} @ {rec['home']} {home_score}  "
-              f"(total {total_runs}, line {total_line} → {'OVER' if rec.get('over_hit') else 'UNDER' if rec.get('over_hit') is False else 'PUSH'})")
+              f"(total {total_runs}, line {total_line} → "
+              f"{'OVER' if rec.get('over_hit') else 'UNDER' if rec.get('over_hit') is False else 'PUSH'})")
 
     if annotated:
         _write_json(hist_path, records)
         print(f"[annotate] {date_str}: annotated {annotated} game(s)")
     else:
-        unannotated_games = [f"{r['away']} @ {r['home']}" for r in records if not r.get("annotated_at")]
-        print(f"[annotate] {date_str}: no new results found (still pending: {', '.join(unannotated_games)})")
+        unannotated = [f"{r['away']} @ {r['home']}" for r in records if not r.get("annotated_at")]
+        if unannotated:
+            print(f"[annotate] {date_str}: no new results found (still pending: {', '.join(unannotated)})")
+        else:
+            print(f"[annotate] {date_str}: all games already annotated")
 
     return annotated
 
 
 def _fetch_final_scores(target_date: date) -> dict:
     """
-    Query MLB Stats API for final scores.
-    Returns {frozenset({away_abbr, home_abbr}): {away_score, home_score}}.
+    Query MLB Stats API for final scores and non-playing game statuses.
+
+    Returns {frozenset({away_abbr, home_abbr}): list[dict]} where each dict is one
+    of the following (supporting doubleheaders via the list):
+      - Completed:  {"away_score": int, "home_score": int, "game_time": str}
+      - Non-playing: {"status": "postponed"|"cancelled"|"suspended", "game_time": str}
     """
     try:
         import requests
@@ -326,22 +370,38 @@ def _fetch_final_scores(target_date: date) -> dict:
         print(f"[annotate] MLB API error: {e}", file=sys.stderr)
         return {}
 
-    results = {}
+    _NON_PLAYING = {"Postponed", "Cancelled", "Canceled", "Suspended"}
+
+    results: dict = {}
     for date_entry in r.json().get("dates", []):
         for g in date_entry.get("games", []):
-            state = g.get("status", {}).get("abstractGameState", "")
-            if state != "Final":
-                continue
             teams = g.get("teams", {})
             ha = teams.get("home", {}).get("team", {}).get("abbreviation", "")
             aa = teams.get("away", {}).get("team", {}).get("abbreviation", "")
-            hs = teams.get("home", {}).get("score")
-            as_ = teams.get("away", {}).get("score")
-            if ha and aa and hs is not None and as_ is not None:
-                results[frozenset([aa, ha])] = {
-                    "away_score": int(as_),
-                    "home_score": int(hs),
-                }
+            if not ha or not aa:
+                continue
+
+            key = frozenset([aa, ha])
+            game_time = g.get("gameDate", "")
+            status_obj = g.get("status", {})
+            abstract = status_obj.get("abstractGameState", "")
+            detailed = status_obj.get("detailedState", "")
+
+            if abstract == "Final":
+                hs = teams.get("home", {}).get("score")
+                as_ = teams.get("away", {}).get("score")
+                if hs is not None and as_ is not None:
+                    results.setdefault(key, []).append({
+                        "away_score": int(as_),
+                        "home_score": int(hs),
+                        "game_time":  game_time,
+                    })
+            elif detailed in _NON_PLAYING:
+                results.setdefault(key, []).append({
+                    "status":    detailed.lower(),
+                    "game_time": game_time,
+                })
+
     return results
 
 
