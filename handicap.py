@@ -671,7 +671,9 @@ def pitcher_history_flags(
         except (ValueError, TypeError):
             return None
 
-    all_appearances = starts  # includes starts + relief
+    # Exclude today's game — the log may already contain tonight's entry mid-game
+    today_s = today.isoformat() if today else ""
+    all_appearances = [s for s in starts if _raw_date(s) != today_s]
     start_entries   = [s for s in all_appearances if int(s.get("stat", {}).get("gamesStarted", 0)) > 0]
     recent_3        = start_entries[-3:]
 
