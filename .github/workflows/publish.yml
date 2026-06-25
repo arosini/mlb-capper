@@ -30,7 +30,7 @@ jobs:
         run: pip install requests
 
       - name: Set cache date
-        run: echo "CACHE_DATE=$(TZ=America/New_York date +%Y-%m-%d)" >> $GITHUB_ENV
+        run: python3 -c "from datetime import datetime,timezone,timedelta; print('CACHE_DATE='+datetime.now(timezone(timedelta(hours=-4))).strftime('%Y-%m-%d'))" >> $GITHUB_ENV
 
       - name: Restore odds cache
         uses: actions/cache@v4

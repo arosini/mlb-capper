@@ -265,6 +265,12 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today") -> bool
         url = url_tmpl.format(slot=slot)
         fname = FILE_NAMES[key].format(date=date_str, slot=slot)
         dest = data_dir / fname
+        # Starters: skip re-download if a file already exists for this date.
+        # Handigraphs switches to the next day's slate by ~10 PM ET, so later
+        # runs would overwrite today's correct data with tomorrow's games.
+        if key == "starters" and dest.exists():
+            print(f"  [starters] Already have {fname} — skipping (prevents late-night slate swap)")
+            continue
         print(f"  Fetching {key}...")
         data = _fetch(session, url)
         if data is None:
