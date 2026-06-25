@@ -167,6 +167,13 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date) -> int:
     return added
 
 
+def load_all_picks(picks_dir: Path, target_date: date) -> list:
+    """Return all picks for the date regardless of game start time."""
+    date_str = target_date.strftime("%Y-%m-%d")
+    picks_path = picks_dir / f"{date_str}.json"
+    return _read_json(picks_path) or []
+
+
 def load_valid_picks(picks_dir: Path, target_date: date, now: datetime = None) -> list:
     """Return picks for games that haven't started yet (still actionable)."""
     date_str = target_date.strftime("%Y-%m-%d")

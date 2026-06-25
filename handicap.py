@@ -741,6 +741,18 @@ def _team_trends(
     last5       = in_starts[-5:]
     last5_side  = [g for g in in_starts if g["is_home"] == is_home_today][-5:]
 
+    # Win/loss streak
+    streak_count = 0
+    streak_type: Optional[str] = None
+    for g in reversed(completed):
+        if streak_type is None:
+            streak_type = "W" if g["won"] else "L"
+            streak_count = 1
+        elif g["won"] == (streak_type == "W"):
+            streak_count += 1
+        else:
+            break
+
     return {
         "is_home":       is_home_today,
         "last10":        wl(last10),
@@ -753,6 +765,8 @@ def _team_trends(
         "n_side10":      len(side10),
         "n_last5":       len(last5),
         "n_side5":       len(last5_side),
+        "streak_type":   streak_type if streak_count >= 4 else None,
+        "streak_count":  streak_count if streak_count >= 4 else 0,
     }
 
 
@@ -1251,6 +1265,17 @@ def analyze_game(
     away_trends = _team_trends(mlb_info.get("away_record", []), away_hist_cur, False, today_s)
     home_trends = _team_trends(mlb_info.get("home_record", []), home_hist_cur, True,  today_s)
 
+    # H2H record this season — match games by game_pk overlap
+    away_rec = mlb_info.get("away_record", [])
+    home_rec = mlb_info.get("home_record", [])
+    away_pks = {g["game_pk"] for g in away_rec if g.get("game_pk")}
+    home_pks = {g["game_pk"] for g in home_rec if g.get("game_pk")}
+    h2h_pks  = away_pks & home_pks
+    h2h_games = [g for g in away_rec if g.get("game_pk") in h2h_pks]
+    away_h2h_w = sum(1 for g in h2h_games if g["won"])
+    h2h = {"away_wins": away_h2h_w, "home_wins": len(h2h_games) - away_h2h_w,
+           "total": len(h2h_games)}
+
     flags: list[str] = []
     for team, p in [(away_team, p_away), (home_team, p_home)]:
         name = p.get("Name", "?")
@@ -1297,6 +1322,7 @@ def analyze_game(
         "home_sp_splits":  home_sp_splits,
         "away_trends":     away_trends,
         "home_trends":     home_trends,
+        "h2h":             h2h,
     }
 
 
@@ -1543,6 +1569,18 @@ header{background:#030712}
 .ai-pick-inline .ai-reason{font-size:.73rem;color:#374151;margin-top:.2rem;line-height:1.45}
 .ai-pass-reason{font-size:.76rem;color:#6b7280;font-style:italic;padding:.1rem 0}
 .ai-found-at{font-size:.65rem;color:#9ca3af;margin-top:.15rem}
+.ai-active-wrap{padding:.55rem .875rem .5rem}
+.ai-started-wrap{padding:.45rem .875rem .5rem;border-top:1px solid #f0f0f0}
+.ai-started-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:.28rem}
+.ai-conf-dim{font-size:.54rem;background:#f3f4f6;color:#6b7280;padding:.04rem .26rem;border-radius:3px;font-weight:700;vertical-align:middle;margin-left:.3rem;text-transform:uppercase;letter-spacing:.04em}
+.ai-pick-row{border:1px solid #e5e7eb;border-radius:7px;margin-bottom:.32rem;overflow:hidden}
+.ai-pick-row:last-child{margin-bottom:0}
+.ai-best-row{border-color:#fde68a;background:#fffbeb}
+.ai-pick-sum{display:flex;align-items:center;padding:.38rem .55rem;cursor:pointer;font-size:.8rem;font-weight:600;color:#374151;list-style:none;user-select:none;gap:.4rem}
+.ai-pick-sum::-webkit-details-marker{display:none}
+.ai-pick-sum::after{content:'▸';margin-left:auto;font-size:.6rem;opacity:.7;flex-shrink:0}
+.ai-pick-row[open]>.ai-pick-sum::after{content:'▾'}
+.ai-pick-body{padding:.3rem .55rem .45rem;border-top:1px solid #f0f0f0}
 @media(prefers-color-scheme:dark){
 .ai-picks{background:#1a1a1a;border-color:#2a2a2a}
 .ai-picks[open] .ai-picks-hd{border-bottom-color:#2a2a2a}
@@ -1561,6 +1599,13 @@ header{background:#030712}
 .ai-pick-inline .ai-reason{color:#d1d5db}
 .ai-pass-reason{color:#9ca3af}
 .ai-found-at{color:#4b5563}
+.ai-started-wrap{border-top-color:#2a2a2a}
+.ai-started-label{color:#4b5563}
+.ai-conf-dim{background:#2a2a2a;color:#9ca3af}
+.ai-pick-row{border-color:#2a2a2a}
+.ai-best-row{border-color:#b45309;background:#1c1400}
+.ai-pick-sum{color:#d1d5db}
+.ai-pick-body{border-top-color:#2a2a2a}
 }
 """
 
@@ -1689,6 +1734,27 @@ def _wx_summary(wx: dict) -> tuple[str, str]:
     if wind is not None and wind > 15:
         parts.append("Windy")
     return ", ".join(parts), cls or ("wx-warn" if parts else "")
+
+
+def _pick_summary_title(pick: dict) -> str:
+    """Return 'Bet (Odds) (H:MM AM/PM ET)' for use as a collapsed pick row title."""
+    bet = pick.get("bet", "")
+    odds = pick.get("odds", "")
+    gt = pick.get("game_time_utc", "")
+    time_s = ""
+    if gt:
+        try:
+            dt = datetime.fromisoformat(gt.replace("Z", "+00:00")).astimezone(_ET)
+            hour = str(dt.hour % 12 or 12)
+            time_s = f"{hour}:{dt.strftime('%M %p')} ET"
+        except Exception:
+            pass
+    title = bet
+    if odds:
+        title += f" ({odds})"
+    if time_s:
+        title += f" ({time_s})"
+    return title
 
 
 def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
@@ -2058,14 +2124,23 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         f'</details>'
     ) if splits_inner.strip() else ""
 
-    def _trend_block(team: str, sp_name: str, tr: Optional[dict]) -> str:
+    def _trend_block(team: str, sp_name: str, tr: Optional[dict], is_away: bool) -> str:
         if not tr:
             return ""
         side_lbl = "home" if tr["is_home"] else "away"
+        opp = home if is_away else away
         lines = []
 
         def _wl_s(w, l):
             return f'<span class="tw">{w}</span>-<span class="tl">{l}</span>'
+
+        # H2H record this season
+        h2h = g.get("h2h", {})
+        if h2h and h2h.get("total", 0) >= 2:
+            my_w = h2h["away_wins"] if is_away else h2h["home_wins"]
+            op_w = h2h["home_wins"] if is_away else h2h["away_wins"]
+            n_h2h = h2h["total"]
+            lines.append(f'{_h(team)} are {_wl_s(my_w, op_w)} vs {_h(opp)} this season ({n_h2h} games).')
 
         n10 = tr["n_last10"]
         if n10:
@@ -2073,6 +2148,11 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         n10s = tr["n_side10"]
         if n10s:
             lines.append(f'{_h(team)} are {_wl_s(*tr["last10_side"])} in their last {n10s} {side_lbl} games.')
+
+        # 4+ game win/loss streak
+        if tr.get("streak_count", 0) >= 4:
+            verb = "won" if tr["streak_type"] == "W" else "lost"
+            lines.append(f'{_h(team)} have {verb} {tr["streak_count"]} straight.')
 
         n5 = tr["n_last5"]
         if n5:
@@ -2092,8 +2172,8 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
 
     away_tr = g.get("away_trends")
     home_tr = g.get("home_trends")
-    def _trends_section(team: str, sp_name: str, tr, tid: str) -> str:
-        inner = _trend_block(team, sp_name, tr)
+    def _trends_section(team: str, sp_name: str, tr, tid: str, is_away: bool) -> str:
+        inner = _trend_block(team, sp_name, tr, is_away)
         if not inner.strip():
             return ""
         return (
@@ -2103,8 +2183,8 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             f'</details>'
         )
     trends_html = (
-        _trends_section(away, sp_a["name"], away_tr, f"{g_id}-trends-away")
-        + _trends_section(home, sp_h["name"], home_tr, f"{g_id}-trends-home")
+        _trends_section(away, sp_a["name"], away_tr, f"{g_id}-trends-away", True)
+        + _trends_section(home, sp_h["name"], home_tr, f"{g_id}-trends-home", False)
     )
 
     bullpen_html = (
@@ -2126,17 +2206,12 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             for i, pick in enumerate(game_picks):
                 is_best = pick.get("is_best")
                 best_badge = ' <span class="ai-conf">Best Bet</span>' if is_best else ""
-                bet_type_s = (pick.get("bet_type") or "").replace("_", " ")
-                type_note = (f' <span class="dim" style="font-size:.68rem;font-weight:400">'
-                             f'· {_h(bet_type_s)}</span>') if bet_type_s else ""
                 sec_id = f'{g_id}-ai-{i}'
                 sections.append(
                     f'<details class="sec ai-pick-card" id="{sec_id}">'
-                    f'<summary class="sec-sum">AI Suggestion{best_badge}{type_note}</summary>'
+                    f'<summary class="sec-sum">{_h(_pick_summary_title(pick))}{best_badge}</summary>'
                     f'<div class="sec-body">'
                     f'<div class="ai-pick-inline">'
-                    f'<div class="ai-bet">{_h(pick.get("bet",""))}</div>'
-                    f'<div class="ai-odds">{_h(pick.get("odds",""))}</div>'
                     f'<div class="ai-reason">{_h(pick.get("reason",""))}</div>'
                     f'</div>'
                     f'</div>'
@@ -2733,9 +2808,31 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: "date")
     if not games:
         return None
 
-    game_blocks = "\n\n".join(_serialize_game_for_ai(g) for g in games)
+    # Only analyze games that haven't started yet — no point betting on live/finished games
+    from datetime import timezone as _tz2
+    _now = datetime.now(_tz2.utc)
+    unstarted = []
+    for _g in games:
+        _gt = _g.get("game_time_utc", "")
+        if _gt:
+            try:
+                if datetime.fromisoformat(_gt.replace("Z", "+00:00")) > _now:
+                    unstarted.append(_g)
+                    continue
+            except Exception:
+                pass
+        unstarted.append(_g)  # no time = include by default
+    if not unstarted:
+        print("[suggestions] All games have started — skipping AI call", file=__import__("sys").stderr)
+        return json.loads(sugg_path.read_text()) if sugg_path.exists() else None
+
+    n_skipped = len(games) - len(unstarted)
+    if n_skipped:
+        print(f"[suggestions] Skipping {n_skipped} already-started game(s)", file=__import__("sys").stderr)
+
+    game_blocks = "\n\n".join(_serialize_game_for_ai(g) for g in unstarted)
     user_msg = (
-        f"Today is {date_str}. Analyze these {len(games)} MLB games and "
+        f"Today is {date_str}. Analyze these {len(unstarted)} MLB games and "
         f"identify any strong betting opportunities:\n\n{game_blocks}"
     )
 
@@ -2812,31 +2909,40 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: "date")
     return result
 
 
-def _render_suggestions_html(valid_picks: list, target_date: "date") -> str:
-    """Render the global AI Picks section from saved (valid) picks. Returns '' if no picks."""
+def _render_suggestions_html(all_picks: list, target_date: "date") -> str:
+    """Render the global AI Picks section. Returns '' if no picks."""
     date_s = target_date.strftime(f"%b {target_date.day}")
-    n_bets = len(valid_picks)
+    n_bets = len(all_picks)
     if not n_bets:
         return ""
 
-    bets_lbl = f"{n_bets} Bet{'s' if n_bets != 1 else ''}"
-    best_pick = next((p for p in valid_picks if p.get("is_best")), None)
-    other_picks = [p for p in valid_picks if not p.get("is_best")]
+    now = datetime.now(timezone.utc)
 
-    def _pick_block(pick: dict, is_best: bool = False) -> str:
-        game   = _h(pick.get("game", ""))
-        bet    = _h(pick.get("bet", ""))
-        odds   = _h(pick.get("odds", ""))
-        reason = _h(pick.get("reason", ""))
-        warn   = pick.get("line_warning")
-        alt    = pick.get("alt_suggestion")
-        conf   = pick.get("confidence", "")
-        conf_s = f' <span class="ai-conf">{_h(conf)}</span>' if is_best and conf else ""
-        warn_s = (
-            f'<div class="ai-line-warn">Line Warning: {_h(alt)}</div>'
-            if warn and alt else ""
-        )
-        found  = pick.get("found_at", "")
+    def _game_dt(pick):
+        gt = pick.get("game_time_utc", "")
+        if not gt:
+            return datetime.max.replace(tzinfo=timezone.utc)
+        try:
+            return datetime.fromisoformat(gt.replace("Z", "+00:00"))
+        except Exception:
+            return datetime.max.replace(tzinfo=timezone.utc)
+
+    active_picks  = sorted([p for p in all_picks if _game_dt(p) > now],  key=_game_dt)
+    started_picks = sorted([p for p in all_picks if _game_dt(p) <= now], key=_game_dt)
+
+    def _pick_block(pick: dict) -> str:
+        is_best = pick.get("is_best")
+        game    = _h(pick.get("game", ""))
+        reason  = _h(pick.get("reason", ""))
+        warn    = pick.get("line_warning")
+        alt     = pick.get("alt_suggestion")
+        conf    = pick.get("confidence", "")
+        best_s  = ' <span class="ai-conf">Best Bet</span>' if is_best else ""
+        conf_s  = (f' <span class="ai-conf-dim">{_h(conf)}</span>'
+                   if conf and not is_best else "")
+        warn_s  = (f'<div class="ai-line-warn">Line Warning: {_h(alt)}</div>'
+                   if warn and alt else "")
+        found   = pick.get("found_at", "")
         found_s = ""
         if found:
             try:
@@ -2844,34 +2950,36 @@ def _render_suggestions_html(valid_picks: list, target_date: "date") -> str:
                 found_s = f'<div class="ai-found-at">Found at {_h(_ft)} ET</div>'
             except Exception:
                 pass
-        cls = "ai-best" if is_best else "ai-other"
+        row_cls = "ai-pick-row ai-best-row" if is_best else "ai-pick-row"
+        title   = _h(_pick_summary_title(pick))
         return (
-            f'<div class="{cls}">'
-            f'<div class="ai-game">{game}{conf_s}</div>'
-            f'<div class="ai-bet">{bet}</div>'
-            f'<div class="ai-odds">{odds}</div>'
+            f'<details class="{row_cls}">'
+            f'<summary class="ai-pick-sum">{title}{best_s}{conf_s}</summary>'
+            f'<div class="ai-pick-body">'
+            f'<div class="ai-game">{game}</div>'
             f'<div class="ai-reason">{reason}</div>'
             f'{found_s}'
             f'{warn_s}'
             f'</div>'
+            f'</details>'
         )
 
     inner = ""
-    if best_pick:
+    if active_picks:
         inner += (
-            f'<div class="ai-best-wrap">'
-            f'<div class="ai-best-label">Best Bet</div>'
-            f'{_pick_block(best_pick, is_best=True)}'
+            f'<div class="ai-active-wrap">'
+            f'{"".join(_pick_block(p) for p in active_picks)}'
             f'</div>'
         )
-    if other_picks:
+    if started_picks:
         inner += (
-            f'<div class="ai-others-wrap">'
-            f'<div class="ai-others-label">Other Plays</div>'
-            f'{"".join(_pick_block(o) for o in other_picks)}'
+            f'<div class="ai-started-wrap">'
+            f'<div class="ai-started-label">Games In Progress / Completed</div>'
+            f'{"".join(_pick_block(p) for p in started_picks)}'
             f'</div>'
         )
 
+    bets_lbl = f"{n_bets} Bet{'s' if n_bets != 1 else ''}"
     disclaimer = (
         '<div class="ai-disclaimer">'
         'AI-generated · For entertainment only · Not financial advice'
@@ -2890,7 +2998,7 @@ def _render_suggestions_html(valid_picks: list, target_date: "date") -> str:
 def _ai_game_map(valid_picks: list, suggestions: Optional[dict]) -> dict:
     """
     Build per-game AI lookup: {"AWAY @ HOME": {"picks": [...], "pass_reason": str|None}}.
-    valid_picks: saved picks that are still actionable (game not started).
+    valid_picks: all saved picks for the day (includes started games).
     suggestions: latest run result, used only for pass_reasons on games with no picks.
     """
     picks_by_game: dict[str, list] = {}
@@ -3083,6 +3191,11 @@ def main():
             g["odds"] = get_game_odds(odds_data, g["away"], g["home"],
                                        g["away_sp"]["name"], g["home_sp"]["name"],
                                        props_data)
+            # Add commence_time from odds for AI filtering and picks display
+            away_full = _ODDS_TEAM.get(g["away"], "")
+            home_full = _ODDS_TEAM.get(g["home"], "")
+            raw_game = odds_data.get((away_full, home_full)) or odds_data.get((home_full, away_full)) or {}
+            g["game_time_utc"] = raw_game.get("commence_time", "")
             game_data.append(g)
         else:
             print_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
@@ -3091,11 +3204,11 @@ def main():
         from datetime import timezone as _tz
         generated_at = datetime.now(_tz.utc).isoformat()
         suggestions = generate_suggestions(game_data, data_dir, target_date)
-        # Load saved picks that are still actionable (game hasn't started)
+        # Load all picks for the day (including games that have already started)
         try:
-            from picks import load_valid_picks as _lvp
+            from picks import load_all_picks as _lap
             picks_dir = Path("./picks")
-            valid_picks = _lvp(picks_dir, target_date)
+            valid_picks = _lap(picks_dir, target_date)
         except Exception:
             valid_picks = []
         print(render_html_page(game_data, target_date, generated_at, odds_at,
