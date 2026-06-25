@@ -1542,6 +1542,7 @@ header{background:#030712}
 .ai-pick-inline .ai-odds{font-size:.74rem;color:#6b7280}
 .ai-pick-inline .ai-reason{font-size:.73rem;color:#374151;margin-top:.2rem;line-height:1.45}
 .ai-pass-reason{font-size:.76rem;color:#6b7280;font-style:italic;padding:.1rem 0}
+.ai-found-at{font-size:.65rem;color:#9ca3af;margin-top:.15rem}
 @media(prefers-color-scheme:dark){
 .ai-picks{background:#1a1a1a;border-color:#2a2a2a}
 .ai-picks[open] .ai-picks-hd{border-bottom-color:#2a2a2a}
@@ -1559,6 +1560,7 @@ header{background:#030712}
 .ai-pick-card .sec-sum{color:#4ade80}
 .ai-pick-inline .ai-reason{color:#d1d5db}
 .ai-pass-reason{color:#9ca3af}
+.ai-found-at{color:#4b5563}
 }
 """
 
@@ -2116,32 +2118,36 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
     ai_check = ""
     ai_sec_html = ""
     if ai_pick is not None:
-        if ai_pick.get("has_bet"):
+        game_picks = ai_pick.get("picks") or []
+        pass_reason = ai_pick.get("pass_reason", "")
+        if game_picks:
             ai_check = '<span class="ai-check">✓</span>'
-            pick = ai_pick["pick"]
-            is_best = pick.get("_is_best")
-            best_badge = ' <span class="ai-conf">Best Bet</span>' if is_best else ""
-            bet_type_s = (pick.get("bet_type") or "").replace("_", " ")
-            type_note = (f' <span class="dim" style="font-size:.68rem;font-weight:400">'
-                         f'· {_h(bet_type_s)}</span>') if bet_type_s else ""
-            ai_sec_html = (
-                f'<details class="sec ai-pick-card" id="{g_id}-ai">'
-                f'<summary class="sec-sum">AI Suggestion{best_badge}{type_note}</summary>'
-                f'<div class="sec-body">'
-                f'<div class="ai-pick-inline">'
-                f'<div class="ai-bet">{_h(pick.get("bet",""))}</div>'
-                f'<div class="ai-odds">{_h(pick.get("odds",""))}</div>'
-                f'<div class="ai-reason">{_h(pick.get("reason",""))}</div>'
-                f'</div>'
-                f'</div>'
-                f'</details>'
-            )
-        else:
-            reason = _h(ai_pick.get("pass_reason") or "No strong edge identified for this game.")
+            sections = []
+            for i, pick in enumerate(game_picks):
+                is_best = pick.get("is_best")
+                best_badge = ' <span class="ai-conf">Best Bet</span>' if is_best else ""
+                bet_type_s = (pick.get("bet_type") or "").replace("_", " ")
+                type_note = (f' <span class="dim" style="font-size:.68rem;font-weight:400">'
+                             f'· {_h(bet_type_s)}</span>') if bet_type_s else ""
+                sec_id = f'{g_id}-ai-{i}'
+                sections.append(
+                    f'<details class="sec ai-pick-card" id="{sec_id}">'
+                    f'<summary class="sec-sum">AI Suggestion{best_badge}{type_note}</summary>'
+                    f'<div class="sec-body">'
+                    f'<div class="ai-pick-inline">'
+                    f'<div class="ai-bet">{_h(pick.get("bet",""))}</div>'
+                    f'<div class="ai-odds">{_h(pick.get("odds",""))}</div>'
+                    f'<div class="ai-reason">{_h(pick.get("reason",""))}</div>'
+                    f'</div>'
+                    f'</div>'
+                    f'</details>'
+                )
+            ai_sec_html = "".join(sections)
+        elif pass_reason:
             ai_sec_html = (
                 f'<details class="sec" id="{g_id}-ai">'
                 f'<summary class="sec-sum">AI Analysis</summary>'
-                f'<div class="sec-body"><div class="ai-pass-reason">{reason}</div></div>'
+                f'<div class="sec-body"><div class="ai-pass-reason">{_h(pass_reason)}</div></div>'
                 f'</details>'
             )
 
@@ -2432,8 +2438,12 @@ FOR SIDE BETS (ML/Spread):
 
 PRICING RULES (CRITICAL):
 - NEVER suggest American odds more negative than -150
-- If you like a play at -151 to -200: include in other_bets with "line_warning": true and "alt_suggestion" (e.g., "Try Ks Over 6.5 at a better price instead")
+- If you like a play at -151 to -200: include in picks with "line_warning": true and "alt_suggestion" (e.g., "Try Ks Over 6.5 at a better price instead")
 - Nothing at -201 or worse. No parlays.
+
+MULTIPLE PICKS PER GAME: You may include more than one pick for the same game if multiple edges are independent (e.g., Game Total Under AND a pitcher K prop — different markets, different edges). Do not stack correlated bets on the same game.
+
+Set is_best=true on your single strongest pick of the day. All other picks have is_best=false. If there are no strong plays, return an empty picks array.
 
 When you have completed your analysis, call the report_betting_suggestions tool with your results.
 
@@ -2736,40 +2746,40 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: "date")
         "input_schema": {
             "type": "object",
             "properties": {
-                "best_bet": {
-                    "type": ["object", "null"],
-                    "properties": {
-                        "game":       {"type": "string"},
-                        "bet_type":   {"type": "string"},
-                        "bet":        {"type": "string"},
-                        "odds":       {"type": "string"},
-                        "confidence": {"type": "string", "enum": ["high", "medium"]},
-                        "reason":     {"type": "string"},
-                    },
-                },
-                "other_bets": {
+                "picks": {
                     "type": "array",
+                    "description": "All bets to recommend today. Can include multiple picks for the same game. Empty array if no bets.",
                     "items": {
                         "type": "object",
                         "properties": {
-                            "game":           {"type": "string"},
-                            "bet_type":       {"type": "string"},
-                            "bet":            {"type": "string"},
-                            "odds":           {"type": "string"},
+                            "game":        {"type": "string", "description": "Exactly as shown in game header, e.g. 'TEX @ MIA'"},
+                            "bet_type":    {"type": "string", "description": "e.g. Total, Spread, ML, F5_Total, F5_ML, F5_Spread, Team_Total, Pitcher_Ks, Pitcher_Outs"},
+                            "bet":         {"type": "string", "description": "Full bet description, e.g. 'Game Total Under 8.5' or 'NYY -1.5'"},
+                            "team_side":   {
+                                "type": ["string", "null"],
+                                "enum": ["away", "home", "over", "under", "away_over", "away_under", "home_over", "home_under", None],
+                                "description": "Which side: 'over'/'under' for totals; 'away'/'home' for ML/spread; 'away_over' etc for team totals; null for props",
+                            },
+                            "line":        {"type": ["number", "null"], "description": "Numeric line: total line (e.g. 8.5), spread line (e.g. -1.5 for favorite), null for ML"},
+                            "period":      {"type": "string", "enum": ["full_game", "f5", "props"], "description": "full_game, f5 (first 5 innings), or props"},
+                            "odds":        {"type": "string", "description": "American odds string, e.g. '-110' or '+145'"},
+                            "odds_num":    {"type": ["integer", "null"], "description": "Odds as integer, e.g. -110 or 145"},
+                            "is_best":     {"type": "boolean", "description": "True for the single strongest pick of the day. Only one pick should have is_best=true."},
+                            "confidence":  {"type": "string", "enum": ["high", "medium"]},
+                            "reason":      {"type": "string"},
                             "line_warning":   {"type": "boolean"},
                             "alt_suggestion": {"type": ["string", "null"]},
-                            "reason":         {"type": "string"},
                         },
+                        "required": ["game", "bet_type", "bet", "team_side", "line", "period", "odds", "is_best", "confidence", "reason"],
                     },
                 },
-                "no_best_bet_reason": {"type": ["string", "null"]},
                 "pass_reasons": {
                     "type": "object",
-                    "description": "Key = 'AWAY @ HOME' (exactly as in game headers). Value = 1-sentence reason. Include every game that has no bet in best_bet or other_bets.",
+                    "description": "Key = game header exactly (e.g. 'TEX @ MIA'). Value = 1-sentence reason why no bet. Include every game not in picks.",
                     "additionalProperties": {"type": "string"},
                 },
             },
-            "required": ["best_bet", "other_bets", "no_best_bet_reason", "pass_reasons"],
+            "required": ["picks", "pass_reasons"],
         },
     }
 
@@ -2802,21 +2812,16 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: "date")
     return result
 
 
-def _render_suggestions_html(sugg: Optional[dict], target_date: "date") -> str:
-    """Render the AI Picks section to HTML. Returns empty string if no picks."""
-    if not sugg:
+def _render_suggestions_html(valid_picks: list, target_date: "date") -> str:
+    """Render the global AI Picks section from saved (valid) picks. Returns '' if no picks."""
+    date_s = target_date.strftime(f"%b {target_date.day}")
+    n_bets = len(valid_picks)
+    if not n_bets:
         return ""
 
-    best    = sugg.get("best_bet")
-    others  = sugg.get("other_bets") or []
-    no_best = sugg.get("no_best_bet_reason") or ""
-    date_s  = target_date.strftime(f"%b {target_date.day}")
-
-    if not best and not others and not no_best:
-        return ""
-
-    n_bets = (1 if best else 0) + len(others)
-    bets_lbl = f"{n_bets} Bet{'s' if n_bets != 1 else ''}" if n_bets else "No Bets"
+    bets_lbl = f"{n_bets} Bet{'s' if n_bets != 1 else ''}"
+    best_pick = next((p for p in valid_picks if p.get("is_best")), None)
+    other_picks = [p for p in valid_picks if not p.get("is_best")]
 
     def _pick_block(pick: dict, is_best: bool = False) -> str:
         game   = _h(pick.get("game", ""))
@@ -2831,6 +2836,14 @@ def _render_suggestions_html(sugg: Optional[dict], target_date: "date") -> str:
             f'<div class="ai-line-warn">Line Warning: {_h(alt)}</div>'
             if warn and alt else ""
         )
+        found  = pick.get("found_at", "")
+        found_s = ""
+        if found:
+            try:
+                _ft = datetime.fromisoformat(found).strftime("%I:%M %p")
+                found_s = f'<div class="ai-found-at">Found at {_h(_ft)} ET</div>'
+            except Exception:
+                pass
         cls = "ai-best" if is_best else "ai-other"
         return (
             f'<div class="{cls}">'
@@ -2838,27 +2851,24 @@ def _render_suggestions_html(sugg: Optional[dict], target_date: "date") -> str:
             f'<div class="ai-bet">{bet}</div>'
             f'<div class="ai-odds">{odds}</div>'
             f'<div class="ai-reason">{reason}</div>'
+            f'{found_s}'
             f'{warn_s}'
             f'</div>'
         )
 
     inner = ""
-    if best:
+    if best_pick:
         inner += (
             f'<div class="ai-best-wrap">'
             f'<div class="ai-best-label">Best Bet</div>'
-            f'{_pick_block(best, is_best=True)}'
+            f'{_pick_block(best_pick, is_best=True)}'
             f'</div>'
         )
-    elif no_best:
-        inner += f'<div class="ai-no-best">{_h(no_best)}</div>'
-
-    if others:
-        picks_html = "".join(_pick_block(o) for o in others[:3])
+    if other_picks:
         inner += (
             f'<div class="ai-others-wrap">'
             f'<div class="ai-others-label">Other Plays</div>'
-            f'{picks_html}'
+            f'{"".join(_pick_block(o) for o in other_picks)}'
             f'</div>'
         )
 
@@ -2877,37 +2887,55 @@ def _render_suggestions_html(sugg: Optional[dict], target_date: "date") -> str:
     )
 
 
-def _ai_game_map(suggestions: Optional[dict]) -> dict:
-    """Build per-game AI lookup: {"AWAY @ HOME": {has_bet, pick, pass_reason}}."""
-    if not suggestions:
-        return {}
-    bets_by_game: dict = {}
-    best = suggestions.get("best_bet")
-    if best and best.get("game"):
-        bets_by_game[best["game"]] = {**best, "_is_best": True}
-    for o in (suggestions.get("other_bets") or []):
-        if o.get("game"):
-            bets_by_game.setdefault(o["game"], o)
-    pass_reasons = suggestions.get("pass_reasons") or {}
+def _ai_game_map(valid_picks: list, suggestions: Optional[dict]) -> dict:
+    """
+    Build per-game AI lookup: {"AWAY @ HOME": {"picks": [...], "pass_reason": str|None}}.
+    valid_picks: saved picks that are still actionable (game not started).
+    suggestions: latest run result, used only for pass_reasons on games with no picks.
+    """
+    picks_by_game: dict[str, list] = {}
+    for p in (valid_picks or []):
+        game = p.get("game", "")
+        if game:
+            picks_by_game.setdefault(game, []).append(p)
+
+    pass_reasons = (suggestions or {}).get("pass_reasons") or {}
+
+    # Also handle old-schema suggestions fallback for pass_reasons
+    if not pass_reasons and suggestions:
+        old_best = suggestions.get("best_bet")
+        old_others = suggestions.get("other_bets") or []
+        bet_games = set()
+        if old_best and old_best.get("game"):
+            bet_games.add(old_best["game"])
+        for o in old_others:
+            if o.get("game"):
+                bet_games.add(o["game"])
+        pass_reasons = {
+            k: v for k, v in (suggestions.get("pass_reasons") or {}).items()
+        }
+
     result: dict = {}
-    for key, pick in bets_by_game.items():
-        result[key] = {"has_bet": True, "pick": pick, "pass_reason": None}
-    for key, reason in pass_reasons.items():
-        if key not in result:
-            result[key] = {"has_bet": False, "pick": None, "pass_reason": reason}
+    for game, picks in picks_by_game.items():
+        result[game] = {"picks": picks, "pass_reason": None}
+    for game, reason in pass_reasons.items():
+        if game not in result:
+            result[game] = {"picks": [], "pass_reason": reason}
     return result
 
 
 def render_html_page(games: list[dict], target_date: date, generated_at: str,
-                     odds_at: str = "", suggestions: Optional[dict] = None) -> str:
+                     odds_at: str = "", suggestions: Optional[dict] = None,
+                     valid_picks: Optional[list] = None) -> str:
     date_long = target_date.strftime(f"%A, %B {target_date.day}, %Y")
     date_short = target_date.strftime(f"%b {target_date.day}")
     games = sorted(games, key=_time_sort_key)
-    ai_by_game = _ai_game_map(suggestions)
+    valid_picks = valid_picks or []
+    ai_by_game = _ai_game_map(valid_picks, suggestions)
     cards = "".join(_html_game(g, ai_by_game.get(f"{g['away']} @ {g['home']}")) for g in games)
     gen_span  = _ts_span(generated_at)
     odds_sub  = f" · Odds Updated {_ts_span(odds_at)}" if odds_at else ""
-    ai_html   = _render_suggestions_html(suggestions, target_date)
+    ai_html   = _render_suggestions_html(valid_picks, target_date)
     return (
         f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
         f'<meta charset="utf-8">\n'
@@ -3063,7 +3091,15 @@ def main():
         from datetime import timezone as _tz
         generated_at = datetime.now(_tz.utc).isoformat()
         suggestions = generate_suggestions(game_data, data_dir, target_date)
-        print(render_html_page(game_data, target_date, generated_at, odds_at, suggestions))
+        # Load saved picks that are still actionable (game hasn't started)
+        try:
+            from picks import load_valid_picks as _lvp
+            picks_dir = Path("./picks")
+            valid_picks = _lvp(picks_dir, target_date)
+        except Exception:
+            valid_picks = []
+        print(render_html_page(game_data, target_date, generated_at, odds_at,
+                               suggestions, valid_picks))
     else:
         print()
 

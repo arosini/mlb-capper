@@ -66,18 +66,21 @@ jobs:
       - name: Save odds history
         run: python3 history.py --save
 
-      - name: Commit odds history
+      - name: Save AI picks
+        run: python3 picks.py --save
+
+      - name: Commit history and picks
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add history/
+          git add history/ picks/
           if ! git diff --staged --quiet; then
             git commit -m "History: odds $CACHE_DATE"
             if ! git push; then
               # Another run committed first; reset our commit, pull, reapply
               git reset HEAD~1
               git pull origin main
-              git add history/
+              git add history/ picks/
               git diff --staged --quiet || (git commit -m "History: odds $CACHE_DATE" && git push) || echo "[history] Push skipped — will retry next run"
             fi
           fi

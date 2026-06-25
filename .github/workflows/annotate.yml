@@ -32,11 +32,6 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Annotate results
-        run: |
-          DATE="${{ github.event.inputs.date }}"
-          python3 history.py --annotate --date "${DATE:-yesterday}"
-
       - name: Set annotation date
         run: |
           DATE="${{ github.event.inputs.date }}"
@@ -47,9 +42,14 @@ jobs:
           fi
           echo "ANNOT_DATE=$ANNOT_DATE" >> $GITHUB_ENV
 
+      - name: Annotate results
+        run: |
+          python3 history.py --annotate --date "$ANNOT_DATE"
+          python3 picks.py --annotate --date "$ANNOT_DATE"
+
       - name: Commit annotations
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add history/
+          git add history/ picks/
           git diff --staged --quiet || (git commit -m "Annotate: results $ANNOT_DATE" && git push)
