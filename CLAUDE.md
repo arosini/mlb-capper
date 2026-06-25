@@ -31,6 +31,7 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHR
 - `odds_{date}.json` — bulk game odds (merged with started-game odds from prior fetch)
 - `odds_meta_{date}.json` — timestamp of last odds fetch (used for throttle check)
 - `props_{date}.json` — per-event pitcher K/outs props + F5 odds (keyed by `(away_name, home_name)`)
+- `bullpen_stress_{date}.json` — cached per-team bullpen IP for past 2 calendar days (keyed by MLB team ID, written once per day-date)
 
 Handigraphs needs JWT login first (`login()` → sets `Authorization: Bearer` header). Odds API is a plain GET with `?apiKey=`.
 
@@ -63,7 +64,7 @@ Each card renders collapsed `<details>` sections except Matchup (open by default
 1. **Summary** (always visible): `[logo] AWAY @ [logo] HOME` + `time · venue (roof status)` subtitle + weather/APF badge
 2. **Betting Odds** — Full Game: 4×3 grid (ML / Spread / Total for away/home); First 5 Innings: same grid if available; Pitcher Props: K O/U and Outs O/U per starter (requires Odds API Starter plan+)
 3. **Matchup · SP Last 3 / Team Last 12** (open) — SP card: xERA, K%, HH%, Barrel% (if available), ERA, IP/gs, H/gs, PC/gs, BB%; Offense card: wRC+, K%, HH% vs starter hand; outing table per SP
-4. **Bullpens · last 12** — xERA, ERA (collapsed)
+4. **Bullpens · last 12** — xERA, ERA, and **2d stress** (Fresh/Normal/Elevated/Stressed based on avg relief IP per game over past 2 calendar days via MLB boxscores) (collapsed)
 5. **Weather** — venue, roof, conditions, APF with color coding (collapsed)
 6. **Flags** — auto-generated warnings (regression risk, small samples, weather, etc.) (collapsed)
 

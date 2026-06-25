@@ -517,6 +517,32 @@ def flt(val) -> Optional[float]:
     except (TypeError, ValueError):
         return None
 
+def _mlb_ip_to_real(ip_str: str) -> float:
+    """Convert MLB IP notation ('6.1' = 6⅓, '6.2' = 6⅔) to real float."""
+    try:
+        ip = float(ip_str)
+        whole = int(ip)
+        thirds = round((ip - whole) * 10)
+        return whole + thirds / 3
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _stress_label_cls(ip_2d: float, games_2d: int) -> tuple[str, str]:
+    """Return (label, css_class) for bullpen stress rating based on avg relief IP per game."""
+    if games_2d == 0:
+        return "No recent games", "era-na"
+    avg = ip_2d / games_2d
+    if avg < 2.5:
+        return "Fresh", "era-elite"
+    elif avg < 4.0:
+        return "Normal", "era-avg"
+    elif avg < 5.5:
+        return "Elevated", "era-below"
+    else:
+        return "Stressed", "era-poor"
+
+
 def pct_val(s: str) -> Optional[float]:
     return flt(s.rstrip("%")) if s else None
 
@@ -709,6 +735,84 @@ def get_team_schedule(team_id: int, season: int) -> list[dict]:
                 "runs_allowed": int(opp.get("score") or 0),
             })
     return results
+
+
+def get_bullpen_stress(team_mlb_ids: set, target_date: date, data_dir: Path) -> dict:
+    """Fetch 2-day bullpen usage (past 2 calendar days) via MLB Stats API boxscores.
+    Returns {team_mlb_id: {"ip": float, "games": int, "label": str, "css": str}}.
+    Caches to data_dir/bullpen_stress_{date}.json."""
+    if not HAS_REQUESTS or not team_mlb_ids:
+        return {}
+
+    cache_path = data_dir / f"bullpen_stress_{target_date.isoformat()}.json"
+    if cache_path.exists():
+        try:
+            cached = json.loads(cache_path.read_text())
+            return {int(k): v for k, v in cached.items()}
+        except Exception:
+            pass
+
+    start = (target_date - timedelta(days=2)).isoformat()
+    end   = (target_date - timedelta(days=1)).isoformat()
+
+    try:
+        r = requests.get(
+            f"{MLB_API}/schedule",
+            params={"sportId": 1, "startDate": start, "endDate": end, "gameType": "R"},
+            timeout=10,
+        )
+        r.raise_for_status()
+    except Exception as e:
+        print(f"Warning: bullpen stress fetch failed: {e}", file=sys.stderr)
+        return {}
+
+    ip_by_team: dict = {}
+    games_by_team: dict = {}
+
+    for date_entry in r.json().get("dates", []):
+        for g in date_entry.get("games", []):
+            if g.get("status", {}).get("abstractGameState") != "Final":
+                continue
+            t_home = g.get("teams", {}).get("home", {}).get("team", {}).get("id")
+            t_away = g.get("teams", {}).get("away", {}).get("team", {}).get("id")
+            if t_home not in team_mlb_ids and t_away not in team_mlb_ids:
+                continue
+            pk = g.get("gamePk")
+            try:
+                rb = requests.get(f"{MLB_API}/game/{pk}/boxscore", timeout=10)
+                rb.raise_for_status()
+                bs = rb.json()
+            except Exception:
+                continue
+            for side, team_id in [("home", t_home), ("away", t_away)]:
+                if team_id is None:
+                    continue
+                t = bs.get("teams", {}).get(side, {})
+                relief_ip = sum(
+                    _mlb_ip_to_real(str(
+                        t.get("players", {}).get(f"ID{pid}", {})
+                         .get("stats", {}).get("pitching", {}).get("inningsPitched", "0")
+                    ))
+                    for pid in t.get("pitchers", [])
+                    if int(t.get("players", {}).get(f"ID{pid}", {})
+                            .get("stats", {}).get("pitching", {}).get("gamesStarted", 0)) == 0
+                )
+                ip_by_team[team_id] = ip_by_team.get(team_id, 0.0) + relief_ip
+                games_by_team[team_id] = games_by_team.get(team_id, 0) + 1
+
+    result: dict = {}
+    for team_id in team_mlb_ids:
+        ip = ip_by_team.get(team_id, 0.0)
+        games = games_by_team.get(team_id, 0)
+        label, css = _stress_label_cls(ip, games)
+        result[team_id] = {"ip": round(ip, 1), "games": games, "label": label, "css": css}
+
+    try:
+        cache_path.write_text(json.dumps({str(k): v for k, v in result.items()}))
+    except Exception:
+        pass
+
+    return result
 
 
 def _team_trends(
@@ -1176,16 +1280,22 @@ def analyze_game(
         b = bullpen.get(team, bullpen.get(to_stats(team), {}))
         xera = flt(b.get("xERA"))
         era  = flt(b.get("ERA"))
+        stress_key = "away_bp_stress" if team == away_team else "home_bp_stress"
+        stress = mlb_info.get(stress_key, {})
         return {
-            "xera":   xera,
-            "xera_s": f"{xera:.2f}" if xera is not None else "N/A",
-            "era_s":  f"{era:.2f}" if era is not None else "N/A",
-            "label":  xera_label(xera) if xera is not None else "",
-            "k":      fp1(b.get("K%") or b.get("k_pct") or b.get("k_perc")),
-            "bb":     fp1(b.get("BB%") or b.get("bb_pct") or b.get("bb_perc")),
-            "hard":   fp1(b.get("Hard%")),
-            "barrel": fp1(b.get("Barrel%")),
-            "raw":    b,
+            "xera":         xera,
+            "xera_s":       f"{xera:.2f}" if xera is not None else "N/A",
+            "era_s":        f"{era:.2f}" if era is not None else "N/A",
+            "label":        xera_label(xera) if xera is not None else "",
+            "k":            fp1(b.get("K%") or b.get("k_pct") or b.get("k_perc")),
+            "bb":           fp1(b.get("BB%") or b.get("bb_pct") or b.get("bb_perc")),
+            "hard":         fp1(b.get("Hard%")),
+            "barrel":       fp1(b.get("Barrel%")),
+            "raw":          b,
+            "stress_ip":    stress.get("ip"),
+            "stress_games": stress.get("games", 0),
+            "stress_label": stress.get("label", ""),
+            "stress_css":   stress.get("css", "era-na"),
         }
 
     away_sp = _sp(p_away)
@@ -1285,6 +1395,22 @@ def analyze_game(
         b = bullpen.get(team, bullpen.get(to_stats(team), {}))
         for f in bullpen_flags(b):
             flags.append(f"{team} bullpen: {f}")
+    for team, bp_d in [(away_team, away_bp), (home_team, home_bp)]:
+        slabel = bp_d.get("stress_label", "")
+        if slabel in ("Elevated", "Stressed"):
+            ip = bp_d.get("stress_ip", 0)
+            g_cnt = bp_d.get("stress_games", 0)
+            flags.append(
+                f"{team} bullpen {slabel.lower()} ({ip:.1f} IP over {g_cnt}g) "
+                f"— manager likely leaves starter in longer; lean SP K/outs OVER"
+            )
+        elif slabel == "Fresh":
+            ip = bp_d.get("stress_ip", 0)
+            g_cnt = bp_d.get("stress_games", 0)
+            flags.append(
+                f"{team} bullpen fresh ({ip:.1f} IP over {g_cnt}g) "
+                f"— manager may hook starter early; lean SP K/outs UNDER"
+            )
     hist_cur_map = {away_team: away_hist_cur, home_team: home_hist_cur}
     for team, p in [(away_team, p_away), (home_team, p_home)]:
         hand = (p.get("Throws") or "?")[0]
@@ -1387,8 +1513,13 @@ def print_game(
 
     def _bp_line(team, bp):
         lbl = f"({bp['label']:<10})" if bp["label"] else ""
+        stress_s = ""
+        if bp.get("stress_label") and bp["stress_label"] != "No recent games":
+            ip = bp.get("stress_ip", 0)
+            games = bp.get("stress_games", 0)
+            stress_s = f"  2d: {bp['stress_label']} ({ip:.1f} IP/{games}g)"
         return (f"  {team:<5} xERA {bp['xera_s']} {lbl:<12}  ERA {bp['era_s']}  "
-                f"K% {bp['k']}  BB% {bp['bb']}  Hard% {bp['hard']}")
+                f"K% {bp['k']}  BB% {bp['bb']}  Hard% {bp['hard']}{stress_s}")
 
     print(cyan("\nBULLPENS  (last 12g)"))
     print(_bp_line(away, away_bp))
@@ -1920,11 +2051,23 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
     def _bp_row(team, bp):
         ec = _era_cls(bp["label"])
         lbl = f' <span class="dim">({_h(bp["label"])})</span>' if bp["label"] else ""
+        stress_html = ""
+        if bp.get("stress_label") and bp["stress_label"] != "No recent games":
+            sc = bp["stress_css"]
+            ip = bp.get("stress_ip")
+            games = bp.get("stress_games", 0)
+            ip_s = f"{ip:.1f} IP" if ip is not None else ""
+            games_s = f"/{games}g" if games > 0 else ""
+            stress_html = (
+                f'<span class="{sc}"><b>2d stress</b> {_h(bp["stress_label"])}'
+                f'<span class="dim"> ({ip_s}{games_s})</span></span>'
+            )
         return (f'<div class="bp-row">'
                 f'<span class="tm">{_h(team)}</span>'
                 f'<div class="bp-body stats">'
                 f'<span class="xr {ec}"><b>xERA</b> {_h(bp["xera_s"])}{lbl}</span>'
                 f'<span><b>ERA</b> {_h(bp["era_s"])}</span>'
+                f'{stress_html}'
                 f'</div></div>')
 
     g_id = f"{_h(away)}-{_h(home)}"
@@ -3179,10 +3322,20 @@ def main():
 
     # MLB schedule (home/away, venue)
     mlb_schedule: dict = {}
+    bp_stress: dict = {}
     if not args.no_mlb and HAS_REQUESTS:
         _log("Fetching MLB schedule...")
         mlb_schedule = get_mlb_schedule(target_date)
         _log(f"  {len(mlb_schedule)} games found")
+        all_team_ids = {
+            tid
+            for info in mlb_schedule.values()
+            for tid in (info.get("home_mlb_id"), info.get("away_mlb_id"))
+            if tid is not None
+        }
+        _log("Fetching bullpen stress (past 2 days)...")
+        bp_stress = get_bullpen_stress(all_team_ids, target_date, data_dir)
+        _log(f"  {len(bp_stress)} teams")
 
     if not args.html:
         print(bold(f"\n{'━'*64}"))
@@ -3220,6 +3373,11 @@ def main():
                 mlb_info["away_record"] = get_team_schedule(int(away_id), target_date.year)
             if home_id:
                 mlb_info["home_record"] = get_team_schedule(int(home_id), target_date.year)
+            if bp_stress:
+                if away_id and int(away_id) in bp_stress:
+                    mlb_info["away_bp_stress"] = bp_stress[int(away_id)]
+                if home_id and int(home_id) in bp_stress:
+                    mlb_info["home_bp_stress"] = bp_stress[int(home_id)]
 
         # Ballpark weather — keyed by raw team codes (same as Handigraphs starters JSON)
         t1_raw = p1.get("Team", "")
