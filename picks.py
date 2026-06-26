@@ -89,11 +89,13 @@ def _canon_pick_key(pick: dict) -> tuple:
             bt = "pitcherks"
         elif "out" in bet:
             bt = "pitcherouts"
-    # Pitcher props: keyed on pitcher's last name (words[1], or words[0] if single name)
+    # Pitcher props: one pick per pitcher regardless of market (Ks or Outs).
+    # Both pitcherks and pitcherouts share the same "pitcher" slot so we never
+    # give two prop bets on the same pitcher in the same game.
     if bt in ("pitcherks", "pitcherouts"):
         words = bet.split()
         pitcher_last = words[1] if len(words) >= 2 else (words[0] if words else "")
-        return (game, bt, pitcher_last)
+        return (game, "pitcher", pitcher_last)
     # Team totals: keyed on which team (home/away), direction stripped
     if bt == "teamtotal":
         ts = (pick.get("team_side") or "").lower()
