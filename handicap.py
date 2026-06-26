@@ -295,9 +295,13 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
 # ── File finding ─────────────────────────────────────────────────────────────
 def _find_file(data_dir: Path, prefix: str, target_date: date, ext: str) -> Optional[Path]:
     ds = target_date.strftime("%Y-%m-%d")
-    for p in data_dir.glob(f"{prefix}*{ds}*.{ext}"):
-        return p
-    return None
+    matches = list(data_dir.glob(f"{prefix}*{ds}*.{ext}"))
+    if not matches:
+        return None
+    # Prefer files without "meta" in the name (so props_*.json beats props_meta_*.json)
+    # and within that group prefer the shortest name (most specific match).
+    matches.sort(key=lambda p: ("meta" in p.name, len(p.name)))
+    return matches[0]
 
 # ── CSV loading (fallback) ────────────────────────────────────────────────────
 def _load_csv(path: Path) -> list[dict]:
@@ -442,7 +446,7 @@ def load_starters(data_dir: Path, target_date: date) -> list[dict]:
     p = _find_file(data_dir, "starters_last3g", target_date, "csv")
     if p:
         return [r for r in _load_csv(p) if r.get("Name", "").strip()]
-    sys.exit(f"ERROR: No starters data in {data_dir} for {target_date}. Run with --refresh.")
+    return []  # No starters file yet; games will be built from MLB schedule
 
 def load_team_stats(data_dir: Path, target_date: date) -> tuple[dict, dict]:
     rj = _find_file(data_dir, "team_stats_L12RHP", target_date, "json")
@@ -3307,20 +3311,11 @@ def main():
     rhp, lhp = load_team_stats(data_dir, target_date)
     bp = load_bullpen(data_dir, target_date)
     ballpark_wx = {} if args.no_weather else load_ballpark_weather(data_dir, target_date)
-    games = build_games(starters)
 
-    if not games:
-        sys.exit("No games found in starters CSV.")
-
-    # Filter by team
-    if args.game:
-        team_filter = args.game.upper()
-        games = [(p1, p2) for p1, p2 in games
-                 if team_filter in (p1.get("Team", ""), p2.get("Team", ""))]
-        if not games:
-            sys.exit(f"No games found for '{team_filter}'.")
-
-    # MLB schedule (home/away, venue)
+    # MLB schedule — fetch first so we can use it as the authoritative game list.
+    # Handigraphs starters data at early-morning runs may only cover a subset of
+    # today's games (starters not yet announced) or include yesterday's starters as
+    # stale data.  We supplement/override with the schedule to ensure every game shows.
     mlb_schedule: dict = {}
     bp_stress: dict = {}
     if not args.no_mlb and HAS_REQUESTS:
@@ -3336,6 +3331,44 @@ def main():
         _log("Fetching bullpen stress (past 2 days)...")
         bp_stress = get_bullpen_stress(all_team_ids, target_date, data_dir)
         _log(f"  {len(bp_stress)} teams")
+
+    games = build_games(starters)
+
+    # Supplement with any MLB schedule games not yet present in Handigraphs starters.
+    # This ensures all today's games appear even when starters haven't been announced.
+    if mlb_schedule:
+        _MLB_TO_HG = {v: k for k, v in _MLB_MAP.items()}
+        covered = {frozenset([to_mlb(p1["Team"]), to_mlb(p2["Team"])]) for p1, p2 in games}
+        starters_by_team = {r.get("Team", ""): r for r in starters}
+        for sched_key, sched_info in mlb_schedule.items():
+            if sched_key in covered:
+                continue
+            away_hg = _MLB_TO_HG.get(sched_info["away"], sched_info["away"])
+            home_hg = _MLB_TO_HG.get(sched_info["home"], sched_info["home"])
+            away_row = dict(starters_by_team.get(away_hg) or {
+                "Name": sched_info.get("away_pname") or "TBD",
+                "Team": away_hg, "Opponent": home_hg,
+                "mlbam_id": sched_info.get("away_pid"),
+            })
+            home_row = dict(starters_by_team.get(home_hg) or {
+                "Name": sched_info.get("home_pname") or "TBD",
+                "Team": home_hg, "Opponent": away_hg,
+                "mlbam_id": sched_info.get("home_pid"),
+            })
+            away_row.setdefault("Opponent", home_hg)
+            home_row.setdefault("Opponent", away_hg)
+            games.append((away_row, home_row))
+
+    if not games:
+        sys.exit("No games found. Check your data directory and date.")
+
+    # Filter by team
+    if args.game:
+        team_filter = args.game.upper()
+        games = [(p1, p2) for p1, p2 in games
+                 if team_filter in (p1.get("Team", ""), p2.get("Team", ""))]
+        if not games:
+            sys.exit(f"No games found for '{team_filter}'.")
 
     if not args.html:
         print(bold(f"\n{'━'*64}"))
@@ -3356,9 +3389,11 @@ def main():
 
         mlb_info = mlb_schedule.get(key, {})
 
-        # Skip games not on today's MLB schedule — guards against stale or multi-date starters data
+        # Starters data from Handigraphs occasionally includes yesterday's matchups at
+        # early-morning runs before all pitchers are confirmed for the new day.
+        # Those games won't appear in today's MLB schedule — skip them.
         if mlb_schedule and not mlb_info:
-            _log(f"  Skipping {p1.get('Team','')} @ {p2.get('Team','')}: not on today's schedule")
+            _log(f"  Skipping {p1.get('Team','')} @ {p2.get('Team','')}: not on today's MLB schedule")
             continue
 
         if not args.no_mlb and HAS_REQUESTS:
