@@ -597,6 +597,32 @@ def build_games(starters: list[dict]) -> list[tuple[dict, dict]]:
     return games
 
 
+def _validate_pitchers(p1: dict, p2: dict, mlb_info: dict) -> tuple[dict, dict]:
+    """Guard against Handigraphs carrying yesterday's starter when the same two teams
+    play back-to-back. Compares mlbam_id (Handigraphs) against probablePitcher.id (MLB
+    API). If they differ, the row is stale — replace with a TBD placeholder so we show
+    the correct probable pitcher name instead of yesterday's stats."""
+    away_mlb = mlb_info.get("away", "")
+    t1_is_away = (to_mlb(p1.get("Team", "")) == away_mlb)
+    away_p, home_p = (p1, p2) if t1_is_away else (p2, p1)
+
+    def _tbd(p: dict, probable_name: str) -> dict:
+        return {"Name": probable_name or "TBD", "Team": p.get("Team", ""),
+                "Opponent": p.get("Opponent", ""), "Throws": "?"}
+
+    away_pid = str(mlb_info.get("away_pid") or "")
+    home_pid = str(mlb_info.get("home_pid") or "")
+    ap_id    = str(away_p.get("mlbam_id") or "")
+    hp_id    = str(home_p.get("mlbam_id") or "")
+
+    if away_pid and ap_id and ap_id != away_pid:
+        away_p = _tbd(away_p, mlb_info.get("away_pname", ""))
+    if home_pid and hp_id and hp_id != home_pid:
+        home_p = _tbd(home_p, mlb_info.get("home_pname", ""))
+
+    return (away_p, home_p) if t1_is_away else (home_p, away_p)
+
+
 # ── Pitcher flags (from Handigraphs aggregate, last 3 starts) ─────────────────
 def pitcher_csv_flags(row: dict) -> list[str]:
     flags = []
@@ -3395,6 +3421,12 @@ def main():
         if mlb_schedule and not mlb_info:
             _log(f"  Skipping {p1.get('Team','')} @ {p2.get('Team','')}: not on today's MLB schedule")
             continue
+
+        # Validate that the Handigraphs pitcher IDs match the MLB probable starters.
+        # Same team pairs can play back-to-back days; without this check we'd show
+        # yesterday's pitcher's stats for today's game.
+        if mlb_info:
+            p1, p2 = _validate_pitchers(p1, p2, mlb_info)
 
         if not args.no_mlb and HAS_REQUESTS:
             for p in (p1, p2):
