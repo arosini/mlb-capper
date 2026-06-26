@@ -23,12 +23,12 @@
     "under_price": -112,
     "odds_recorded_at": "2026-06-25T14:23:37.758107+00:00",
     "odds_final": true,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 9,
+    "home_score": 6,
+    "total_runs": 15,
+    "over_hit": true,
+    "home_win": false,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
@@ -116,12 +116,12 @@
     "under_price": 114,
     "odds_recorded_at": "2026-06-25T20:41:02.461044+00:00",
     "odds_final": true,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 9,
+    "home_score": 6,
+    "total_runs": 15,
+    "over_hit": true,
+    "home_win": false,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
@@ -147,12 +147,12 @@
     "under_price": 100,
     "odds_recorded_at": "2026-06-25T04:24:41.394157+00:00",
     "odds_final": false,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 2,
+    "home_score": 1,
+    "total_runs": 3,
+    "over_hit": false,
+    "home_win": false,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
@@ -178,12 +178,12 @@
     "under_price": -102,
     "odds_recorded_at": "2026-06-25T04:24:41.394157+00:00",
     "odds_final": false,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 10,
+    "home_score": 5,
+    "total_runs": 15,
+    "over_hit": true,
+    "home_win": false,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
@@ -209,12 +209,12 @@
     "under_price": 100,
     "odds_recorded_at": "2026-06-25T04:24:41.394157+00:00",
     "odds_final": false,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 6,
+    "home_score": 5,
+    "total_runs": 11,
+    "over_hit": true,
+    "home_win": false,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
@@ -240,12 +240,12 @@
     "under_price": 100,
     "odds_recorded_at": "2026-06-25T04:24:41.394157+00:00",
     "odds_final": false,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 3,
+    "home_score": 6,
+    "total_runs": 9,
+    "over_hit": true,
+    "home_win": true,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
@@ -271,12 +271,12 @@
     "under_price": -110,
     "odds_recorded_at": "2026-06-25T04:24:41.394157+00:00",
     "odds_final": false,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 4,
+    "home_score": 3,
+    "total_runs": 7,
+    "over_hit": false,
+    "home_win": false,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
@@ -333,12 +333,12 @@
     "under_price": -105,
     "odds_recorded_at": "2026-06-25T20:41:02.461044+00:00",
     "odds_final": false,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 2,
+    "home_score": 1,
+    "total_runs": 3,
+    "over_hit": false,
+    "home_win": false,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
@@ -364,12 +364,12 @@
     "under_price": -109,
     "odds_recorded_at": "2026-06-25T20:41:02.461044+00:00",
     "odds_final": false,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 6,
+    "home_score": 5,
+    "total_runs": 11,
+    "over_hit": true,
+    "home_win": false,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
@@ -426,12 +426,12 @@
     "under_price": -105,
     "odds_recorded_at": "2026-06-25T20:41:02.461044+00:00",
     "odds_final": false,
-    "away_score": null,
-    "home_score": null,
-    "total_runs": null,
-    "over_hit": null,
-    "home_win": null,
-    "annotated_at": null
+    "away_score": 3,
+    "home_score": 6,
+    "total_runs": 9,
+    "over_hit": true,
+    "home_win": true,
+    "annotated_at": "2026-06-26T06:25:32.194756+00:00"
   },
   {
     "date": "2026-06-25",
