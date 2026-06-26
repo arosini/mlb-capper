@@ -56,6 +56,10 @@ jobs:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python3 download.py
 
+      - name: Clear stale suggestions
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: rm -f data/suggestions_*.json data/suggestions_meta_*.json
+
       - name: Generate HTML
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
