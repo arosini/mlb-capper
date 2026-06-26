@@ -2,7 +2,7 @@ name: Update MLB Dashboard
 
 on:
   schedule:
-    - cron: '0 5 * * *'   # 1 AM ET (UTC-4)
+    - cron: '30 7 * * *'  # 3:30 AM ET (UTC-4)
     - cron: '0 14 * * *'  # 10 AM ET
     - cron: '0 20 * * *'  # 4 PM ET
   workflow_dispatch:        # manual trigger
@@ -41,6 +41,14 @@ jobs:
           key: odds-${{ env.CACHE_DATE }}
           restore-keys: |
             odds-
+
+      - name: Clean stale data files
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          # Remove any data files not dated today — prevents prior-day files from
+          # accumulating in the cache all season and ensures a clean slate each run.
+          find data/ -maxdepth 1 -type f ! -name "*${{ env.CACHE_DATE }}*" -delete
+          echo "Data dir after cleanup: $(ls data/ 2>/dev/null | wc -l) files"
 
       - name: Refresh starters
         env:

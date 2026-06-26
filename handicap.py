@@ -458,7 +458,8 @@ def load_team_stats(data_dir: Path, target_date: date) -> tuple[dict, dict]:
     if rp and lp:
         return ({r["Team"]: r for r in _load_csv(rp)},
                 {r["Team"]: r for r in _load_csv(lp)})
-    sys.exit(f"ERROR: Missing team stats data in {data_dir} for {target_date}.")
+    _log(f"WARNING: Missing team stats data in {data_dir} for {target_date} — cards will show no offense stats")
+    return {}, {}
 
 def load_bullpen(data_dir: Path, target_date: date) -> dict:
     p = _find_file(data_dir, "bullpen_stats_last12g", target_date, "json")
@@ -467,7 +468,8 @@ def load_bullpen(data_dir: Path, target_date: date) -> dict:
     p = _find_file(data_dir, "bullpen_stats_last12g", target_date, "csv")
     if p:
         return {r["Team"]: r for r in _load_csv(p)}
-    sys.exit(f"ERROR: No bullpen data in {data_dir} for {target_date}.")
+    _log(f"WARNING: No bullpen data in {data_dir} for {target_date} — cards will show no bullpen stats")
+    return {}
 
 def load_odds_meta(data_dir: Path, target_date: date) -> str:
     """Return odds fetch timestamp as a UTC ISO string, or '' if not found."""
