@@ -155,9 +155,9 @@ def _odds_age_minutes(data_dir: Path, date_str: str) -> float:
     return _meta_age_minutes(data_dir / f"odds_meta_{date_str}.json")
 
 
-def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 360) -> None:
+def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 300) -> None:
     """Fetch full-game odds from The Odds API (DK, FanDuel, Fanatics). No auth needed.
-    Skips if odds were fetched within max_age_minutes (default 6 hours)."""
+    Skips if odds were fetched within max_age_minutes (default 5 hours)."""
     key = config.ODDS_API_KEY
     if not key:
         print("  [odds] ODDS_API_KEY not set — skipping odds download")
@@ -204,7 +204,7 @@ def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 360) -> 
         print(f"  [odds] Failed: {e}")
 
 
-def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 360,
+def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 300,
                            force: bool = False) -> None:
     """Fetch pitcher K and outs props from the per-event endpoint (requires Starter plan+).
     Reads event IDs from the already-saved bulk odds file. Skips if props meta is fresh.
@@ -328,7 +328,7 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today",
 
     if not starters_only:
         print("  Fetching odds...")
-        download_odds(data_dir, date_str, max_age_minutes=0 if force_odds else 360)
+        download_odds(data_dir, date_str, max_age_minutes=0 if force_odds else 300)
 
         print("  Fetching pitcher props...")
         download_pitcher_props(data_dir, date_str, force=force_odds)

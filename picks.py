@@ -244,9 +244,9 @@ def load_valid_picks(picks_dir: Path, target_date: date, now: datetime = None) -
 
 
 def annotate_picks(picks_dir: Path, history_dir: Path, target_date: date) -> int:
-    """Fill in result (won/lost/push) using final scores from history/."""
+    """Fill in result (won/lost/push) for all pick types using enriched history/."""
     date_str = target_date.strftime("%Y-%m-%d")
-    picks_path = picks_dir / f"{date_str}.json"
+    picks_path   = picks_dir   / f"{date_str}.json"
     history_path = history_dir / f"{date_str}.json"
 
     picks = _read_json(picks_path) or []
@@ -260,112 +260,182 @@ def annotate_picks(picks_dir: Path, history_dir: Path, target_date: date) -> int
         return 0
 
     history = _read_json(history_path) or []
-    # Include both completed games (away_score set) and non-playing games (status set).
-    # Keyed by (away, home) — sufficient since picks already store the full name.
-    scores_by_game = {
+    # Keyed by (away, home) — picks store full team names.
+    # Include any record that has been annotated by history.py (scores or status set).
+    game_by_key = {
         (r.get("away", ""), r.get("home", "")): r
         for r in history
-        if r.get("annotated_at") and (
-            r.get("away_score") is not None
-            or r.get("status") in ("postponed", "cancelled", "canceled", "suspended")
-        )
+        if r.get("annotated_at")
     }
 
     now = datetime.now(timezone.utc).isoformat()
-    updated = 0
-    determined = 0
+    updated = determined = 0
 
     for pick in picks:
         if pick.get("annotated_at"):
             continue
-        game_rec = scores_by_game.get((pick.get("away", ""), pick.get("home", "")))
+        game_rec = game_by_key.get((pick.get("away", ""), pick.get("home", "")))
         if not game_rec:
             continue
 
-        # Game did not complete — void the pick so we stop retrying
+        # Game did not complete — void the pick
         if game_rec.get("status") in ("postponed", "cancelled", "canceled", "suspended"):
-            pick["result"] = "void"
+            pick["result"]           = "void"
             pick["away_score_final"] = None
             pick["home_score_final"] = None
-            pick["annotated_at"] = now
+            pick["annotated_at"]     = now
             updated += 1
             determined += 1
             print(f"  {pick['game']} | {pick['bet']} → VOID ({game_rec['status']})")
             continue
 
-        away_score = int(game_rec["away_score"])
-        home_score = int(game_rec["home_score"])
-        result = _calc_result(
-            pick.get("team_side"),
-            pick.get("line"),
-            pick.get("period", "full_game"),
-            away_score,
-            home_score,
-        )
+        away_score = game_rec.get("away_score")
+        home_score = game_rec.get("home_score")
+        if away_score is None or home_score is None:
+            continue
 
-        pick["result"] = result
-        pick["away_score_final"] = away_score
-        pick["home_score_final"] = home_score
+        pick["away_score_final"] = int(away_score)
+        pick["home_score_final"] = int(home_score)
+
+        result = _resolve_pick(pick, game_rec)
+        pick["result"]       = result
         pick["annotated_at"] = now
         updated += 1
 
         if result:
             determined += 1
             icon = "WON" if result == "won" else "LOST" if result == "lost" else "PUSH"
-            print(f"  {pick['game']} | {pick['bet']} → {icon} "
-                  f"({away_score}-{home_score})")
+            print(f"  {pick['game']} | {pick['bet']} → {icon} ({away_score}-{home_score})")
         else:
-            print(f"  {pick['game']} | {pick['bet']} → scored {away_score}-{home_score}"
-                  f" [F5/props — manual review needed]")
+            print(f"  {pick['game']} | {pick['bet']} → {away_score}-{home_score} [pending manual]")
 
     if updated:
         picks_path.write_text(json.dumps(picks, indent=2))
         print(f"[picks] {date_str}: {determined} result(s) determined, {updated} score(s) recorded")
     else:
-        pending = list(set(p["game"] for p in picks if not p.get("annotated_at")))
+        pending = sorted(set(p["game"] for p in picks if not p.get("annotated_at")))
         if pending:
             print(f"[picks] {date_str}: scores pending for {', '.join(pending)}")
 
     return determined
 
 
-def _calc_result(team_side, line, period, away_score, home_score):
-    """Determine won/lost/push from final scores. Returns None if indeterminate."""
-    if period and period not in ("full_game",):
-        return None  # F5 or props — can't auto-annotate from final score
-
-    if not team_side:
+def _ou(actual, line) -> str | None:
+    """True/False/'push' comparison: actual vs line. True → actual > line (over hit)."""
+    if actual is None or line is None:
         return None
+    if actual > line:
+        return "won"   # over hit
+    if actual < line:
+        return "lost"  # under hit
+    return "push"
 
-    total = away_score + home_score
 
-    if team_side == "over":
-        if line is None:
-            return None
-        return "won" if total > line else "lost" if total < line else "push"
-
-    if team_side == "under":
-        if line is None:
-            return None
-        return "won" if total < line else "lost" if total > line else "push"
-
-    if team_side not in ("away", "home"):
-        return None  # team_total sides not auto-annotatable
-
+def _ml_or_spread(team_score, line, opponent_score) -> str | None:
+    """won/lost/push for ML (line=None) or spread. team_score is the bet side."""
+    if team_score is None or opponent_score is None:
+        return None
     if line is None:
         # Moneyline
-        if team_side == "away":
-            return "won" if away_score > home_score else "lost" if away_score < home_score else "push"
-        else:
-            return "won" if home_score > away_score else "lost" if home_score < away_score else "push"
-    else:
-        # Spread: bet team covers if (team_score + line) > opponent_score
-        if team_side == "away":
-            adj = away_score + line
-            return "won" if adj > home_score else "lost" if adj < home_score else "push"
-        else:
-            adj = home_score + line
-            return "won" if adj > away_score else "lost" if adj < away_score else "push"
+        if team_score > opponent_score:
+            return "won"
+        if team_score < opponent_score:
+            return "lost"
+        return "push"
+    adj = team_score + line
+    if adj > opponent_score:
+        return "won"
+    if adj < opponent_score:
+        return "lost"
+    return "push"
+
+
+def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
+    """
+    Determine won/lost/push for any pick type using the enriched history record.
+    Returns None when results aren't available yet.
+    """
+    bt     = (pick.get("bet_type") or "").lower().replace("_", "").replace(" ", "")
+    period = pick.get("period", "full_game")
+    side   = (pick.get("team_side") or "").lower()
+    line   = pick.get("line")
+    bet    = (pick.get("bet") or "").lower()
+
+    away = game_rec.get("away_score")
+    home = game_rec.get("home_score")
+
+    # --- Full game ---
+    if period == "full_game":
+        if bt == "teamtotal":
+            # side is "away_over", "away_under", "home_over", "home_under"
+            score = away if side.startswith("away") else home
+            if score is None or line is None:
+                return None
+            raw = _ou(score, line)   # "won"=over, "lost"=under, "push"
+            if side.endswith("under"):
+                if raw == "won":   return "lost"
+                if raw == "lost":  return "won"
+            return raw
+        if side in ("over", "under"):
+            if away is None or home is None or line is None:
+                return None
+            raw = _ou(away + home, line)  # "won"=over hit
+            return raw if side == "over" else (
+                "won" if raw == "lost" else "lost" if raw == "won" else "push"
+            )
+        if side == "away":
+            return _ml_or_spread(away, line, home)
+        if side == "home":
+            return _ml_or_spread(home, line, away)
+        return None
+
+    # --- First 5 innings ---
+    if period == "f5":
+        af5 = game_rec.get("away_f5_score")
+        hf5 = game_rec.get("home_f5_score")
+        if af5 is None or hf5 is None:
+            return None
+        if bt in ("f5total", "total"):
+            if line is None:
+                return None
+            raw = _ou(af5 + hf5, line)
+            return raw if side == "over" else (
+                "won" if raw == "lost" else "lost" if raw == "won" else "push"
+            )
+        if side == "away":
+            return _ml_or_spread(af5, line, hf5)
+        if side == "home":
+            return _ml_or_spread(hf5, line, af5)
+        return None
+
+    # --- Pitcher props ---
+    if period == "props":
+        pitchers = game_rec.get("pitchers", [])
+        is_ks   = bt == "pitcherks"
+        is_over = "over" in bet
+        for p in pitchers:
+            last = (p.get("name") or "").split()[-1].lower()
+            if not last or last not in bet:
+                continue
+            actual = p.get("actual_ks")   if is_ks else p.get("actual_outs")
+            p_line = p.get("k_line")      if is_ks else p.get("outs_line")
+            if actual is None or p_line is None:
+                return None
+            raw = _ou(actual, p_line)  # "won"=over hit
+            return raw if is_over else (
+                "won" if raw == "lost" else "lost" if raw == "won" else "push"
+            )
+        return None
+
+    return None
+
+
+def _calc_result(team_side, line, period, away_score, home_score):
+    """Legacy wrapper — kept for backward compatibility. Use _resolve_pick for new code."""
+    pick = {"team_side": team_side, "line": line, "period": period,
+            "bet_type": "", "bet": ""}
+    game_rec = {"away_score": away_score, "home_score": home_score}
+    return _resolve_pick(pick, game_rec)
 
 
 if __name__ == "__main__":
