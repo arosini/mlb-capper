@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-26T14:52:03.523636+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   },
   {
     "date": "2026-06-26",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-26T14:52:03.523636+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 6,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   },
   {
     "date": "2026-06-26",
@@ -73,9 +73,9 @@
     "alt_suggestion": null,
     "found_at": "2026-06-26T14:52:03.523636+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 6,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   },
   {
     "date": "2026-06-26",
@@ -99,9 +99,9 @@
     "alt_suggestion": null,
     "found_at": "2026-06-26T14:52:03.523636+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 6,
+    "home_score_final": 4,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   },
   {
     "date": "2026-06-26",
@@ -125,9 +125,9 @@
     "alt_suggestion": null,
     "found_at": "2026-06-26T14:52:03.523636+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 1,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   },
   {
     "date": "2026-06-26",
@@ -150,10 +150,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-26T14:52:03.523636+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 9,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   },
   {
     "date": "2026-06-26",
@@ -177,9 +177,9 @@
     "alt_suggestion": null,
     "found_at": "2026-06-26T14:52:03.523636+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 5,
+    "home_score_final": 4,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   },
   {
     "date": "2026-06-26",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-26T20:36:49.679101+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 6,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   },
   {
     "date": "2026-06-26",
@@ -229,9 +229,9 @@
     "alt_suggestion": null,
     "found_at": "2026-06-26T20:36:49.679101+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 6,
+    "home_score_final": 4,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   },
   {
     "date": "2026-06-26",
@@ -255,8 +255,8 @@
     "alt_suggestion": "Consider TBR ML at -170 \u2014 too expensive per pricing rules; alternatively target game total Over 8.0 at -105 as a proxy for both offenses combining for runs.",
     "found_at": "2026-06-26T20:36:49.679101+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-06-27T07:56:15.795010+00:00"
   }
 ]
