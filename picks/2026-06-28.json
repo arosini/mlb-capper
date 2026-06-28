@@ -284,5 +284,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-06-28",
+    "game": "CIN @ PIT",
+    "away": "Cincinnati Reds",
+    "away_code": "CIN",
+    "home": "Pittsburgh Pirates",
+    "home_code": "PIT",
+    "game_time_utc": "2026-06-28T17:36:00Z",
+    "bet_type": "Total",
+    "bet": "Game Total Over 9.0",
+    "team_side": "over",
+    "line": 9.0,
+    "period": "full_game",
+    "odds": "-110",
+    "odds_num": -110,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Strong over case: (1) Mitch Keller is in acute meltdown \u2014 xERA 5.67, recent ERA 13.28 (yes, even adjusting for outlier skew, his underlying 51% HH rate and 12.2% BB% are alarming), and he struggles at home in recent starts (9.64 ERA at home over 3gs); (2) Brady Singer historically terrible vs PIT specifically \u2014 9.47 ERA in 3gs vs PIT, 7.96 ERA at PNC Park in 3gs; (3) PIT offense is elite lately (wRC+ 131, L12), and CIN K% 30% vs RHP means Singer may miss bats but PIT will punish him; (4) Both bullpens are serviceable but the starter damage comes early. Two struggling starters in a hitter-favorable context at a 9.0 total is value \u2014 the market may be overweighting Singer's season ERA 1.50 relative to his matchup-specific history vs PIT.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-06-28T14:33:04.428449+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
