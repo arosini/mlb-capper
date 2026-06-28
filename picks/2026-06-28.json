@@ -20,10 +20,10 @@
     "line_warning": true,
     "alt_suggestion": "ARI F5 Team Total Under 1.5 (-125) for a more focused expression of Rasmussen dominance",
     "found_at": "2026-06-28T14:11:26.857855+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-28T20:28:02.401948+00:00"
   },
   {
     "date": "2026-06-28",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-28T14:11:26.857855+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-28T20:28:02.401948+00:00"
   },
   {
     "date": "2026-06-28",
