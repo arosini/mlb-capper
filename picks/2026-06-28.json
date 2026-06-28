@@ -258,5 +258,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-06-28",
+    "game": "HOU @ DET",
+    "away": "Houston Astros",
+    "away_code": "HOU",
+    "home": "Detroit Tigers",
+    "home_code": "DET",
+    "game_time_utc": "2026-06-28T17:41:00Z",
+    "bet_type": "F5_ML",
+    "bet": "HOU F5 ML",
+    "team_side": "away",
+    "line": null,
+    "period": "f5",
+    "odds": "-135",
+    "odds_num": -135,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Hunter Brown is as dominant as any pitcher in baseball right now: xERA 2.60 (elite), recent ERA 1.17 over his last 3 starts, averaging 8.0 K/start, and has a remarkable 0.80 ERA in 2 starts vs DET with 0.00 ERA at Comerica Park specifically. He is hot and the matchup history strongly favors him. DET's Jack Flaherty is concerning \u2014 16 days since last start, only 63 pitches last outing (injury concern), HH% 54%, and has a 5.56 ERA at home in 3 starts. DET's offense is average (wRC+ 109 vs RHP) and Brown has a K% of 32.2%. The F5 edge is clear and sharp: elite pitcher with great history at this park vs a returning starter with injury flags. At -135, this is right at our pricing limit and worth taking given the multi-factor convergence.",
+    "line_warning": true,
+    "alt_suggestion": "If -135 feels steep, consider Hunter Brown Over 6.5 Ks at -146 (at pricing limit) or look for a better price on HOU F5 ML closer to -120.",
+    "found_at": "2026-06-28T14:20:03.740189+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
