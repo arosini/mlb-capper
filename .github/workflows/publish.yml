@@ -68,6 +68,19 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: rm -f data/suggestions_*.json data/suggestions_meta_*.json
 
+      - name: Save odds history
+        run: python3 history.py --save
+
+      - name: Generate AI suggestions
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 handicap.py --suggestions-only
+
+      - name: Save AI picks
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: python3 picks.py --save
+
       - name: Generate HTML
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -84,13 +97,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "3"
           command: pages deploy _site --project-name=mlb-capper --commit-dirty=true
-
-      - name: Save odds history
-        run: python3 history.py --save
-
-      - name: Save AI picks
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: python3 picks.py --save
 
       - name: Annotate results
         run: |

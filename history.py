@@ -18,31 +18,7 @@ _ET = timezone(timedelta(hours=-4))
 
 MLB_API = "https://statsapi.mlb.com/api/v1"
 
-# Full team name (Odds API) → Handigraphs code
-_NAME_TO_CODE = {
-    "Arizona Diamondbacks":   "ARI",  "Athletics":              "ATH",
-    "Atlanta Braves":         "ATL",  "Baltimore Orioles":      "BAL",
-    "Boston Red Sox":         "BOS",  "Chicago Cubs":           "CHC",
-    "Chicago White Sox":      "CHW",  "Cincinnati Reds":        "CIN",
-    "Cleveland Guardians":    "CLE",  "Colorado Rockies":       "COL",
-    "Detroit Tigers":         "DET",  "Houston Astros":         "HOU",
-    "Kansas City Royals":     "KCR",  "Los Angeles Angels":     "LAA",
-    "Los Angeles Dodgers":    "LAD",  "Miami Marlins":          "MIA",
-    "Milwaukee Brewers":      "MIL",  "Minnesota Twins":        "MIN",
-    "New York Mets":          "NYM",  "New York Yankees":       "NYY",
-    "Philadelphia Phillies":  "PHI",  "Pittsburgh Pirates":     "PIT",
-    "San Diego Padres":       "SDP",  "Seattle Mariners":       "SEA",
-    "San Francisco Giants":   "SFG",  "St. Louis Cardinals":    "STL",
-    "Tampa Bay Rays":         "TBR",  "Texas Rangers":          "TEX",
-    "Toronto Blue Jays":      "TOR",  "Washington Nationals":   "WSN",
-    "Oakland Athletics":      "ATH",  # legacy name still in some API responses
-}
-
-# Handigraphs code → MLB Stats API abbreviation (where they differ)
-_TO_MLB_ABBR = {
-    "CHW": "CWS", "KCR": "KC", "SDP": "SD", "SFG": "SF",
-    "TBR": "TB",  "WSN": "WSH", "ARI": "AZ",
-}
+from teams import MLB_NAME_TO_CODE as _NAME_TO_CODE, _MLB_MAP as _TO_MLB_ABBR
 
 
 def _read_json(path: Path):

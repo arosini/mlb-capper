@@ -293,23 +293,34 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today",
         return False
     print("  Login OK")
 
+    et_hour = datetime.now(_ET).hour
+
     ok = True
     keys_to_fetch = ["starters"] if starters_only else list(config.API_URLS.keys())
     for key in keys_to_fetch:
         url_tmpl = config.API_URLS[key]
-        url = url_tmpl.format(slot=slot)
-        fname = FILE_NAMES[key].format(date=date_str, slot=slot)
-        dest = data_dir / fname
-        # Starters: after 8 PM ET, Handigraphs switches to tomorrow's slate, so
-        # skip re-download to avoid overwriting today's confirmed lineups.
-        # Before 8 PM ET, always re-download so afternoon lineup confirmations
-        # (typically posted 3-4h before first pitch) replace early-morning TBD data.
-        if key == "starters" and dest.exists():
-            et_hour = datetime.now(_ET).hour
-            if et_hour >= 20:
-                print(f"  [starters] After 8 PM ET — keeping {fname} (prevents tomorrow's slate overwrite)")
-                continue
-            print(f"  [starters] Re-downloading {fname} to pick up confirmed lineups...")
+
+        if key == "starters":
+            # Before 6 AM ET Handigraphs' 'today' slot still shows yesterday's
+            # completed slate; 'tomorrow' already has today's upcoming starters.
+            effective_slot = "tomorrow" if slot == "today" and et_hour < 6 else slot
+            if effective_slot != slot:
+                print(f"  [starters] Before 6 AM ET — fetching 'tomorrow' slot (today's upcoming slate)")
+            url = url_tmpl.format(slot=effective_slot)
+            fname = FILE_NAMES[key].format(date=date_str, slot=effective_slot)
+            dest = data_dir / fname
+            # After 8 PM ET, Handigraphs switches to tomorrow's slate, so skip
+            # re-download to avoid overwriting today's confirmed lineups.
+            if dest.exists():
+                if et_hour >= 20:
+                    print(f"  [starters] After 8 PM ET — keeping {fname} (prevents tomorrow's slate overwrite)")
+                    continue
+                print(f"  [starters] Re-downloading {fname} to pick up confirmed lineups...")
+        else:
+            url = url_tmpl.format(slot=slot)
+            fname = FILE_NAMES[key].format(date=date_str, slot=slot)
+            dest = data_dir / fname
+
         print(f"  Fetching {key}...")
         data = _fetch(session, url)
         if data is None:

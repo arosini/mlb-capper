@@ -15,27 +15,7 @@ from pathlib import Path
 
 _ET = timezone(timedelta(hours=-4))
 
-# Handigraphs code → full Odds API team name (to match history/ records)
-_CODE_TO_FULL = {
-    "ARI": "Arizona Diamondbacks",  "ATH": "Athletics",
-    "ATL": "Atlanta Braves",        "BAL": "Baltimore Orioles",
-    "BOS": "Boston Red Sox",        "CHC": "Chicago Cubs",
-    "CHW": "Chicago White Sox",     "CIN": "Cincinnati Reds",
-    "CLE": "Cleveland Guardians",   "COL": "Colorado Rockies",
-    "DET": "Detroit Tigers",        "HOU": "Houston Astros",
-    "KCR": "Kansas City Royals",    "LAA": "Los Angeles Angels",
-    "LAD": "Los Angeles Dodgers",   "MIA": "Miami Marlins",
-    "MIL": "Milwaukee Brewers",     "MIN": "Minnesota Twins",
-    "NYM": "New York Mets",         "NYY": "New York Yankees",
-    "PHI": "Philadelphia Phillies", "PIT": "Pittsburgh Pirates",
-    "SDP": "San Diego Padres",      "SEA": "Seattle Mariners",
-    "SFG": "San Francisco Giants",  "STL": "St. Louis Cardinals",
-    "TBR": "Tampa Bay Rays",        "TEX": "Texas Rangers",
-    "TOR": "Toronto Blue Jays",     "WSN": "Washington Nationals",
-}
-
-# Reverse of _CODE_TO_FULL — used to look up a team code from a full name
-_NAME_TO_CODE = {v: k for k, v in _CODE_TO_FULL.items()}
+from teams import ODDS_TEAM as _CODE_TO_FULL, MLB_NAME_TO_CODE as _NAME_TO_CODE
 
 
 def _read_json(path: Path):
