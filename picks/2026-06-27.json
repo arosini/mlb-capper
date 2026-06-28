@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-27T14:31:13.514994+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-27T14:31:13.514994+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -72,10 +72,10 @@
     "line_warning": true,
     "alt_suggestion": "ATL Team Total Under 3.5 (-110) is a cleaner, better-priced expression of this Webb dominance edge without the correlated ATL scoring dependency.",
     "found_at": "2026-06-27T14:31:13.514994+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 0,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -98,10 +98,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider CIN Full Game ML at -118 instead \u2014 both bullpens are elite (CIN xERA 2.52, PIT xERA 2.98), so the full game is actually better supported than just F5.",
     "found_at": "2026-06-27T14:31:13.514994+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "push",
+    "away_score_final": 9,
+    "home_score_final": 7,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-27T14:31:13.514994+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 15,
+    "home_score_final": 3,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -151,9 +151,9 @@
     "alt_suggestion": "If -128 is too steep, the Outs Over 17.5 at -135 is also worth considering as Cease has been going 5.6 IP/gs avg with big pitch counts.",
     "found_at": "2026-06-27T14:31:13.514994+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 7,
+    "home_score_final": 4,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-27T20:26:15.788235+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-27T20:26:15.788235+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-27T20:26:15.788235+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 2,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-27T20:26:15.788235+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 15,
+    "home_score_final": 3,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   },
   {
     "date": "2026-06-27",
@@ -280,9 +280,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-27T20:26:15.788235+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-28T08:06:21.428866+00:00"
   }
 ]
