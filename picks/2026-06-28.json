@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-28T14:11:26.857855+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 6,
+    "home_score_final": 4,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   },
   {
     "date": "2026-06-28",
@@ -98,10 +98,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider Hunter Brown Outs Over 17.5 (-102) as a correlated but better-priced alternative",
     "found_at": "2026-06-28T14:11:26.857855+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   },
   {
     "date": "2026-06-28",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-28T14:11:26.857855+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 2,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   },
   {
     "date": "2026-06-28",
@@ -150,10 +150,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-28T14:11:26.857855+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 2,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   },
   {
     "date": "2026-06-28",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-28T14:11:26.857855+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   },
   {
     "date": "2026-06-28",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-28T14:15:01.963989+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 2,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   },
   {
     "date": "2026-06-28",
@@ -228,10 +228,10 @@
     "line_warning": true,
     "alt_suggestion": "If -154 is too steep, consider PHI Team Total Over 4.5 at -104 as a pure offensive edge play.",
     "found_at": "2026-06-28T14:15:01.963989+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 4,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   },
   {
     "date": "2026-06-28",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-28T14:15:01.963989+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 4,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   },
   {
     "date": "2026-06-28",
@@ -280,10 +280,10 @@
     "line_warning": true,
     "alt_suggestion": "If -135 feels steep, consider Hunter Brown Over 6.5 Ks at -146 (at pricing limit) or look for a better price on HOU F5 ML closer to -120.",
     "found_at": "2026-06-28T14:20:03.740189+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 5,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   },
   {
     "date": "2026-06-28",
@@ -306,9 +306,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-28T14:33:04.428449+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 9,
+    "annotated_at": "2026-06-29T08:36:45.948856+00:00"
   }
 ]
