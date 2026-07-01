@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T08:40:10.957306+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -47,9 +47,9 @@
     "alt_suggestion": null,
     "found_at": "2026-06-30T08:40:10.957306+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -72,10 +72,10 @@
     "line_warning": true,
     "alt_suggestion": "Instead consider PHI Team Total Over 4.5 (-122) \u2014 same offensive edge, independent of full-game outcome, avoids the -275 price. Or PHI -1.5 spread (+100) for full-game value.",
     "found_at": "2026-06-30T08:40:10.957306+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T08:40:10.957306+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -125,9 +125,9 @@
     "alt_suggestion": null,
     "found_at": "2026-06-30T08:40:10.957306+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 0,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -150,10 +150,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider MIN Team Total Over 4.5 (+110) \u2014 captures the elite MIN offense vs a struggling Burrows without paying -145 on the F5 ML.",
     "found_at": "2026-06-30T08:40:10.957306+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T08:40:10.957306+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T08:40:10.957306+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T14:49:54.009046+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -255,9 +255,9 @@
     "alt_suggestion": null,
     "found_at": "2026-06-30T14:49:54.009046+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T14:49:54.009046+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 14,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T20:40:31.998539+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -332,10 +332,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T20:40:31.998539+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -358,10 +358,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T20:40:31.998539+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 10,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   },
   {
     "date": "2026-06-30",
@@ -384,9 +384,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-06-30T20:40:31.998539+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 7,
+    "annotated_at": "2026-07-01T08:22:26.278572+00:00"
   }
 ]
