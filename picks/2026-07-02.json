@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T08:31:27.935204+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 11,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T08:31:27.935204+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 11,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T08:31:27.935204+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T08:31:27.935204+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T08:31:27.935204+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 14,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -150,10 +150,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T08:31:27.935204+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T08:31:27.935204+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 12,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T14:44:16.901624+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 11,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -254,10 +254,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider TBR F5 ML -124 or TBR Team Total Over 5.5 (-104) to avoid KCR's elevated pen exposure while still capturing TBR's offensive edge.",
     "found_at": "2026-07-02T14:44:16.901624+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T14:44:16.901624+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-02T20:30:25.015412+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 10,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   },
   {
     "date": "2026-07-02",
@@ -332,9 +332,9 @@
     "line_warning": true,
     "alt_suggestion": "Consider LAA Team Total Under 2.5 (+112) instead \u2014 Walbert Urena has xERA 2.90 and Miller is elite at home; LAA averages only 3.6 RS away. The plus-money is better value.",
     "found_at": "2026-07-02T20:30:25.015412+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-03T09:48:26.295454+00:00"
   }
 ]
