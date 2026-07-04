@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T10:15:01.661521+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 17,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T10:15:01.661521+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 17,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T10:15:01.661521+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 12,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T10:15:01.661521+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 15,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T10:15:01.661521+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 9,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -150,10 +150,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T10:15:01.661521+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -177,9 +177,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-03T10:15:01.661521+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -202,10 +202,10 @@
     "line_warning": true,
     "alt_suggestion": "If -140 is too steep, consider LAA Team Total Under 3.5 for BOS as a fade, or look for a better-priced LAA F5 line.",
     "found_at": "2026-07-03T10:15:01.661521+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T15:48:24.713339+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 15,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -254,10 +254,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider WSN -0.5 F5 Spread at -118 for better value if -164 ML is too steep.",
     "found_at": "2026-07-03T15:48:24.713339+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 9,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T15:48:24.713339+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T15:48:24.713339+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -332,10 +332,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T21:00:26.429190+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 15,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -359,9 +359,9 @@
     "alt_suggestion": "If -156 is too steep, consider targeting Webb Outs Over 18.5 at -112, which is also supported by his 7.7 IP/gs avg and elite recent form \u2014 cleaner price for essentially the same edge.",
     "found_at": "2026-07-03T21:00:26.429190+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 3,
+    "home_score_final": 15,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -384,10 +384,10 @@
     "line_warning": false,
     "alt_suggestion": "WSN ML at +138 is intriguing given Griffin's dominance and Keller's struggles, but WSN's bullpen xERA 5.18 disqualifies the full-game side. Consider WSN F5 ML if available.",
     "found_at": "2026-07-03T21:00:26.429190+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 9,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   },
   {
     "date": "2026-07-03",
@@ -410,9 +410,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-03T21:00:26.429190+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-04T09:12:00.769662+00:00"
   }
 ]
