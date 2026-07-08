@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-07T10:39:08.798244+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-08T09:19:14.036965+00:00"
   },
   {
     "date": "2026-07-07",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-07T10:39:08.798244+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-08T09:19:14.036965+00:00"
   },
   {
     "date": "2026-07-07",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-07T10:39:08.798244+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-08T09:19:14.036965+00:00"
   },
   {
     "date": "2026-07-07",
@@ -150,10 +150,10 @@
     "line_warning": true,
     "alt_suggestion": "No K prop line explicitly listed for Wheeler \u2014 use if available near -120 or better. His recent avg is 7.0 K/start vs high-K opponents; CIN K% 24.7% is above average, so calibrate UP to ~8.0 expected Ks. If line is posted at 7.5, there is edge.",
     "found_at": "2026-07-07T10:39:08.798244+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-08T09:19:14.036965+00:00"
   },
   {
     "date": "2026-07-07",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-07T10:39:08.798244+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 9,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-08T09:19:14.036965+00:00"
   },
   {
     "date": "2026-07-07",
@@ -203,9 +203,9 @@
     "alt_suggestion": "Look for Skubal Over 6.5 Ks at a better price if available, or confirm -115 is the actual market price before betting.",
     "found_at": "2026-07-07T21:21:18.224832+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-08T09:19:14.036965+00:00"
   },
   {
     "date": "2026-07-07",
@@ -228,9 +228,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-07T21:21:18.224832+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-08T09:19:14.036965+00:00"
   }
 ]
