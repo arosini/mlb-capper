@@ -20,10 +20,10 @@
     "line_warning": true,
     "alt_suggestion": "PHI Team Total Under 4.5 is priced at -130; if that feels steep, consider Chase Burns Ks Over 6.5 at -143 as the purest single-arm expression of this edge, but watch the high-K opponent flag.",
     "found_at": "2026-07-08T09:46:00.479411+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 11,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -47,9 +47,9 @@
     "alt_suggestion": "At -143, this is at the pricing limit. Only play if you accept the juice. The PHI Team Total Under 4.5 may express the same edge more efficiently.",
     "found_at": "2026-07-08T09:46:00.479411+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 5,
+    "home_score_final": 11,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -72,10 +72,10 @@
     "line_warning": true,
     "alt_suggestion": "If -132 feels steep, the F5 HOU team total under is not explicitly listed but the F5 Total Under 4.5 at +104 captures Griffin's dominance in first 5 innings with better pricing.",
     "found_at": "2026-07-08T09:46:00.479411+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-08T09:46:00.479411+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 10,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-08T09:46:00.479411+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 10,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -150,10 +150,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-08T09:46:00.479411+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 13,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-08T09:46:00.479411+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-08T15:58:07.925436+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 11,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-08T15:58:07.925436+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -254,10 +254,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider WSN Team Total Over 4.5 (-140) as an alternative that expresses the offensive edge independently of the game result.",
     "found_at": "2026-07-08T21:03:08.535167+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -280,10 +280,10 @@
     "line_warning": true,
     "alt_suggestion": "If -140 is too steep, WSN F5 Team Total Over 2.5 (-120) offers a smaller-sample version of the same edge.",
     "found_at": "2026-07-08T21:03:08.535167+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-08T21:03:08.535167+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 11,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -332,10 +332,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider DET F5 ML to isolate the pitching edge and avoid ATH's bullpen volatility being a factor.",
     "found_at": "2026-07-08T21:03:08.535167+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -358,10 +358,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-08T21:03:08.535167+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   },
   {
     "date": "2026-07-08",
@@ -384,9 +384,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-08T21:03:08.535167+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-09T10:16:55.332914+00:00"
   }
 ]
