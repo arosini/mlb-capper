@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-09T10:37:51.343616+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-10T10:13:21.118051+00:00"
   },
   {
     "date": "2026-07-09",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-09T10:37:51.343616+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-10T10:13:21.118051+00:00"
   },
   {
     "date": "2026-07-09",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-09T16:21:40.574775+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-10T10:13:21.118051+00:00"
   },
   {
     "date": "2026-07-09",
@@ -150,10 +150,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider DET Team Total Over 4.5 (-104) or DET F5 Spread -0.5 (+106) for better value",
     "found_at": "2026-07-09T16:21:40.574775+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-10T10:13:21.118051+00:00"
   },
   {
     "date": "2026-07-09",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-09T16:21:40.574775+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-10T10:13:21.118051+00:00"
   },
   {
     "date": "2026-07-09",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-09T21:20:02.355444+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-10T10:13:21.118051+00:00"
   },
   {
     "date": "2026-07-09",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-09T21:20:02.355444+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-10T10:13:21.118051+00:00"
   },
   {
     "date": "2026-07-09",
@@ -254,9 +254,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-09T21:20:02.355444+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 6,
+    "home_score_final": 7,
+    "annotated_at": "2026-07-10T10:13:21.118051+00:00"
   }
 ]
