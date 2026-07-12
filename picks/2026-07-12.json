@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-12T09:27:45.109553+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 9,
+    "annotated_at": "2026-07-12T20:39:28.625488+00:00"
   },
   {
     "date": "2026-07-12",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-12T09:27:45.109553+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-12T20:39:28.625488+00:00"
   },
   {
     "date": "2026-07-12",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-12T09:27:45.109553+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-12T20:39:28.625488+00:00"
   },
   {
     "date": "2026-07-12",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-12T09:27:45.109553+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 14,
+    "annotated_at": "2026-07-12T20:39:28.625488+00:00"
   },
   {
     "date": "2026-07-12",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-12T09:27:45.109553+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-12T20:39:28.625488+00:00"
   },
   {
     "date": "2026-07-12",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-12T14:47:23.432980+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 9,
+    "annotated_at": "2026-07-12T20:39:28.625488+00:00"
   },
   {
     "date": "2026-07-12",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-12T14:47:23.432980+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-12T20:39:28.625488+00:00"
   },
   {
     "date": "2026-07-12",
@@ -306,9 +306,9 @@
     "line_warning": true,
     "alt_suggestion": "Consider MIL F5 Team Total Over 1.5 (-125) if pricing is a concern, or wait for a line move toward -118 or better.",
     "found_at": "2026-07-12T14:47:23.432980+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 14,
+    "annotated_at": "2026-07-12T20:39:28.625488+00:00"
   }
 ]
