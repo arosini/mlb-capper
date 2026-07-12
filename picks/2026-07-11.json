@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T09:08:26.182035+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 9,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -47,9 +47,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-11T09:08:26.182035+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 9,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T09:08:26.182035+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -99,9 +99,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-11T09:08:26.182035+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T09:08:26.182035+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -151,9 +151,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-11T09:08:26.182035+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T09:08:26.182035+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 9,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -202,10 +202,10 @@
     "line_warning": true,
     "alt_suggestion": "ARI Team Total Under 3.5 (-135) is a better-priced expression of this same edge \u2014 Yamamoto dominates ARI historically and ARI offense is wRC+ 70.",
     "found_at": "2026-07-11T14:44:37.069172+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 9,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T14:44:37.069172+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 9,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T14:44:37.069172+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T14:44:37.069172+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T14:44:37.069172+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -332,10 +332,10 @@
     "line_warning": true,
     "alt_suggestion": "If -138 is too rich, the Rocker Outs Under 15.5 at -108 is a better-priced expression of the same 'Rocker exits early' thesis.",
     "found_at": "2026-07-11T20:42:58.177623+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 9,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -358,10 +358,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T20:42:58.177623+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   },
   {
     "date": "2026-07-11",
@@ -384,9 +384,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-11T20:42:58.177623+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-12T08:57:03.060649+00:00"
   }
 ]
