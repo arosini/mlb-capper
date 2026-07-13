@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-12T09:27:45.109553+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-13T10:14:49.472151+00:00"
   },
   {
     "date": "2026-07-12",
@@ -46,10 +46,10 @@
     "line_warning": true,
     "alt_suggestion": "Avoid the F5 ML at -220; instead play LAD Team Total Over 5.5 (-108) as the better-priced expression of this offense vs a compromised starter.",
     "found_at": "2026-07-12T09:27:45.109553+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-13T10:14:49.472151+00:00"
   },
   {
     "date": "2026-07-12",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-12T09:27:45.109553+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-13T10:14:49.472151+00:00"
   },
   {
     "date": "2026-07-12",
@@ -150,10 +150,10 @@
     "line_warning": true,
     "alt_suggestion": "The -160 price is at the outer edge; if available, seek a better number like -140 or play the Outs Over 15.5 (+116) as a correlated but separately priced bet on Cantillo's workload.",
     "found_at": "2026-07-12T09:27:45.109553+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-13T10:14:49.472151+00:00"
   },
   {
     "date": "2026-07-12",
