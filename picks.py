@@ -410,14 +410,6 @@ def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
     return None
 
 
-def _calc_result(team_side, line, period, away_score, home_score):
-    """Legacy wrapper — kept for backward compatibility. Use _resolve_pick for new code."""
-    pick = {"team_side": team_side, "line": line, "period": period,
-            "bet_type": "", "bet": ""}
-    game_rec = {"away_score": away_score, "home_score": home_score}
-    return _resolve_pick(pick, game_rec)
-
-
 if __name__ == "__main__":
     import argparse
 

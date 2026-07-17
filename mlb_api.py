@@ -47,7 +47,10 @@ def stress_label_cls(ip_2d: float, games_2d: int) -> tuple[str, str]:
 # ── MLB schedule / game log calls ─────────────────────────────────────────────
 
 def get_mlb_schedule(target_date: date) -> dict:
-    """Fetch today's schedule; returns {frozenset([away, home]): game_info_dict}."""
+    """Fetch today's schedule; returns {(frozenset([away, home]), game_number): game_info_dict}.
+
+    game_number distinguishes doubleheader legs (MLB API's "gameNumber" field, 1 or 2).
+    """
     if not HAS_REQUESTS:
         return {}
     try:
@@ -76,7 +79,8 @@ def get_mlb_schedule(target_date: date) -> dict:
             aa    = away.get("team", {}).get("abbreviation", "")
             hp    = home.get("probablePitcher", {})
             ap    = away.get("probablePitcher", {})
-            games[frozenset([ha, aa])] = {
+            gn    = g.get("gameNumber") or 1
+            games[(frozenset([ha, aa]), gn)] = {
                 "home": ha, "away": aa,
                 "home_mlb_id": home.get("team", {}).get("id"),
                 "away_mlb_id": away.get("team", {}).get("id"),
@@ -84,6 +88,7 @@ def get_mlb_schedule(target_date: date) -> dict:
                 "home_pid":    hp.get("id"),   "home_pname": hp.get("fullName", ""),
                 "away_pid":    ap.get("id"),   "away_pname": ap.get("fullName", ""),
                 "game_date":   g.get("gameDate", ""),
+                "game_number": gn,
             }
     return games
 

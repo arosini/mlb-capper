@@ -25,7 +25,7 @@ from loaders import (
     load_starters, load_team_stats, load_bullpen, load_ballpark_weather,
     load_odds_meta, load_pitcher_props,
 )
-from odds import load_odds, get_game_odds
+from odds import load_odds, get_game_odds, pick_odds_by_time
 from mlb_api import (
     HAS_REQUESTS,
     get_mlb_schedule, get_bullpen_stress,
@@ -126,28 +126,40 @@ def main():
 
     # Supplement with any MLB schedule games not yet present in Handigraphs starters.
     if mlb_schedule:
-        covered = {frozenset([to_mlb(p1["Team"]), to_mlb(p2["Team"])]) for p1, p2 in games}
-        starters_by_team = {r.get("Team", ""): r for r in starters}
+        covered = {
+            (frozenset([to_mlb(p1["Team"]), to_mlb(p2["Team"])]), p1.get("game_number") or 1)
+            for p1, p2 in games
+        }
+        starters_by_team_game = {
+            (r.get("Team", ""), r.get("game_number") or 1): r for r in starters
+        }
         for sched_key, sched_info in mlb_schedule.items():
             if sched_key in covered:
                 continue
+            gn = sched_info.get("game_number") or 1
             away_hg = _MLB_TO_HG.get(sched_info["away"], sched_info["away"])
             home_hg = _MLB_TO_HG.get(sched_info["home"], sched_info["home"])
-            away_row = dict(starters_by_team.get(away_hg) or {
+            away_row = dict(starters_by_team_game.get((away_hg, gn)) or {
                 "Name": sched_info.get("away_pname") or "TBD",
                 "Team": away_hg, "Opponent": home_hg,
                 "mlbam_id": sched_info.get("away_pid"),
             })
-            home_row = dict(starters_by_team.get(home_hg) or {
+            home_row = dict(starters_by_team_game.get((home_hg, gn)) or {
                 "Name": sched_info.get("home_pname") or "TBD",
                 "Team": home_hg, "Opponent": away_hg,
                 "mlbam_id": sched_info.get("home_pid"),
             })
             away_row.setdefault("Opponent", home_hg)
             home_row.setdefault("Opponent", away_hg)
+            away_row.setdefault("game_number", gn)
+            home_row.setdefault("game_number", gn)
             games.append((away_row, home_row))
 
     if not games:
+        if args.html:
+            generated_at = datetime.now(timezone.utc).isoformat()
+            print(render_html_page([], target_date, generated_at, slot=slot))
+            return
         sys.exit("No games found. Check your data directory and date.")
 
     # Filter by team
@@ -173,7 +185,8 @@ def main():
     for p1, p2 in games:
         t1_mlb = to_mlb(p1.get("Team", ""))
         t2_mlb = to_mlb(p2.get("Team", ""))
-        key = frozenset([t1_mlb, t2_mlb])
+        gn  = p1.get("game_number") or p2.get("game_number") or 1
+        key = (frozenset([t1_mlb, t2_mlb]), gn)
 
         mlb_info = mlb_schedule.get(key, {})
 
@@ -207,7 +220,7 @@ def main():
         # Ballpark weather keyed by raw team codes (Handigraphs starters JSON)
         t1_raw = p1.get("Team", "")
         t2_raw = p2.get("Team", "")
-        wx = ballpark_wx.get(frozenset([t1_raw, t2_raw]), {})
+        wx = ballpark_wx.get((frozenset([t1_raw, t2_raw]), gn), {})
         # Fallback to Open-Meteo if Handigraphs weather file wasn't downloaded
         if not wx and not args.no_weather and HAS_REQUESTS:
             home_t = mlb_info.get("home", t2_raw)
@@ -215,14 +228,18 @@ def main():
 
         if args.html or args.suggestions_only:
             g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx, target_date)
+            # MLB's scheduled start time disambiguates doubleheader legs when matching
+            # against the Odds API, which has no game-number field of its own.
+            time_hint = mlb_info.get("game_date", "")
             g["odds"] = get_game_odds(odds_data, g["away"], g["home"],
                                       g["away_sp"]["name"], g["home_sp"]["name"],
-                                      props_data)
+                                      props_data, game_time_utc=time_hint)
             # Add commence_time from odds for AI filtering and picks display
             away_full = ODDS_TEAM.get(g["away"], "")
             home_full = ODDS_TEAM.get(g["home"], "")
-            raw_game = (odds_data.get((away_full, home_full))
-                        or odds_data.get((home_full, away_full)) or {})
+            raw_games = (odds_data.get((away_full, home_full))
+                        or odds_data.get((home_full, away_full)) or [])
+            raw_game = pick_odds_by_time(raw_games, time_hint) or {}
             g["game_time_utc"] = raw_game.get("commence_time", "")
             game_data.append(g)
         else:
@@ -241,7 +258,7 @@ def main():
         except Exception:
             all_picks = []
         print(render_html_page(game_data, target_date, generated_at, odds_at,
-                               suggestions, all_picks))
+                               suggestions, all_picks, slot=slot))
     else:
         print()
 

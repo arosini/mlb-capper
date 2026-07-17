@@ -57,6 +57,8 @@ def _load_starters_json(path: Path) -> list[dict]:
             "Opponent":      p.get("opponent", ""),
             "mlbam_id":      p.get("mlbam_id") or p.get("id"),
             "lineup_status": p.get("lineup_status", ""),
+            "game_number":   p.get("game_number") or 1,
+            "today_time":    p.get("today_time", ""),
             "IP":            s.get("ip"),
             "TBF":           s.get("tbf"),
             "ERA":           s.get("era"),
@@ -223,25 +225,32 @@ def load_odds_meta(data_dir: Path, target_date: date) -> str:
 
 
 def load_pitcher_props(data_dir: Path, target_date: date) -> dict:
-    """Load per-event pitcher props; returns {(away_team, home_team): bookmakers_list}."""
+    """Load per-event pitcher props; returns {(away_team, home_team): [event_dict, ...]}.
+
+    Each event_dict keeps commence_time (used to disambiguate doubleheader legs)
+    alongside its bookmakers list — see odds.pick_odds_by_time().
+    """
     p = _find_file(data_dir, "props", target_date, "json")
     if not p:
         return {}
     try:
         raw = json.loads(p.read_text())
-        result = {}
+        result: dict = {}
         for event_data in raw.values():
             away = event_data.get("away_team", "")
             home = event_data.get("home_team", "")
             if away and home:
-                result[(away, home)] = event_data.get("bookmakers", [])
+                result.setdefault((away, home), []).append(event_data)
         return result
     except Exception:
         return {}
 
 
 def load_ballpark_weather(data_dir: Path, target_date: date) -> dict:
-    """Returns dict keyed by frozenset({away_team, home_team}) → game weather dict."""
+    """Returns dict keyed by (frozenset({away_team, home_team}), game_number) → game weather dict.
+
+    game_number defaults to 1 when the source data doesn't distinguish doubleheader legs.
+    """
     p = _find_file(data_dir, "ballpark_weather", target_date, "json")
     if not p:
         return {}
@@ -252,5 +261,5 @@ def load_ballpark_weather(data_dir: Path, target_date: date) -> dict:
         away = g.get("away_team", "")
         home = g.get("home_team", "")
         if away and home:
-            result[frozenset([away, home])] = g
+            result[(frozenset([away, home]), g.get("game_number") or 1)] = g
     return result

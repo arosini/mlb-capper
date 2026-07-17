@@ -127,17 +127,6 @@ def _parse_utc(ts: str) -> datetime:
         return datetime.fromtimestamp(0, tz=timezone.utc)
 
 
-def _file_age_minutes(path: Path) -> float:
-    """Return minutes since the file was last written, or infinity if absent."""
-    if not path.exists():
-        return float("inf")
-    try:
-        mtime = path.stat().st_mtime
-        return (datetime.now(timezone.utc).timestamp() - mtime) / 60
-    except Exception:
-        return float("inf")
-
-
 def _meta_age_minutes(meta_path: Path) -> float:
     """Return minutes since last fetch recorded in a meta JSON, or infinity if absent."""
     if not meta_path.exists():
@@ -299,6 +288,15 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today",
     keys_to_fetch = ["starters"] if starters_only else list(config.API_URLS.keys())
     for key in keys_to_fetch:
         url_tmpl = config.API_URLS[key]
+
+        # ballpark_weather has no {slot}/date param upstream — it only ever returns
+        # today's forecast. Fetching it for "tomorrow" would silently save today's
+        # weather under a tomorrow-dated file; handicap.py's Open-Meteo fallback
+        # (which IS date-aware) covers tomorrow's games instead.
+        if key == "ballpark_weather" and slot == "tomorrow":
+            print(f"  [ballpark_weather] Not date-aware upstream — skipping for 'tomorrow' "
+                  f"(Open-Meteo fallback will be used)")
+            continue
 
         if key == "starters":
             # Before 6 AM ET Handigraphs' 'today' slot still shows yesterday's

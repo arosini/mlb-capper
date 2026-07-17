@@ -483,8 +483,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date) -
                 if s_ts >= o_ts:
                     return json.loads(sugg_path.read_text())
             else:
-                from datetime import timezone as _tz
-                if (datetime.now(_tz.utc) - s_ts).total_seconds() < 14400:
+                if (datetime.now(timezone.utc) - s_ts).total_seconds() < 14400:
                     return json.loads(sugg_path.read_text())
         except Exception:
             pass
@@ -511,8 +510,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date) -
     if not games:
         return None
 
-    from datetime import timezone as _tz2
-    _now = datetime.now(_tz2.utc)
+    _now = datetime.now(timezone.utc)
     unstarted = []
     for _g in games:
         _gt = _g.get("game_time_utc", "")
@@ -600,9 +598,8 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date) -
         return None
 
     try:
-        from datetime import timezone as _tz
         sugg_path.write_text(json.dumps(result, indent=2))
-        sugg_meta.write_text(json.dumps({"generated_at": datetime.now(_tz.utc).isoformat()}))
+        sugg_meta.write_text(json.dumps({"generated_at": datetime.now(timezone.utc).isoformat()}))
     except Exception:
         pass
 
@@ -649,8 +646,9 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
                 pass
         title   = _h(_pick_summary_title(pick))
         pid     = _pick_dom_id(pick)
+        gt      = _h(pick.get("game_time_utc", ""))
         return (
-            f'<details class="ai-pick-row" id="{pid}">'
+            f'<details class="ai-pick-row" id="{pid}" data-game-time="{gt}">'
             f'<summary class="ai-pick-sum">{title}</summary>'
             f'<div class="ai-pick-body">'
             f'<div class="ai-reason">{reason}</div>'
@@ -660,20 +658,21 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
             f'</details>'
         )
 
-    inner = ""
-    if active_picks:
-        inner += (
-            f'<div class="ai-active-wrap">'
-            f'{"".join(_pick_block(p) for p in active_picks)}'
-            f'</div>'
-        )
-    if started_picks:
-        inner += (
-            f'<div class="ai-started-wrap">'
-            f'<div class="ai-started-label">Games In Progress / Completed</div>'
-            f'{"".join(_pick_block(p) for p in started_picks)}'
-            f'</div>'
-        )
+    # active_picks/started_picks below is only the split as of render time (last
+    # cron run) — a static page can go hours before the next regeneration, so
+    # games that started since then would otherwise stay stuck in "active" until
+    # the next run. Both wraps always render (started-wrap hidden if empty) so
+    # splitPicks() in the page JS can move newly-started picks over client-side,
+    # using the viewer's actual current time — mirrors split() for game cards.
+    inner = (
+        f'<div class="ai-active-wrap" id="ai-active-wrap">'
+        f'{"".join(_pick_block(p) for p in active_picks)}'
+        f'</div>'
+        f'<div class="ai-started-wrap" id="ai-started-wrap"{"" if started_picks else " hidden"}>'
+        f'<div class="ai-started-label">Games In Progress / Completed</div>'
+        f'{"".join(_pick_block(p) for p in started_picks)}'
+        f'</div>'
+    )
 
     bets_lbl = f"{n_bets} Bet{'s' if n_bets != 1 else ''}"
     disclaimer = (
@@ -693,35 +692,38 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
 
 def _ai_game_map(valid_picks: list, suggestions: Optional[dict]) -> dict:
     """
-    Build per-game AI lookup: {"AWAY @ HOME": {"picks": [...], "pass_reason": str|None}}.
+    Build per-game AI lookup: {(away @ home, game_time_utc): {"picks": [...], "pass_reason": str|None}}.
+    Keyed by (game, game_time_utc) rather than just "AWAY @ HOME" so doubleheader legs
+    (same matchup string, different start times) don't merge their picks together.
     valid_picks: all saved picks for the day (includes started games).
     suggestions: latest run result, used only for pass_reasons on games with no picks.
     """
-    picks_by_game: dict[str, list] = {}
+    picks_by_game: dict[tuple, list] = {}
     for p in (valid_picks or []):
         game = p.get("game", "")
         if game:
-            picks_by_game.setdefault(game, []).append(p)
+            picks_by_game.setdefault((game, p.get("game_time_utc", "")), []).append(p)
 
     pass_reasons = (suggestions or {}).get("pass_reasons") or {}
 
-    if not pass_reasons and suggestions:
-        old_best = suggestions.get("best_bet")
-        old_others = suggestions.get("other_bets") or []
-        bet_games = set()
-        if old_best and old_best.get("game"):
-            bet_games.add(old_best["game"])
-        for o in old_others:
-            if o.get("game"):
-                bet_games.add(o["game"])
-        pass_reasons = {
-            k: v for k, v in (suggestions.get("pass_reasons") or {}).items()
-        }
-
     result: dict = {}
-    for game, picks in picks_by_game.items():
-        result[game] = {"picks": picks, "pass_reason": None}
+    for key, picks in picks_by_game.items():
+        result[key] = {"picks": picks, "pass_reason": None}
     for game, reason in pass_reasons.items():
-        if game not in result:
-            result[game] = {"picks": [], "pass_reason": reason}
+        key = (game, "")
+        if key not in result:
+            result[key] = {"picks": [], "pass_reason": reason}
     return result
+
+
+def _lookup_ai_for_game(ai_by_game: dict, away: str, home: str, game_time_utc: str) -> Optional[dict]:
+    """Look up ai_by_game for a rendered game card, matching on time first, then
+    falling back to any entry for the matchup (covers games with no recorded time)."""
+    game = f"{away} @ {home}"
+    hit = ai_by_game.get((game, game_time_utc))
+    if hit is not None:
+        return hit
+    for (g, _t), val in ai_by_game.items():
+        if g == game:
+            return val
+    return None

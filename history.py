@@ -19,6 +19,7 @@ _ET = timezone(timedelta(hours=-4))
 MLB_API = "https://statsapi.mlb.com/api/v1"
 
 from teams import MLB_NAME_TO_CODE as _NAME_TO_CODE, _MLB_MAP as _TO_MLB_ABBR
+from odds import _best_price, _best_spread, _best_total
 
 
 def _read_json(path: Path):
@@ -60,48 +61,6 @@ def _pick_best_result(candidates: list, game_time_utc: str) -> dict:
 # ---------------------------------------------------------------------------
 # Odds helper functions
 # ---------------------------------------------------------------------------
-
-def _best_price(bookmakers: list, market_key: str, outcome_name: str):
-    best = None
-    for bk in bookmakers:
-        for mkt in bk.get("markets", []):
-            if mkt["key"] != market_key:
-                continue
-            for oc in mkt.get("outcomes", []):
-                if oc.get("name") == outcome_name:
-                    p = oc.get("price")
-                    if p is not None and (best is None or p > best):
-                        best = p
-    return best
-
-
-def _best_spread(bookmakers: list, outcome_name: str, market_key: str = "spreads"):
-    best_price, best_point = None, None
-    for bk in bookmakers:
-        for mkt in bk.get("markets", []):
-            if mkt["key"] != market_key:
-                continue
-            for oc in mkt.get("outcomes", []):
-                if oc.get("name") == outcome_name:
-                    p, pt = oc.get("price"), oc.get("point")
-                    if p is not None and (best_price is None or p > best_price):
-                        best_price, best_point = p, pt
-    return best_point, best_price
-
-
-def _best_total(bookmakers: list, side: str, market_key: str = "totals"):
-    best_price, best_point = None, None
-    for bk in bookmakers:
-        for mkt in bk.get("markets", []):
-            if mkt["key"] != market_key:
-                continue
-            for oc in mkt.get("outcomes", []):
-                if oc.get("name") == side and oc.get("point") is not None:
-                    p, pt = oc.get("price"), oc.get("point")
-                    if p is not None and (best_price is None or p > best_price):
-                        best_price, best_point = p, pt
-    return best_point, best_price
-
 
 def _prop_best(bookmakers: list, market_key: str, outcome_name: str, description: str = None):
     """

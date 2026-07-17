@@ -2,9 +2,10 @@ name: Update MLB Dashboard
 
 on:
   schedule:
-    - cron: '30 7 * * *'  # 3:30 AM ET (UTC-4)
-    - cron: '0 14 * * *'  # 10 AM ET
-    - cron: '0 20 * * *'  # 4 PM ET
+    - cron: '30 7 * * *'   # 3:30 AM ET (UTC-4)
+    - cron: '0 14 * * *'   # 10 AM ET
+    - cron: '0 20 * * *'   # 4 PM ET
+    - cron: '30 22 * * *'  # 6:30 PM ET — tomorrow's Handigraphs slate is usually posted by now
   workflow_dispatch:        # manual trigger
   push:
     branches: [main]        # redeploy on every push to main
@@ -32,7 +33,9 @@ jobs:
         run: pip install requests anthropic
 
       - name: Set cache date
-        run: python3 -c "from datetime import datetime,timezone,timedelta; print('CACHE_DATE='+datetime.now(timezone(timedelta(hours=-4))).strftime('%Y-%m-%d'))" >> $GITHUB_ENV
+        run: |
+          python3 -c "from datetime import datetime,timezone,timedelta; print('CACHE_DATE='+datetime.now(timezone(timedelta(hours=-4))).strftime('%Y-%m-%d'))" >> $GITHUB_ENV
+          python3 -c "from datetime import datetime,timezone,timedelta; print('TOMORROW_DATE='+(datetime.now(timezone(timedelta(hours=-4)))+timedelta(days=1)).strftime('%Y-%m-%d'))" >> $GITHUB_ENV
 
       - name: Restore odds cache
         uses: actions/cache@v4
@@ -45,9 +48,11 @@ jobs:
       - name: Clean stale data files
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
-          # Remove any data files not dated today — prevents prior-day files from
-          # accumulating in the cache all season and ensures a clean slate each run.
-          find data/ -maxdepth 1 -type f ! -name "*${{ env.CACHE_DATE }}*" -delete
+          # Remove any data files not dated today or tomorrow — prevents prior-day
+          # files from accumulating in the cache all season and ensures a clean
+          # slate each run, while preserving tomorrow's files (and their odds/props
+          # meta timestamps) across same-day reruns so their fetch throttle works.
+          find data/ -maxdepth 1 -type f ! -name "*${{ env.CACHE_DATE }}*" ! -name "*${{ env.TOMORROW_DATE }}*" -delete
           echo "Data dir after cleanup: $(ls data/ 2>/dev/null | wc -l) files"
 
       - name: Refresh starters
@@ -63,6 +68,23 @@ jobs:
           HANDIGRAPHS_PASSWORD: ${{ secrets.HANDIGRAPHS_PASSWORD }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python3 download.py
+
+      - name: Download tomorrow's data
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          HANDIGRAPHS_EMAIL: ${{ secrets.HANDIGRAPHS_EMAIL }}
+          HANDIGRAPHS_PASSWORD: ${{ secrets.HANDIGRAPHS_PASSWORD }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          # 6:30 PM ET run forces a fresh odds/props fetch — earlier runs may land
+          # before Handigraphs/the Odds API have posted tomorrow's slate at all, so
+          # the normal 5h throttle would otherwise lock in an empty/stale fetch for
+          # the rest of the evening.
+          if [ "${{ github.event.schedule }}" = "30 22 * * *" ]; then
+            python3 download.py --date tomorrow --force-odds
+          else
+            python3 download.py --date tomorrow
+          fi
 
       - name: Clear stale suggestions
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -89,6 +111,18 @@ jobs:
           python3 handicap.py --html > _site/index.html
           echo "Generated $(wc -c < _site/index.html) bytes"
           printf '/*\n  Cache-Control: no-cache, max-age=0, must-revalidate\n' > _site/_headers
+
+      - name: Generate tomorrow HTML
+        run: |
+          # Deliberately no ANTHROPIC_API_KEY here — this is a matchup/odds preview,
+          # not the AI-picks page, so we skip triggering a Claude call for it.
+          # Runs every deploy (not just the tomorrow-data steps above) because
+          # Cloudflare Pages deploys are full-snapshot replacements — if this file
+          # were only written on the 6:30 PM run, the other 3 daily deploys would
+          # wipe it from the live site.
+          mkdir -p _site/tomorrow
+          python3 handicap.py --date tomorrow --html > _site/tomorrow/index.html
+          echo "Generated $(wc -c < _site/tomorrow/index.html) bytes"
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

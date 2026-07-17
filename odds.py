@@ -1,7 +1,7 @@
 """Odds API parsing — extract best prices from bookmaker data, format for display."""
 
 import json
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
@@ -9,12 +9,46 @@ from teams import ODDS_TEAM
 
 
 def load_odds(data_dir: Path, target_date: date) -> dict:
-    """Load bulk odds JSON; returns {(away_name, home_name): game_dict}."""
+    """Load bulk odds JSON; returns {(away_name, home_name): [game_dict, ...]}.
+
+    Doubleheaders produce two events with identical team names but different
+    commence_time — both are kept in the list; see pick_odds_by_time().
+    """
     p = data_dir / f"odds_{target_date.strftime('%Y-%m-%d')}.json"
     if not p.exists():
         return {}
     raw = json.loads(p.read_text())
-    return {(g["away_team"], g["home_team"]): g for g in raw if isinstance(g, dict)}
+    result: dict = {}
+    for g in raw:
+        if not isinstance(g, dict):
+            continue
+        result.setdefault((g.get("away_team", ""), g.get("home_team", "")), []).append(g)
+    return result
+
+
+def pick_odds_by_time(candidates: list, game_time_utc: str) -> Optional[dict]:
+    """Disambiguate doubleheader legs: pick the candidate whose commence_time is
+    closest to game_time_utc. Falls back to the first candidate if there's no
+    usable time to compare against.
+    """
+    if not candidates:
+        return None
+    if len(candidates) == 1 or not game_time_utc:
+        return candidates[0]
+    try:
+        target = datetime.fromisoformat(game_time_utc.replace("Z", "+00:00"))
+    except Exception:
+        return candidates[0]
+
+    def _dist(c):
+        try:
+            return abs((datetime.fromisoformat(
+                c.get("commence_time", "").replace("Z", "+00:00")) - target
+            ).total_seconds())
+        except Exception:
+            return float("inf")
+
+    return min(candidates, key=_dist)
 
 
 # ── Best-price extraction ─────────────────────────────────────────────────────
@@ -158,11 +192,16 @@ def fmt_outs_line(o: Optional[dict]) -> str:
 
 def get_game_odds(odds_data: dict, away_code: str, home_code: str,
                   away_sp_name: str = "", home_sp_name: str = "",
-                  props_data: Optional[dict] = None) -> Optional[dict]:
-    """Assemble all odds/props into a unified dict for a single game."""
+                  props_data: Optional[dict] = None,
+                  game_time_utc: str = "") -> Optional[dict]:
+    """Assemble all odds/props into a unified dict for a single game.
+
+    game_time_utc (typically MLB's scheduled start time) disambiguates doubleheader
+    legs, since both share the same away/home team names in the Odds API.
+    """
     away_name = ODDS_TEAM.get(away_code, "")
     home_name = ODDS_TEAM.get(home_code, "")
-    game = odds_data.get((away_name, home_name))
+    game = pick_odds_by_time(odds_data.get((away_name, home_name), []), game_time_utc)
     if not game:
         return None
     bks = game.get("bookmakers", [])
@@ -174,7 +213,9 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
     under_pt, under_pr = _best_total(bks, "Under")
 
     # Per-event data (pitcher props + F5 odds — all from per-event endpoint)
-    prop_bks = (props_data or {}).get((away_name, home_name), [])
+    prop_event = pick_odds_by_time(
+        (props_data or {}).get((away_name, home_name), []), game_time_utc)
+    prop_bks = (prop_event or {}).get("bookmakers", [])
     away_k    = _find_prop_line(prop_bks, away_sp_name, "pitcher_strikeouts")
     home_k    = _find_prop_line(prop_bks, home_sp_name, "pitcher_strikeouts")
     away_outs = _find_prop_line(prop_bks, away_sp_name, "pitcher_outs")

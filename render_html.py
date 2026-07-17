@@ -7,7 +7,10 @@ from typing import Optional
 from teams import _LOGO, logo_img
 from analysis import flt, xera_label
 from odds import fmt_k_line, fmt_outs_line
-from suggestions import _pick_dom_id, _pick_summary_title, _render_suggestions_html, _ai_game_map
+from suggestions import (
+    _pick_dom_id, _pick_summary_title, _render_suggestions_html,
+    _ai_game_map, _lookup_ai_for_game,
+)
 
 _ET = timezone(timedelta(hours=-4))
 
@@ -24,6 +27,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;f
 header{background:#0f172a;color:white;padding:.875rem 1rem;text-align:center;position:sticky;top:0;z-index:10}
 header h1{font-size:1.15rem;font-weight:700;letter-spacing:-.01em}
 .sub{font-size:.73rem;color:#94a3b8;margin-top:.2rem}
+.day-toggle{display:inline-flex;gap:.15rem;margin-top:.55rem;background:rgba(255,255,255,.08);border-radius:999px;padding:.2rem}
+.day-toggle a{padding:.28rem .8rem;border-radius:999px;font-size:.72rem;font-weight:600;color:#94a3b8;text-decoration:none}
+.day-toggle a.active{background:#fff;color:#0f172a}
+.empty-state{text-align:center;padding:3rem 1.25rem;color:#6b7280;font-size:.9rem}
 main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .game{background:white;margin-bottom:.5rem;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
 .game>summary{list-style:none;cursor:pointer;padding:.7rem .875rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;-webkit-tap-highlight-color:transparent;user-select:none}
@@ -49,6 +56,8 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .sec-sum::-webkit-details-marker{display:none}
 .sec-sum::after{content:'▾';margin-left:auto;font-size:.6rem;opacity:.7}
 .sec:not([open])>.sec-sum::after{content:'▸'}
+.sec-sum-static{cursor:default}
+.sec-sum-static::after{content:none}
 .sec-body{padding:.3rem .5rem .5rem}
 .mu-card{background:rgba(0,0,0,.028);border-radius:.35rem;padding:.35rem .5rem}
 .mu-card-hd{font-size:.75rem;font-weight:700;margin-bottom:.25rem}
@@ -368,6 +377,22 @@ _SPLIT_SCRIPT = """
     main.appendChild(hd);
     started.forEach(function(c){main.appendChild(c);});
   }
+  function splitPicks(){
+    var now=Date.now();
+    var activeWrap=document.getElementById('ai-active-wrap');
+    var startedWrap=document.getElementById('ai-started-wrap');
+    if(!activeWrap||!startedWrap)return;
+    var rows=Array.from(activeWrap.querySelectorAll('details.ai-pick-row[data-game-time]'));
+    var moved=false;
+    rows.forEach(function(r){
+      var t=Date.parse(r.dataset.gameTime);
+      if(!isNaN(t)&&t<=now){
+        startedWrap.appendChild(r);
+        moved=true;
+      }
+    });
+    if(moved)startedWrap.removeAttribute('hidden');
+  }
   function saveGames(){
     var open=Array.from(document.querySelectorAll('details.game[open]')).map(function(d){return d.id;});
     try{localStorage.setItem(GAME_STORE,JSON.stringify(open));}catch(e){}
@@ -434,6 +459,7 @@ _SPLIT_SCRIPT = """
   }
   document.addEventListener('DOMContentLoaded',function(){
     split();
+    splitPicks();
     restoreGames();
     restoreSections();
     restorePicksState();
@@ -627,15 +653,17 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
                 f'{stress_html}'
                 f'</div></div>')
 
-    g_id = f"{_h(away)}-{_h(home)}"
+    gn = g.get("game_number") or 1
+    g_id = f"{_h(away)}-{_h(home)}" + (f"-g{gn}" if gn != 1 else "")
 
     wx_html = ""
     if indoor_label:
+        # Dome/closed roof: summary already says everything there is to say, so
+        # this renders as a static row instead of an expandable (and empty) section.
         wx_html = (
-            f'<details class="sec" id="{g_id}-weather">'
-            f'<summary class="sec-sum">Weather · {_h(indoor_label)}</summary>'
-            f'<div class="sec-body"><span class="dim">{_h(indoor_label)}</span></div>'
-            f'</details>'
+            f'<div class="sec">'
+            f'<div class="sec-sum sec-sum-static">Weather · {_h(indoor_label)}</div>'
+            f'</div>'
         )
     elif wx:
         parts = []
@@ -968,16 +996,36 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
 
 def render_html_page(games: list[dict], target_date: date, generated_at: str,
                      odds_at: str = "", suggestions: Optional[dict] = None,
-                     valid_picks: Optional[list] = None) -> str:
+                     valid_picks: Optional[list] = None, slot: str = "today") -> str:
     date_long  = target_date.strftime(f"%A, %B {target_date.day}, %Y")
     date_short = target_date.strftime(f"%b {target_date.day}")
     games = sorted(games, key=_time_sort_key)
     valid_picks = valid_picks or []
-    ai_by_game = _ai_game_map(valid_picks, suggestions)
-    cards = "".join(_html_game(g, ai_by_game.get(f"{g['away']} @ {g['home']}")) for g in games)
+
+    today_cls    = ' class="active"' if slot != "tomorrow" else ""
+    tomorrow_cls = ' class="active"' if slot == "tomorrow" else ""
+    toggle_html = (
+        f'<nav class="day-toggle">'
+        f'<a href="/"{today_cls}>Today</a>'
+        f'<a href="/tomorrow/"{tomorrow_cls}>Tomorrow</a>'
+        f'</nav>'
+    )
+
+    if games:
+        ai_by_game = _ai_game_map(valid_picks, suggestions)
+        cards = "".join(
+            _html_game(g, _lookup_ai_for_game(ai_by_game, g["away"], g["home"], g.get("game_time_utc", "")))
+            for g in games
+        )
+        ai_html = _render_suggestions_html(valid_picks, target_date)
+        body_html = f'{ai_html}{cards}'
+    else:
+        msg = ("Tomorrow's slate isn't posted yet — check back this evening."
+               if slot == "tomorrow" else "No games scheduled.")
+        body_html = f'<div class="empty-state">{_h(msg)}</div>'
+
     gen_span  = _ts_span(generated_at)
     odds_sub  = f" · Odds Updated {_ts_span(odds_at)}" if odds_at else ""
-    ai_html   = _render_suggestions_html(valid_picks, target_date)
     return (
         f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
         f'<meta charset="utf-8">\n'
@@ -987,8 +1035,9 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'</head>\n<body>\n'
         f'<header><h1>MLB Game Overviews</h1>'
         f'<p class="sub">{_h(date_long)}</p>'
-        f'<p class="sub">Updated {gen_span}{odds_sub}</p></header>\n'
-        f'<main>{ai_html}{cards}\n</main>'
+        f'<p class="sub">Updated {gen_span}{odds_sub}</p>'
+        f'{toggle_html}</header>\n'
+        f'<main>{body_html}\n</main>'
         f'<footer style="text-align:center;padding:1.5rem 1rem;font-size:.75rem;color:#9ca3af">'
         f'Powered by <a href="https://handigraphs.com" target="_blank" rel="noopener" style="color:#9ca3af">Handigraphs</a>'
         f'</footer>'

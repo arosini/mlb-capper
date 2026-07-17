@@ -56,7 +56,14 @@ def xera_label(v: Optional[float]) -> str:
 # ── Game pairing ──────────────────────────────────────────────────────────────
 
 def build_games(starters: list[dict]) -> list[tuple[dict, dict]]:
-    by_team = {r["Team"]: r for r in starters if r.get("Team")}
+    """Pair each starter with their game's opponent starter.
+
+    Rows are paired by (team, game_number) rather than team alone so doubleheaders
+    (two rows per team, same opponent, different game_number) don't collide.
+    """
+    by_team_game = {
+        (r["Team"], r.get("game_number") or 1): r for r in starters if r.get("Team")
+    }
     seen: set[tuple] = set()
     games = []
     for row in starters:
@@ -64,11 +71,13 @@ def build_games(starters: list[dict]) -> list[tuple[dict, dict]]:
         opp  = (row.get("Opponent") or "").strip()
         if not team or not opp:
             continue
-        key = tuple(sorted([team, opp]))
+        gn  = row.get("game_number") or 1
+        key = (tuple(sorted([team, opp])), gn)
         if key in seen:
             continue
         seen.add(key)
-        games.append((row, by_team.get(opp, {"Name": "TBD", "Team": opp, "Throws": "?"})))
+        opp_row = by_team_game.get((opp, gn), {"Name": "TBD", "Team": opp, "Throws": "?"})
+        games.append((row, opp_row))
     return games
 
 
@@ -669,6 +678,7 @@ def analyze_game(
         "home":          home_team,
         "venue":         mlb_info.get("venue", ""),
         "game_date":     mlb_info.get("game_date", ""),
+        "game_number":   mlb_info.get("game_number") or 1,
         "away_sp":       away_sp,
         "home_sp":       home_sp,
         "pitch_edge":    pitch_edge,
