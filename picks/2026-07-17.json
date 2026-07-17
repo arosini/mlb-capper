@@ -414,5 +414,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-07-17",
+    "game": "BAL @ HOU",
+    "away": "Baltimore Orioles",
+    "away_code": "BAL",
+    "home": "Houston Astros",
+    "home_code": "HOU",
+    "game_time_utc": "2026-07-18T20:11:00Z",
+    "bet_type": "Total",
+    "bet": "Game Total Under 8.5",
+    "team_side": "under",
+    "line": 8.5,
+    "period": "full_game",
+    "odds": "+100",
+    "odds_num": 100,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Both bullpens are elite (BAL xERA 2.38, HOU xERA 2.50) \u2014 among the best in today's slate, strongly supporting an under. Lambert's xERA 2.71 is elite even though his recent ERA has ticked up (3.84); his home ERA of 2.59 in 3gs and his elite underlying metrics suggest he limits damage. Kremer's recent form is improving (3.18 recent ERA) and he goes deep (6.0 IP/gs avg). Both offenses are dangerous (BAL wRC+ 108, HOU wRC+ 125) but neither is truly elite. The key is two shutdown bullpens protecting a manageable game through 9 innings. Getting +100 on an under with two of the best pens in today's slate is excellent value \u2014 market may be pricing HOU's offense too heavily.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-07-17T23:28:17.456434+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
