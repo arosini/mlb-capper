@@ -388,5 +388,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-07-17",
+    "game": "SFG @ SEA",
+    "away": "San Francisco Giants",
+    "away_code": "SFG",
+    "home": "Seattle Mariners",
+    "home_code": "SEA",
+    "game_time_utc": "2026-07-19T00:09:00Z",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Bryce Miller Over 6.5 Ks",
+    "team_side": null,
+    "line": 6.5,
+    "period": "props",
+    "odds": "+127",
+    "odds_num": 127,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Miller has an elite K% (29.7%) and is averaging 8.3 K/start over his last 3 outings. SFG's K% vs RHP is 19.7% \u2014 below average, which is a calibration concern. However, Miller's home ERA is a remarkable 0.53 in 3 starts at T-Mobile Park and his xERA is elite (2.39). His recent start vs BOS shows 7 Ks vs a 26% K lineup \u2014 SFG at 19.7% is lower, so calibrate down roughly 1 K. Adjusted expectation ~7.3 Ks vs 6.5 line. The +127 price makes this extremely attractive \u2014 you're getting plus-money on a pitcher who is averaging 8.3 K/start in a pitcher-friendly park (APF 91) at home where he's been dominant. Even with the calibration down for SFG's below-average K rate, the value at +127 is clear. Outs O/U 17.5 (-130) suggests market expects ~5.8 IP, sufficient to reach 6.5+ Ks.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-07-17T20:50:29.492979+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
