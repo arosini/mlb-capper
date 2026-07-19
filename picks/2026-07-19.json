@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-19T09:27:39.311299+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-19T20:43:10.118177+00:00"
   },
   {
     "date": "2026-07-19",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-19T09:27:39.311299+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-19T20:43:10.118177+00:00"
   },
   {
     "date": "2026-07-19",
@@ -203,9 +203,9 @@
     "alt_suggestion": "If -128 feels steep, look for Schlittler K Over 5.5 at a better price \u2014 still strong value given his trajectory.",
     "found_at": "2026-07-19T09:27:39.311299+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 8,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-19T20:43:10.118177+00:00"
   },
   {
     "date": "2026-07-19",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-19T14:46:28.945563+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-19T20:43:10.118177+00:00"
   },
   {
     "date": "2026-07-19",
@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-19T14:46:28.945563+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-19T20:43:10.118177+00:00"
   },
   {
     "date": "2026-07-19",
@@ -332,10 +332,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-19T14:46:28.945563+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-19T20:43:10.118177+00:00"
   },
   {
     "date": "2026-07-19",
@@ -414,5 +414,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-07-19",
+    "game": "LAD @ NYY",
+    "away": "Los Angeles Dodgers",
+    "away_code": "LAD",
+    "home": "New York Yankees",
+    "home_code": "NYY",
+    "game_time_utc": "2026-07-19T23:21:00Z",
+    "bet_type": "Team_Total",
+    "bet": "NYY Team Total Over 4.5",
+    "team_side": "home_over",
+    "line": 4.5,
+    "period": "full_game",
+    "odds": "+116",
+    "odds_num": 116,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "NYY offense is hot (wRC+ 114 L12, HH% 45.7%) facing Will Klein who carries enormous disqualifying flags: only 3.0 IP across 3 starts (all micro-outings of 1-2 IP), 27 days since last start, recent bullpen appearances, and a sky-high BB% of 21.4%. Klein is almost certain to be on a very short leash \u2014 3 innings max \u2014 handing the ball to the LAD bullpen (ERA 4.14, xERA 3.48, average quality). Rodriguez's home ERA of 6.59 in limited home starts is also a concern for LAD scoring, keeping this as a one-sided team total rather than a game total over. At +116, the market is undervaluing NYY's run-scoring probability given the matchup of a stretched-thin opener vs a hot offense.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-07-19T20:41:37.040581+00:00",
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-19T20:43:10.118177+00:00"
   }
 ]
