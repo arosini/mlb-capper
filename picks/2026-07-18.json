@@ -46,10 +46,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider BAL F5 ML -110 as a cheaper alternative expressing the same Rogers dominance edge",
     "found_at": "2026-07-18T09:10:10.099060+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-18T09:10:10.099060+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-18T09:10:10.099060+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-18T09:10:10.099060+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-18T14:44:30.488069+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -307,9 +307,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-18T14:44:30.488069+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 7,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -384,10 +384,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-18T20:42:03.644927+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 15,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -410,10 +410,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-18T20:42:03.644927+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 15,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -436,10 +436,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-18T20:42:03.644927+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -462,10 +462,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-18T23:30:08.175146+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 15,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -489,9 +489,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-18T23:30:08.175146+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 1,
+    "home_score_final": 15,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   },
   {
     "date": "2026-07-18",
@@ -514,9 +514,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-18T23:30:08.175146+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-19T09:00:14.973766+00:00"
   }
 ]
