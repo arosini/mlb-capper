@@ -284,5 +284,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-07-20",
+    "game": "SFG @ KCR",
+    "away": "San Francisco Giants",
+    "away_code": "SFG",
+    "home": "Kansas City Royals",
+    "home_code": "KCR",
+    "game_time_utc": "2026-07-21T23:41:00Z",
+    "bet_type": "F5_Total",
+    "bet": "F5 Total Over 5.5",
+    "team_side": "over",
+    "line": 5.5,
+    "period": "f5",
+    "odds": "-114",
+    "odds_num": -114,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "McDonald has an elite xERA 2.61 but his season ERA is 5.28 \u2014 a significant lucky-ERA-higher-than-xERA gap suggesting he's been somewhat unlucky, but his recent ERA of 3.83 is still elevated and his last start was just 73 pitches (short outing concern). More importantly, Wacha's recent ERA of 2.23 is massively better than his xERA of 4.63 \u2014 he is pitching WELL ABOVE his true skill level right now. KCR's bullpen is atrocious (xERA 5.71) and SFG's offense is wRC+ 113 vs RHP in L12. The over signal: KCR offense is hot (wRC+ 124 in L12), SFG offense is solid (wRC+ 113), Wacha is overperforming his xERA by a huge margin (regression due), and McDonald is on a short leash. Even if both starters are somewhat decent in the first 5, the offensive matchup and Wacha regression risk give the over edge at -114.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-07-20T23:33:52.636691+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
