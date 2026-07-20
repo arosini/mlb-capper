@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-19T14:46:28.945563+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-20T09:48:34.488225+00:00"
   },
   {
     "date": "2026-07-19",
