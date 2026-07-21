@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-20T10:26:15.096733+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-20T10:26:15.096733+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-20T10:26:15.096733+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 13,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -99,9 +99,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-20T10:26:15.096733+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 4,
+    "home_score_final": 13,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -125,9 +125,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-20T10:26:15.096733+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 3,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -150,10 +150,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider PIT F5 Team Total Under 1.5 (+120) as a standalone if price concerns you \u2014 Ashcraft has been sharp recently.",
     "found_at": "2026-07-20T10:26:15.096733+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -177,9 +177,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-20T10:26:15.096733+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 7,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-20T15:44:37.904145+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-20T15:44:37.904145+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -255,9 +255,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-20T15:44:37.904145+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-20T15:44:37.904145+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   },
   {
     "date": "2026-07-20",
@@ -306,9 +306,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-20T23:33:52.636691+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-21T09:21:34.568323+00:00"
   }
 ]
