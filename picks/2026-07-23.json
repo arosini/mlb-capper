@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-23T09:56:53.706739+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 10,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-24T09:13:47.350036+00:00"
   },
   {
     "date": "2026-07-23",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-23T09:56:53.706739+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 10,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-24T09:13:47.350036+00:00"
   },
   {
     "date": "2026-07-23",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-23T09:56:53.706739+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 10,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-24T09:13:47.350036+00:00"
   },
   {
     "date": "2026-07-23",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-23T09:56:53.706739+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-24T09:13:47.350036+00:00"
   },
   {
     "date": "2026-07-23",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-23T15:47:15.777649+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 10,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-24T09:13:47.350036+00:00"
   },
   {
     "date": "2026-07-23",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-23T15:47:15.777649+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-24T09:13:47.350036+00:00"
   },
   {
     "date": "2026-07-23",
@@ -255,8 +255,8 @@
     "alt_suggestion": "If -140 is too steep, look for a reduced juice line on the same prop or target Melton Outs Over 17.5 at -150 only if his workload holds. Alternatively, skip and take value elsewhere.",
     "found_at": "2026-07-23T20:58:09.349024+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-24T09:13:47.350036+00:00"
   }
 ]
