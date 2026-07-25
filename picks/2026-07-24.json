@@ -21,9 +21,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-24T09:44:38.234659+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 1,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -47,9 +47,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-24T09:44:38.234659+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 1,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-24T09:44:38.234659+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-24T09:44:38.234659+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-24T09:44:38.234659+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 11,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -150,10 +150,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-24T15:20:30.629383+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -177,9 +177,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-24T15:20:30.629383+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 3,
+    "home_score_final": 11,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-24T23:35:54.417400+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -229,9 +229,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-24T23:35:54.417400+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 0,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-24T23:35:54.417400+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 9,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -281,9 +281,9 @@
     "alt_suggestion": "If -142 is too steep, consider Bryce Miller Outs Over 17.5 (-140) as a correlated but cleaner expression \u2014 he's averaging 5.9 IP/gs and going deep in recent starts.",
     "found_at": "2026-07-24T23:35:54.417400+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   },
   {
     "date": "2026-07-24",
@@ -306,9 +306,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-24T23:35:54.417400+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 6,
+    "home_score_final": 7,
+    "annotated_at": "2026-07-25T08:53:44.066439+00:00"
   }
 ]
