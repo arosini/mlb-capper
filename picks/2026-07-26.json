@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-26T09:33:12.491870+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 10,
+    "annotated_at": "2026-07-26T20:53:18.107974+00:00"
   },
   {
     "date": "2026-07-26",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-26T09:33:12.491870+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-26T20:53:18.107974+00:00"
   },
   {
     "date": "2026-07-26",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-26T09:33:12.491870+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-26T20:53:18.107974+00:00"
   },
   {
     "date": "2026-07-26",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-26T09:33:12.491870+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-26T20:53:18.107974+00:00"
   },
   {
     "date": "2026-07-26",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-26T14:56:16.602744+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 10,
+    "annotated_at": "2026-07-26T20:53:18.107974+00:00"
   },
   {
     "date": "2026-07-26",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-26T14:56:16.602744+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 10,
+    "annotated_at": "2026-07-26T20:53:18.107974+00:00"
   },
   {
     "date": "2026-07-26",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-26T14:56:16.602744+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-26T20:53:18.107974+00:00"
   },
   {
     "date": "2026-07-26",
@@ -280,6 +280,58 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-26T14:56:16.602744+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
+  },
+  {
+    "date": "2026-07-26",
+    "game": "NYY @ PHI",
+    "away": "New York Yankees",
+    "away_code": "NYY",
+    "home": "Philadelphia Phillies",
+    "home_code": "PHI",
+    "game_time_utc": "2026-07-26T23:21:00Z",
+    "bet_type": "Total",
+    "bet": "Game Total Under 8.0",
+    "team_side": "under",
+    "line": 8.0,
+    "period": "full_game",
+    "odds": "-105",
+    "odds_num": -105,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Despite ugly recent ERAs from both starters, the flags caution against over-weighting those numbers: Warren's 3-start ERA is skewed by a 14-ER blowup on 7/7, and Sanchez's by a 9-ER meltdown on 7/6 \u2014 both outlier starts. Adjusting for those, Warren is a league-average-to-below-average arm and Sanchez has elite underlying metrics (xERA 2.94, HH% 41.5, Barrel% 2.4). Crucially, BOTH offenses are ice-cold: NYY vs LHP wRC+ 63 and PHI vs RHP wRC+ 66 \u2014 both in the bottom tier of recent production. PHI's bullpen is solid (xERA 3.64) and NYY's pen has been excellent by ERA (2.58). With two frigid offenses, at least one legitimate ace on the mound (Sanchez), and both bullpens available/fresh, 8.0 is a line the market is setting with the skewed ERAs in mind. The actual run environment here \u2014 cold bats on both sides, a strong PHI pen, and Sanchez's elite true-talent \u2014 favors the under at a near-even price.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-07-26T20:52:44.000643+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
+  },
+  {
+    "date": "2026-07-26",
+    "game": "NYY @ PHI",
+    "away": "New York Yankees",
+    "away_code": "NYY",
+    "home": "Philadelphia Phillies",
+    "home_code": "PHI",
+    "game_time_utc": "2026-07-26T23:21:00Z",
+    "bet_type": "Pitcher_Ks",
+    "bet": "C. Sanchez K Over 7.5",
+    "team_side": null,
+    "line": 7.5,
+    "period": "props",
+    "odds": "+106",
+    "odds_num": 106,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Sanchez has elite underlying K metrics: 25.8 K%, averaging 5.3 K/start in his recent 3. However, his recent opponents \u2014 KCR (28% K%) and DET (28% K%) \u2014 were among the most strikeout-prone teams in the league, and he still posted a flat 1K and 9K outings; the 9K vs PIT (a contact team) is the most reliable data point. Today's opponent NYY vs LHP shows a 28.3% K rate \u2014 matching or exceeding those recent high-K opponents. Sanchez goes ~5 innings average recently but his elite outing (7.0 IP, 9K vs PIT) shows his ceiling. Calibrating: if he's healthy and has his stuff (the 7/6 blowup was clearly an outlier \u2014 9 ER with only 1K suggests he was tipping or injured that day), NYY's 28.3% K rate is a strong matchup. At home he's been sharp (1.49 ERA, 6.0 IP/gs). With NYY's strikeout-heavy lineup vs LHP at +106 (plus-money), there's genuine value on the over \u2014 the market appears to be discounting Sanchez due to the ugly recent ERA despite his K ability vs a high-K lineup.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-07-26T20:52:44.000643+00:00",
     "result": null,
     "away_score_final": null,
     "home_score_final": null,
