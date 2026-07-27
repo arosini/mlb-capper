@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-26T20:52:44.000643+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 11,
+    "annotated_at": "2026-07-27T10:30:58.032837+00:00"
   },
   {
     "date": "2026-07-26",
@@ -333,8 +333,8 @@
     "alt_suggestion": null,
     "found_at": "2026-07-26T20:52:44.000643+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 4,
+    "home_score_final": 11,
+    "annotated_at": "2026-07-27T10:30:58.032837+00:00"
   }
 ]
