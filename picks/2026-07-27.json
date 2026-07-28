@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T10:55:13.158926+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T10:55:13.158926+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T10:55:13.158926+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -98,10 +98,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider CHC ML at -110 as a more balanced expression of this edge \u2014 CHC offense vs weak STL pitching/bullpen combination.",
     "found_at": "2026-07-27T10:55:13.158926+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T10:55:13.158926+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -151,9 +151,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-27T10:55:13.158926+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 7,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -176,10 +176,10 @@
     "line_warning": true,
     "alt_suggestion": "Wheeler K Over 7.5 at +110 is the cleaner, better-priced expression of this pitching edge.",
     "found_at": "2026-07-27T10:55:13.158926+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T10:55:13.158926+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 0,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T10:55:13.158926+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T10:55:13.158926+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T16:07:17.079202+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T16:07:17.079202+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -333,9 +333,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-27T21:06:48.703544+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -358,10 +358,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T21:06:48.703544+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -384,10 +384,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T23:37:07.687823+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -411,9 +411,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-27T23:37:07.687823+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   },
   {
     "date": "2026-07-27",
@@ -436,9 +436,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-27T23:37:07.687823+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 9,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-28T09:29:49.384410+00:00"
   }
 ]
