@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-28T10:06:34.916605+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 7,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-28T10:06:34.916605+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-28T10:06:34.916605+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -98,10 +98,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider DET F5 ML at -156 (same issue) or DET Team Total Over 4.5 at -122 as a cleaner expression of the offensive edge vs Kremer.",
     "found_at": "2026-07-28T10:06:34.916605+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 14,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-28T10:06:34.916605+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 10,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -150,10 +150,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-28T10:06:34.916605+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -176,10 +176,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider MIN F5 ML at -166 (slightly worse) or MIN -1.5 at +132 for positive-odds exposure to this edge.",
     "found_at": "2026-07-28T10:06:34.916605+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -202,10 +202,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider MIL -1.5 at +126 for a better price on this edge.",
     "found_at": "2026-07-28T10:06:34.916605+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-28T10:06:34.916605+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 6,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -281,9 +281,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-28T15:59:13.522097+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -306,10 +306,10 @@
     "line_warning": true,
     "alt_suggestion": "LAD F5 -0.5 spread at -135 or LAD team total Over 2.5 (F5) at -140 are better-priced expressions of the same Wrobleski dominance edge.",
     "found_at": "2026-07-28T15:59:13.522097+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -332,10 +332,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider DET F5 Team Total Over 2.5 at -120 to avoid the juice; or Troy Melton Ks Over 5.5 at -128 as a pure pitcher edge.",
     "found_at": "2026-07-28T21:05:47.357868+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 0,
+    "home_score_final": 14,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -358,10 +358,10 @@
     "line_warning": true,
     "alt_suggestion": "Try CHC F5 Team Total Over 2.5 at +114 as a better-priced offensive angle vs McGreevy's concerning peripherals.",
     "found_at": "2026-07-28T21:05:47.357868+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 10,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -385,9 +385,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-28T21:05:47.357868+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 10,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -410,10 +410,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-28T21:05:47.357868+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 6,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -437,9 +437,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-28T21:05:47.357868+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 6,
+    "home_score_final": 8,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -462,10 +462,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-28T23:34:31.421262+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   },
   {
     "date": "2026-07-28",
@@ -488,9 +488,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-28T23:34:31.421262+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-07-29T09:31:37.250125+00:00"
   }
 ]
