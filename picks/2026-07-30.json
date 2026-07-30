@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T09:59:20.851559+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-30T23:36:42.648609+00:00"
   },
   {
     "date": "2026-07-30",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T09:59:20.851559+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-30T23:36:42.648609+00:00"
   },
   {
     "date": "2026-07-30",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T09:59:20.851559+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-30T23:36:42.648609+00:00"
   },
   {
     "date": "2026-07-30",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T15:45:55.336265+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-30T23:36:42.648609+00:00"
   },
   {
     "date": "2026-07-30",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T15:45:55.336265+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 2,
+    "annotated_at": "2026-07-30T23:36:42.648609+00:00"
   },
   {
     "date": "2026-07-30",
@@ -384,6 +384,32 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T21:03:31.160333+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
+  },
+  {
+    "date": "2026-07-30",
+    "game": "BOS @ ATH",
+    "away": "Boston Red Sox",
+    "away_code": "BOS",
+    "home": "Athletics",
+    "home_code": "ATH",
+    "game_time_utc": "2026-07-31T01:41:00Z",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Sonny Gray Ks Over 5.5",
+    "team_side": null,
+    "line": 5.5,
+    "period": "props",
+    "odds": "+123",
+    "odds_num": 123,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Gray is averaging 6.3 K/start over his last 3 outings (3K, 7K, 9K). The flag about his last start being 75 pitches is noted, but that was the 9K vs NYY start where he was pulled early after going deep \u2014 not a fatigue concern. Today's opponent ATH has a 19.1% K rate vs RHP, which is average; Gray's recent Ks came partly against NYM/LAA/NYY so calibration is roughly neutral. Adjusted expectation ~6.0-6.5 Ks vs the 5.5 line. Getting +123 on a pitcher in this form averaging above the line is strong value \u2014 normally this line should be -110 or worse. The Outs prop is -158 for Over 17.5 (5.8 IP), so the market expects him to go deep enough to accumulate. The K line at +123 is simply underpriced.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-07-30T23:35:22.135368+00:00",
     "result": null,
     "away_score_final": null,
     "home_score_final": null,
