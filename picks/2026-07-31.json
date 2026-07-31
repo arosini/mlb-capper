@@ -180,5 +180,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-07-31",
+    "game": "ARI @ CLE",
+    "away": "Arizona Diamondbacks",
+    "away_code": "ARI",
+    "home": "Cleveland Guardians",
+    "home_code": "CLE",
+    "game_time_utc": "2026-08-01T23:16:00Z",
+    "bet_type": "ML",
+    "bet": "ARI ML +126",
+    "team_side": "away",
+    "line": null,
+    "period": "full_game",
+    "odds": "+126",
+    "odds_num": 126,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Bibee is struggling recently (recent ERA 4.71, 6ER in one start vs CHW) and has a poor history vs ARI (6.92 ERA in 1gs, 5.29 ERA at home over 3gs). ARI offense is strong vs RHP (wRC+ 121). Bratt is a concern but ARI bullpen is reasonably fresh and the CLE pen has been stressed (5 IP yesterday). CLE is 3-7 in their L10 with only 2-3 in Bibee's last 5 starts. At +126, ARI has clear value as the underdog here.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-07-31T21:00:41.423887+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
