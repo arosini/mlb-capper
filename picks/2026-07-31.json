@@ -154,5 +154,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-07-31",
+    "game": "TEX @ HOU",
+    "away": "Texas Rangers",
+    "away_code": "TEX",
+    "home": "Houston Astros",
+    "home_code": "HOU",
+    "game_time_utc": "2026-08-01T00:16:00Z",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Nathan Eovaldi Ks Over 6.5 (+122)",
+    "team_side": null,
+    "line": 6.5,
+    "period": "props",
+    "odds": "+122",
+    "odds_num": 122,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Eovaldi has elite recent K numbers (10K, 9K, 9K in last 3 starts) averaging 9.3 K/start. His K% is 28.2%. HOU's K% vs RHP is 22.7%, which is above average and supports high K totals. His matchup history at this park is exceptional (0.63 ERA, 7.1 IP/gs in 2 starts), suggesting he goes deep. Calibrating for HOU's 22.7% K rate (moderate), adjusted expectation is ~8.0\u20138.5 Ks. The line is only 6.5 at +122 \u2014 that's outstanding value. The only concern is the TEX bullpen being fresh (may hook early), but his recent 7-inning outing and high pitch counts suggest the manager keeps him in. This is a line that significantly undervalues his current trajectory.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-07-31T15:53:13.637329+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
