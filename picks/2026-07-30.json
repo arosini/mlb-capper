@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T09:59:20.851559+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T09:59:20.851559+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -151,9 +151,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-30T09:59:20.851559+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T09:59:20.851559+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -202,10 +202,10 @@
     "line_warning": true,
     "alt_suggestion": "Consider BOS F5 Team Total Over 2.5 at -140 or ATH F5 Team Total Under 2.5 at -140 for better value expressions of this edge",
     "found_at": "2026-07-30T15:45:55.336265+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "push",
+    "away_score_final": 5,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -228,10 +228,10 @@
     "line_warning": true,
     "alt_suggestion": "ATH F5 Team Total Under 2.5 (-140) captures the Gray dominance with less pen exposure",
     "found_at": "2026-07-30T15:45:55.336265+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T15:45:55.336265+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 1,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -332,10 +332,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T21:03:31.160333+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -358,10 +358,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T21:03:31.160333+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -385,9 +385,9 @@
     "alt_suggestion": null,
     "found_at": "2026-07-30T21:03:31.160333+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   },
   {
     "date": "2026-07-30",
@@ -410,9 +410,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-07-30T23:35:22.135368+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 4,
+    "annotated_at": "2026-07-31T09:35:51.091855+00:00"
   }
 ]
