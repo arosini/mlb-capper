@@ -20,10 +20,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T09:33:49.395298+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 12,
+    "home_score_final": 8,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T09:33:49.395298+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 12,
+    "home_score_final": 8,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T09:33:49.395298+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 0,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -99,9 +99,9 @@
     "alt_suggestion": null,
     "found_at": "2026-08-01T09:33:49.395298+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 5,
+    "home_score_final": 0,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -124,10 +124,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T09:33:49.395298+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -150,10 +150,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T09:33:49.395298+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 6,
+    "home_score_final": 12,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T09:33:49.395298+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -228,10 +228,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T14:52:35.985704+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 12,
+    "home_score_final": 8,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T14:52:35.985704+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 0,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -280,10 +280,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T14:52:35.985704+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -332,10 +332,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T20:44:59.469858+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -358,10 +358,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T20:44:59.469858+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -385,9 +385,9 @@
     "alt_suggestion": null,
     "found_at": "2026-08-01T20:44:59.469858+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -410,10 +410,10 @@
     "line_warning": true,
     "alt_suggestion": "If -144 feels steep, consider SDP F5 ML -130 to limit exposure to Buehler's early exit while capturing the run-scoring edge upfront.",
     "found_at": "2026-08-01T20:44:59.469858+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -436,10 +436,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-01T23:31:10.349942+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   },
   {
     "date": "2026-08-01",
@@ -463,8 +463,8 @@
     "alt_suggestion": null,
     "found_at": "2026-08-01T23:31:10.349942+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-02T09:04:02.501886+00:00"
   }
 ]
