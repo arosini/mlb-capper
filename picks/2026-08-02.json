@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T09:33:15.788064+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-02T23:32:02.011407+00:00"
   },
   {
     "date": "2026-08-02",
@@ -72,10 +72,10 @@
     "line_warning": true,
     "alt_suggestion": "If -145 is too steep, try TEX F5 Team Total Under 2.5 (-166) \u2014 too expensive; instead look for live under opportunities if TEX scores early.",
     "found_at": "2026-08-02T09:33:15.788064+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-02T23:32:02.011407+00:00"
   },
   {
     "date": "2026-08-02",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T09:33:15.788064+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-02T23:32:02.011407+00:00"
   },
   {
     "date": "2026-08-02",
@@ -150,10 +150,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T09:33:15.788064+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 8,
+    "annotated_at": "2026-08-02T23:32:02.011407+00:00"
   },
   {
     "date": "2026-08-02",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T09:33:15.788064+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-02T23:32:02.011407+00:00"
   },
   {
     "date": "2026-08-02",
@@ -254,10 +254,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T14:54:29.956474+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-02T23:32:02.011407+00:00"
   },
   {
     "date": "2026-08-02",
@@ -306,10 +306,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T14:54:29.956474+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 1,
+    "annotated_at": "2026-08-02T23:32:02.011407+00:00"
   },
   {
     "date": "2026-08-02",
@@ -332,10 +332,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T14:54:29.956474+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 0,
+    "annotated_at": "2026-08-02T23:32:02.011407+00:00"
   },
   {
     "date": "2026-08-02",
@@ -358,10 +358,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T14:54:29.956474+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-02T23:32:02.011407+00:00"
   },
   {
     "date": "2026-08-02",
