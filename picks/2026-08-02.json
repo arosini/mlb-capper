@@ -384,10 +384,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T20:48:11.943512+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-03T10:31:11.594000+00:00"
   },
   {
     "date": "2026-08-02",
@@ -410,10 +410,10 @@
     "line_warning": true,
     "alt_suggestion": "Look for Sheehan Over 4.5 Ks at a better price if available, or pass if -130 feels too steep.",
     "found_at": "2026-08-02T20:48:11.943512+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-03T10:31:11.594000+00:00"
   },
   {
     "date": "2026-08-02",
@@ -436,9 +436,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-02T20:48:11.943512+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-03T10:31:11.594000+00:00"
   }
 ]
