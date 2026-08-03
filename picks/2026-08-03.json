@@ -284,5 +284,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-08-03",
+    "game": "PIT @ MIL",
+    "away": "Pittsburgh Pirates",
+    "away_code": "PIT",
+    "home": "Milwaukee Brewers",
+    "home_code": "MIL",
+    "game_time_utc": "2026-08-04T23:40:00Z",
+    "bet_type": "Team_Total",
+    "bet": "MIL Team Total Over 4.5",
+    "team_side": "home_over",
+    "line": 4.5,
+    "period": "full_game",
+    "odds": "+116",
+    "odds_num": 116,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Bubba Chandler is severely struggling (recent ERA 6.92, xERA 2.22 \u2014 a massive recent vs xERA gap indicating acute real-world struggles, not luck). He has a catastrophic 15.47 ERA in 2 career starts vs MIL specifically. MIL's offense is above-average (wRC+ 121 vs RHP) and is hitting well at home (avg 4.6 RS in Sproat's home starts). PIT's bullpen (xERA 3.69) isn't a lockdown unit either. Getting +116 on a team scoring over 4.5 runs against a pitcher who has posted a 15.47 ERA against them is very attractive.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-08-03T20:59:14.976065+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
