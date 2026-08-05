@@ -206,5 +206,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-08-05",
+    "game": "MIA @ ATL",
+    "away": "Miami Marlins",
+    "away_code": "MIA",
+    "home": "Atlanta Braves",
+    "home_code": "ATL",
+    "game_time_utc": "2026-08-05T23:16:00Z",
+    "bet_type": "ML",
+    "bet": "MIA ML",
+    "team_side": "away",
+    "line": null,
+    "period": "full_game",
+    "odds": "+114",
+    "odds_num": 114,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Eury Perez is in historic form (recent ERA 0.95, averaging 7.7 K/start, xERA 2.33 elite) and ATL's Bryce Elder is actively struggling (recent ERA 6.43, xERA 4.67, HH% 50%, Barrel% 13%). Elder has a 5.52 ERA vs MIA over 3 career starts and 5.50 ERA at home over 3 starts \u2014 no safe harbor here. MIA offense vs RHP is wRC+ 113 in L12. The main concern is Perez's own matchup history at this park (7.91 ERA in 2 starts at Truist) and MIA's shaky bullpen (xERA 4.20). However, Perez's current trajectory is exceptional and Elder is a genuine liability. At +114, MIA offers clear value given the starting pitcher edge \u2014 the underdog price more than compensates for the bullpen risk.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-08-05T15:53:41.177973+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
