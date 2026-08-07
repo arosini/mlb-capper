@@ -56,8 +56,8 @@ def _canon_pick_key(pick: dict) -> tuple:
 
     Groups:
     - "winner"   : ML, Spread, F5_ML, F5_Spread — correlated; one per game
-    - "runstotal": Total, F5_Total — correlated; one per game
-    - "teamtotal": one per team (home/away), direction stripped from team_side
+    - "runstotal": Total, F5_Total, Team_Total, F5 Team Total — all express an opinion on
+                   the same run environment; one per game across all four
     - "pitcherks" / "pitcherouts": one per pitcher (keyed on pitcher last name)
     """
     game = pick.get("game", "")
@@ -76,13 +76,9 @@ def _canon_pick_key(pick: dict) -> tuple:
         words = bet.split()
         pitcher_last = words[1] if len(words) >= 2 else (words[0] if words else "")
         return (game, "pitcher", pitcher_last)
-    # Team totals: keyed on which team (home/away), direction stripped
-    if bt == "teamtotal":
-        ts = (pick.get("team_side") or "").lower()
-        team = ts.split("_")[0] if ts else ""  # "home_over" → "home"
-        return (game, "teamtotal", team)
-    # Correlated total markets: full game total and F5 total share one slot
-    if bt in ("total", "f5total"):
+    # Correlated total markets: game total, F5 total, team total, and F5 team total all
+    # express an opinion on the same run environment — one pick per game across all four.
+    if bt in ("total", "f5total", "teamtotal", "f5teamtotal"):
         return (game, "runstotal")
     # Correlated winner markets: ML, Spread, F5 ML, F5 Spread share one slot
     if bt in ("ml", "moneyline", "spread", "f5ml", "f5spread"):

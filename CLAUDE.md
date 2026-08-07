@@ -21,7 +21,7 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHR
 | Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L12RHP/LHP), bullpen stats (last 12), ballpark weather |
 | MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs |
 | The Odds API | API key (query param) | Full-game ML/spread/total + F5 ML/spread/total + pitcher K/outs props for DK, FanDuel, Fanatics — 500 req/month free |
-| Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Sonnet 4.6 for AI Picks section — called once per odds refresh, cached to `data/suggestions_{date}.json` |
+| Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Opus 4.8 for AI Picks — one generation call per odds refresh plus one audit call per pick, cached to `data/suggestions_{date}.json` |
 
 ## Module Structure
 
@@ -82,7 +82,10 @@ Run locally: `python3 handicap.py` (terminal) or `python3 handicap.py --html > o
 - `odds_meta_{date}.json` — timestamp of last odds fetch (used for throttle check)
 - `props_{date}.json` — per-event pitcher K/outs props + F5 odds
 - `bullpen_stress_{date}.json` — cached bullpen IP for past 2 calendar days (written once/day)
-- `suggestions_{date}.json` / `suggestions_meta_{date}.json` — AI picks cache
+- `suggestions_{date}.json` / `suggestions_meta_{date}.json` — AI picks cache (post-verification)
+
+Outside `data/`: `picks/{date}.json` (git-tracked pick log) and `rejections/{date}.json`
+(git-tracked log of picks the verification pass threw out, for prompt tuning).
 
 ## Team Code Normalization
 Handigraphs starters use codes like `KCR`, `TBR`, `SFG`, `SDP`, `CHW`, `WSN`, `ARI`. All canonical maps live in `teams.py`:
@@ -116,6 +119,35 @@ CSS uses `prefers-color-scheme: dark` for automatic dark mode.
 - **Secrets needed**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`
 - **Trigger manually**: `gh workflow run publish.yml`
 
+## AI Picks — generation and verification
+
+Two model calls, both Claude Opus 4.8 with `thinking: {"type": "adaptive"}`:
+
+1. **Generation** (`generate_suggestions`) — one call for the whole slate. Runs with
+   `tool_choice: auto`, **not** forced. Forcing the tool suppresses thinking entirely on
+   Opus 4.8 (verified: a forced call returns a bare `tool_use` block, no thinking), which
+   would defeat the point of using Opus. If the model answers in prose instead of calling
+   the tool, a follow-up turn re-asks with the tool forced — the reasoning is already in
+   context, so nothing is lost.
+2. **Verification** (`_verify_pick`) — one call *per pick*. Re-sends the exact data card
+   that pick came from plus its rationale to a fresh context, and returns ACCEPT/REJECT.
+   Rejected picks are dropped before anything is saved and logged to
+   `rejections/{date}.json` for prompt tuning. **Fails open**: an API error or a missing
+   verdict keeps the pick rather than silently discarding it.
+
+The auditor's top check is backwards baseball logic — backing a team while citing that
+team's *own* pitcher's bad xERA/ERA. Each team bats against the OPPOSING pitcher; this
+was the most common failure in the pre-rewrite prompt.
+
+**Stat windows are temporal and the prompt depends on it.** SP xERA/ERA/K%/BB% are the
+last 3 starts (`starters_last3g_*`), team wRC+/K% are the last 12 games split by opposing
+starter hand, bullpens are the last 12. xERA and ERA cover the *same* 3-start window —
+they are not "season vs recent". The prompt requires every stat in a rationale to carry
+its window in the output text.
+
+`extract_outings()` returns outings **newest-first**. `render_html.py` slices `[:n]`;
+`suggestions.py` takes `[:3]` then reverses for chronological display. Do not `[-3:]`.
+
 ## Adding New Data Fields
 1. Check what's available: `python3 download.py --inspect`
 2. Map the raw JSON key in the appropriate `_load_*_json()` in `loaders.py`
@@ -123,6 +155,6 @@ CSS uses `prefers-color-scheme: dark` for automatic dark mode.
 4. Render it in `_sp_card()` / `_bp_row()` / `_bat_card()` in `render_html.py`
 
 ## Odds API Budget
-500 req/month free tier. Current usage: ~30/month (once per 3-hour window × number of games for props). Bulk odds: 1 call/run. Props: 1 call/game/run (skipped if < 3h old). To check remaining quota, run `python3 download.py` and watch the odds/props lines — they print `X API calls remaining`.
+Paid tier — a full run on 2026-08-07 (1 bulk + 15 prop calls) reported ~15,795 remaining, so the old "500/month free" note no longer applies. Usage is ~16 calls per refresh (once per 3-hour window × number of games for props). Bulk odds: 1 call/run. Props: 1 call/game/run (skipped if < 3h old). To check remaining quota, run `python3 download.py` and watch the odds/props lines — they print `X API calls remaining`.
 
 **CRITICAL**: Never let Claude run `curl https://api.the-odds-api.com/` — this costs credits. The `.claude/settings.json` denies this automatically.
