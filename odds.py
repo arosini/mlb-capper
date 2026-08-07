@@ -168,6 +168,19 @@ def fmt_total(side: str, point, price) -> str:
     return f"{side}{point} ({pr})"
 
 
+def fmt_total_ou(point, over_price, under_price) -> str:
+    """Format an over/under pair as a single cell — '3.5 (-113/-102)'.
+
+    The line is shared between both sides, so it's shown once with each price
+    after it. Falls back to the bare line when either price is missing.
+    """
+    if point is None:
+        return "—"
+    if over_price is None or under_price is None:
+        return str(point)
+    return f"{point} ({fmt_ml(over_price)}/{fmt_ml(under_price)})"
+
+
 def fmt_k_line(k: Optional[dict]) -> str:
     """Format pitcher K O/U as 'K O/U 5.5 (-115 / -105)'."""
     if not k or k.get("point") is None:
@@ -268,12 +281,16 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
         "away_tt_under": fmt_total("U", away_tt_un_pt, away_tt_un_pr),
         "home_tt_over":  fmt_total("O", home_tt_ov_pt, home_tt_ov_pr),
         "home_tt_under": fmt_total("U", home_tt_un_pt, home_tt_un_pr),
+        "away_tt_ou":    fmt_total_ou(away_tt_ov_pt, away_tt_ov_pr, away_tt_un_pr),
+        "home_tt_ou":    fmt_total_ou(home_tt_ov_pt, home_tt_ov_pr, home_tt_un_pr),
         # Team totals — F5
         "has_f5tt":          has_f5tt,
         "away_f5tt_over":    fmt_total("O", away_f5tt_ov_pt, away_f5tt_ov_pr),
         "away_f5tt_under":   fmt_total("U", away_f5tt_un_pt, away_f5tt_un_pr),
         "home_f5tt_over":    fmt_total("O", home_f5tt_ov_pt, home_f5tt_ov_pr),
         "home_f5tt_under":   fmt_total("U", home_f5tt_un_pt, home_f5tt_un_pr),
+        "away_f5tt_ou":      fmt_total_ou(away_f5tt_ov_pt, away_f5tt_ov_pr, away_f5tt_un_pr),
+        "home_f5tt_ou":      fmt_total_ou(home_f5tt_ov_pt, home_f5tt_ov_pr, home_f5tt_un_pr),
         # Pitcher props
         "away_k":    away_k,
         "home_k":    home_k,

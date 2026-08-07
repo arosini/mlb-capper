@@ -407,6 +407,68 @@ def _team_trends(
     }
 
 
+# Below these sample sizes a record is noise rather than a trend, so the line
+# is dropped instead of shown.
+_OU_MIN_TEAM    = 3
+_OU_MIN_PITCHER = 2
+
+
+def ou_trends(
+    hist_games: list[dict],
+    team: str,
+    pitcher_id: str,
+    is_home_today: bool,
+    today_s: str,
+) -> Optional[dict]:
+    """Over/under records for a team across four slices of graded history.
+
+    Returns (over, under) tuples plus sample sizes for: the team's last 10 games,
+    their last 10 on today's side, their last 5 behind today's starter, and their
+    last 3 behind that starter on today's side. Slices below the minimum sample
+    are omitted. hist_games must be graded and oldest-first (load_history_games).
+    """
+    if not hist_games or not team:
+        return None
+
+    played = [
+        g for g in hist_games
+        if g.get("date", "") < today_s
+        and team in (g.get("away_code"), g.get("home_code"))
+    ]
+    if not played:
+        return None
+
+    def is_home(g: dict) -> bool:
+        return g.get("home_code") == team
+
+    def rec(games: list[dict]) -> tuple[int, int]:
+        over = sum(1 for g in games if g["over_hit"])
+        return over, len(games) - over
+
+    side = [g for g in played if is_home(g) == is_home_today]
+
+    pid = str(pitcher_id or "")
+    starts = [
+        g for g in played
+        if pid and pid in (str(g.get("away_pitcher_id") or ""),
+                           str(g.get("home_pitcher_id") or ""))
+    ] if pid else []
+    starts_side = [g for g in starts if is_home(g) == is_home_today]
+
+    out: dict = {"is_home": is_home_today}
+    for key, games, n, floor in (
+        ("last10",       played,      10, _OU_MIN_TEAM),
+        ("last10_side",  side,        10, _OU_MIN_TEAM),
+        ("sp_last5",     starts,       5, _OU_MIN_PITCHER),
+        ("sp_last3_side", starts_side, 3, _OU_MIN_PITCHER),
+    ):
+        window = games[-n:]
+        if len(window) >= floor:
+            out[key] = rec(window)
+            out[f"n_{key}"] = len(window)
+    return out if len(out) > 1 else None
+
+
 def extract_outings(history: list[dict], n: int = 5) -> list[dict]:
     """Return the n most-recent outings from a game-log list, newest first."""
     result = []
@@ -527,6 +589,7 @@ def analyze_game(
             "woba":    fp3(s.get("wOBA")),
             "k":       fp1(s.get("K%")),
             "hard":    fp1(s.get("HardHit%")),
+            "whiff":   fp1(s.get("Whiff%")),
             "vs_hand": "RHP" if hand == "R" else "LHP",
         }
 
@@ -681,6 +744,8 @@ def analyze_game(
         "game_number":   mlb_info.get("game_number") or 1,
         "away_sp":       away_sp,
         "home_sp":       home_sp,
+        "away_sp_id":    str(p_away.get("mlbam_id") or ""),
+        "home_sp_id":    str(p_home.get("mlbam_id") or ""),
         "pitch_edge":    pitch_edge,
         "away_off":      away_off,
         "home_off":      home_off,

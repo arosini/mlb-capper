@@ -301,6 +301,14 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today",
         if key == "starters":
             # Before 6 AM ET Handigraphs' 'today' slot still shows yesterday's
             # completed slate; 'tomorrow' already has today's upcoming starters.
+            # The flip side: tomorrow's real slate isn't published yet, so fetching
+            # it would save today's starters under a tomorrow-dated file. Every SP
+            # would then fail validate_pitchers() against the MLB API's probables
+            # and get blanked. Keep whatever the prior evening's run cached.
+            if slot == "tomorrow" and et_hour < 6:
+                print("  [starters] Before 6 AM ET — tomorrow's slate not published yet; "
+                      "keeping cached file")
+                continue
             effective_slot = "tomorrow" if slot == "today" and et_hour < 6 else slot
             if effective_slot != slot:
                 print(f"  [starters] Before 6 AM ET — fetching 'tomorrow' slot (today's upcoming slate)")

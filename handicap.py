@@ -23,7 +23,7 @@ _ET = timezone(timedelta(hours=-4))
 from teams import _MLB_MAP, to_mlb, ODDS_TEAM
 from loaders import (
     load_starters, load_team_stats, load_bullpen, load_ballpark_weather,
-    load_odds_meta, load_pitcher_props,
+    load_odds_meta, load_pitcher_props, load_history_games,
 )
 from odds import load_odds, get_game_odds, pick_odds_by_time
 from mlb_api import (
@@ -31,7 +31,7 @@ from mlb_api import (
     get_mlb_schedule, get_bullpen_stress,
     get_recent_starts, get_team_schedule, get_weather,
 )
-from analysis import analyze_game, build_games, validate_pitchers
+from analysis import analyze_game, build_games, validate_pitchers, ou_trends
 import render_terminal
 from render_html import render_html_page
 from suggestions import generate_suggestions
@@ -180,6 +180,11 @@ def main():
     odds_at    = load_odds_meta(data_dir, target_date)
     props_data = load_pitcher_props(data_dir, target_date)
     _log(f"Props: {len(props_data)} games loaded" if props_data else "Props: no file found")
+    # Graded odds history backs the over/under trend lines; lives alongside the
+    # code (git-tracked), not in data/.
+    hist_games = load_history_games(Path(__file__).parent / "history")
+    _log(f"History: {len(hist_games)} graded games loaded" if hist_games
+         else "History: no graded games found")
 
     game_data: list[dict] = []
     for p1, p2 in games:
@@ -241,6 +246,9 @@ def main():
                         or odds_data.get((home_full, away_full)) or [])
             raw_game = pick_odds_by_time(raw_games, time_hint) or {}
             g["game_time_utc"] = raw_game.get("commence_time", "")
+            today_s = target_date.strftime("%Y-%m-%d")
+            g["away_ou"] = ou_trends(hist_games, g["away"], g["away_sp_id"], False, today_s)
+            g["home_ou"] = ou_trends(hist_games, g["home"], g["home_sp_id"], True,  today_s)
             game_data.append(g)
         else:
             render_terminal.print_game(p1, p2, rhp, lhp, bp, mlb_info, wx)

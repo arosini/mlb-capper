@@ -58,6 +58,9 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .sec:not([open])>.sec-sum::after{content:'▸'}
 .sec-sum-static{cursor:default}
 .sec-sum-static::after{content:none}
+.sec-nested{border:none;border-top:1px solid rgba(0,0,0,.09);border-radius:0;margin-top:.3rem}
+.sec-nested>.sec-sum{padding:.3rem 0 .15rem;font-size:.62rem}
+.sec-nested>.mu-2c{padding-bottom:.15rem}
 .sec-body{padding:.3rem .5rem .5rem}
 .mu-card{background:rgba(0,0,0,.028);border-radius:.35rem;padding:.35rem .5rem}
 .mu-card-hd{font-size:.75rem;font-weight:700;margin-bottom:.25rem}
@@ -90,6 +93,8 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .flags li{font-size:.78rem;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:.18rem .45rem;margin-top:.2rem;border-radius:0 4px 4px 0}
 .trends{list-style:none;display:flex;flex-direction:column;gap:.15rem}
 .trends li{font-size:.79rem;padding:.12rem 0}
+.trends-hd{margin-top:.4rem;padding-top:.35rem;border-top:1px solid rgba(0,0,0,.09);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af}
+.trends-hd:first-child{margin-top:0;padding-top:0;border-top:none}
 .trend-hd{font-size:.7rem;font-weight:700;color:#374151;padding:.3rem 0 .05rem;border-top:1px solid rgba(0,0,0,.07);margin-top:.2rem}
 .trend-hd:first-child{border-top:none;margin-top:0;padding-top:0}
 .tw{color:#16a34a;font-weight:700}.tl{color:#dc2626;font-weight:700}
@@ -108,6 +113,8 @@ header{background:#030712}
 .mu-card{background:rgba(255,255,255,.05)}
 .mu-divider{background:rgba(255,255,255,.12)}
 .sec{border-color:#2a2a2a}
+.sec-nested{border-top-color:#2a2a2a}
+.trends-hd{border-top-color:#2a2a2a;color:#6b7280}
 .mu-lbl{color:#6b7280}
 .ot-hd span{color:#6b7280}
 .stats b{color:#d1d5db}
@@ -365,6 +372,10 @@ _SPLIT_SCRIPT = """
     return et.getHours()*60+et.getMinutes();
   }
   function split(){
+    // Only meaningful on the today page — data-start-min is a minute-of-day with
+    // no date attached, so on /tomorrow/ every game before the current clock time
+    // would otherwise be misfiled as already started.
+    if(document.body.dataset.slot==='tomorrow')return;
     var now=etMin();
     var main=document.querySelector('main');
     if(!main)return;
@@ -565,24 +576,33 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         vals = [o[key] for o in outings[:n] if o.get(key) is not None]
         return f"{sum(vals)/len(vals):.0f}" if vals else None
 
-    def _sp_card(sp, pc_avg=None):
+    def _sp_card(sp, pc_avg=None, sec_id=""):
+        # Headline three stay visible; the peripherals live behind "More Stats".
         ec = _era_cls(sp["label"])
         rows  = _row("xERA",    sp["xera_s"], ec,             sp["label"])
+        rows += _row("ERA",     sp["era_s"])
         k_v   = flt(sp["k"])
         rows += _row("K%",      sp["k"],      _k_sp_cls(k_v),  _k_sp_lbl(k_v))
+
         hh_v  = flt(sp["hard"])
-        rows += _row("HH%",     sp["hard"],   _hh_sp_cls(hh_v), _hh_sp_lbl(hh_v))
+        more  = _row("HH%",     sp["hard"],   _hh_sp_cls(hh_v), _hh_sp_lbl(hh_v))
         bv = flt(sp["barrel"])
-        rows += _row("Barrel%", sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
-        rows += _row("ERA",     sp["era_s"])
-        rows += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
-        rows += f'<span class="mu-lbl">H/gs</span><span class="dim">{_h(sp["h_per_gs"])}</span>'
+        more += _row("Barrel%", sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
+        more += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
+        more += f'<span class="mu-lbl">H/gs</span><span class="dim">{_h(sp["h_per_gs"])}</span>'
         pc_display = pc_avg if (pc_avg and sp.get("has_stats")) else "?"
-        rows += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_display)}</span>'
-        rows += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
+        more += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_display)}</span>'
+        more += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
+        more_html = (
+            f'<details class="sec sec-nested" id="{_h(sec_id)}">'
+            f'<summary class="sec-sum">More Stats</summary>'
+            f'<div class="mu-2c">{more}</div>'
+            f'</details>'
+        ) if sec_id else ""
+
         hb = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
         return (f'<div class="mu-card"><div class="mu-card-hd">{_h(sp["name"])} {hb}</div>'
-                f'<div class="mu-2c">{rows}</div></div>')
+                f'<div class="mu-2c">{rows}</div>{more_html}</div>')
 
     def _bat_card(team, off):
         if off:
@@ -592,6 +612,8 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             rows += _row("K%",  off["k"],   _k_bat_cls(k_v),  _k_bat_lbl(k_v))
             hh_v  = flt(off["hard"])
             rows += _row("HH%", off["hard"], _hh_bat_cls(hh_v), _hh_bat_lbl(hh_v))
+            if off.get("whiff") and off["whiff"] != "?":
+                rows += f'<span class="mu-lbl">Whiff%</span><span class="dim">{_h(off["whiff"])}</span>'
             vs = f'vs {off["vs_hand"]}'
         else:
             rows = f'<span class="dim" style="grid-column:1/-1;font-size:.8rem">No data</span>'
@@ -689,12 +711,20 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             cond_line = f'<div>{apf_html}{rain_html}</div>'
         wx_body = (f'<div class="dim">{_h(", ".join(parts))}</div>' if parts else "") + cond_line
         wx_sum_lbl = f"Weather · {effective_wx_lbl}" if effective_wx_lbl else "Weather"
-        wx_html = (
-            f'<details class="sec" id="{g_id}-weather">'
-            f'<summary class="sec-sum">{_h(wx_sum_lbl)}</summary>'
-            f'<div class="sec-body">{wx_body}</div>'
-            f'</details>'
-        )
+        if wx_body:
+            wx_html = (
+                f'<details class="sec" id="{g_id}-weather">'
+                f'<summary class="sec-sum">{_h(wx_sum_lbl)}</summary>'
+                f'<div class="sec-body">{wx_body}</div>'
+                f'</details>'
+            )
+        else:
+            # Nothing to expand into — render flat so no chevron implies otherwise.
+            wx_html = (
+                f'<div class="sec">'
+                f'<div class="sec-sum sec-sum-static">{_h(wx_sum_lbl)}</div>'
+                f'</div>'
+            )
 
     flags_html = ""
     if g["flags"]:
@@ -732,26 +762,23 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             )
         tt_html = ""
         if od.get("has_tt") or od.get("has_f5tt"):
-            def _tt_row(team_name, over_s, under_s, f5_over_s="", f5_under_s=""):
-                has_f5 = bool(f5_over_s and f5_over_s != "—")
-                f5_cells = (f'<span class="odds-val dim">{_h(f5_over_s)}</span>'
-                            f'<span class="odds-val dim">{_h(f5_under_s)}</span>') if has_f5 else ""
+            # Over and under share a line, so each market collapses to one cell:
+            # "3.5 (-113/-102)" — see odds.fmt_total_ou().
+            def _tt_row(team_name, ou_s, f5_ou_s=""):
+                f5_cell = (f'<span class="odds-val dim">{_h(f5_ou_s)}</span>'
+                           if show_f5tt else "")
                 return (f'<span class="tm">{_h(team_name)}</span>'
-                        f'<span class="odds-val">{_h(over_s)}</span>'
-                        f'<span class="odds-val">{_h(under_s)}</span>'
-                        + f5_cells)
+                        f'<span class="odds-val">{_h(ou_s)}</span>'
+                        + f5_cell)
             show_f5tt = od.get("has_f5tt")
-            cols = "1fr 1fr 1fr 1fr 1fr" if show_f5tt else "1fr 1fr 1fr"
-            f5_hdrs = ('<span class="odds-hd">F5 O</span>'
-                       '<span class="odds-hd">F5 U</span>') if show_f5tt else ""
+            cols = "1fr 1fr 1fr" if show_f5tt else "1fr 1fr"
+            f5_hdrs = '<span class="odds-hd">F5 O/U</span>' if show_f5tt else ""
             tt_html = (
                 f'<div class="odds-sub">Team Totals</div>'
                 f'<div class="odds-grid" style="grid-template-columns:{cols}">'
-                f'<span></span><span class="odds-hd">Over</span><span class="odds-hd">Under</span>{f5_hdrs}'
-                + _tt_row(away, od["away_tt_over"], od["away_tt_under"],
-                          od.get("away_f5tt_over",""), od.get("away_f5tt_under",""))
-                + _tt_row(home, od["home_tt_over"], od["home_tt_under"],
-                          od.get("home_f5tt_over",""), od.get("home_f5tt_under",""))
+                f'<span></span><span class="odds-hd">Full Game O/U</span>{f5_hdrs}'
+                + _tt_row(away, od.get("away_tt_ou", "—"), od.get("away_f5tt_ou", ""))
+                + _tt_row(home, od.get("home_tt_ou", "—"), od.get("home_f5tt_ou", ""))
                 + f'</div>'
             )
         props_html = ""
@@ -799,9 +826,9 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         f'<summary class="sec-sum">Matchup · SP Last 3 / Team Last 12</summary>'
         f'<div class="sec-body">'
         f'<div class="mu-outer">'
-        f'<div class="mu-col">{_sp_card(sp_a, pc_avg=away_pc)}{_bat_card(home, of_h)}</div>'
+        f'<div class="mu-col">{_sp_card(sp_a, pc_avg=away_pc, sec_id=f"{g_id}-more-away")}{_bat_card(home, of_h)}</div>'
         f'<div class="mu-divider"></div>'
-        f'<div class="mu-col">{_sp_card(sp_h, pc_avg=home_pc)}{_bat_card(away, of_a)}</div>'
+        f'<div class="mu-col">{_sp_card(sp_h, pc_avg=home_pc, sec_id=f"{g_id}-more-home")}{_bat_card(away, of_a)}</div>'
         f'</div></div></details>'
     )
 
@@ -874,6 +901,33 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         f'</details>'
     ) if splits_inner.strip() else ""
 
+    def _ou_block(team: str, sp_name: str, ou: Optional[dict]) -> str:
+        """Over/under records — rendered as a second list under the W/L trends."""
+        if not ou:
+            return ""
+        side_lbl = "home" if ou["is_home"] else "away"
+
+        def _ou_s(o, u):
+            return f'<span class="tw">{o}</span>-<span class="tl">{u}</span>'
+
+        lines = []
+        if "last10" in ou:
+            lines.append(f'{_h(team)} are {_ou_s(*ou["last10"])} to the over in their '
+                         f'last {ou["n_last10"]} games.')
+        if "last10_side" in ou:
+            lines.append(f'{_h(team)} are {_ou_s(*ou["last10_side"])} to the over in their '
+                         f'last {ou["n_last10_side"]} {side_lbl} games.')
+        if "sp_last5" in ou:
+            lines.append(f'{_h(team)} are {_ou_s(*ou["sp_last5"])} to the over in '
+                         f'{_h(sp_name)}\'s last {ou["n_sp_last5"]} starts.')
+        if "sp_last3_side" in ou:
+            lines.append(f'{_h(team)} are {_ou_s(*ou["sp_last3_side"])} to the over in '
+                         f'{_h(sp_name)}\'s last {ou["n_sp_last3_side"]} {side_lbl} starts.')
+        if not lines:
+            return ""
+        items = "".join(f"<li>{ln}</li>" for ln in lines)
+        return f'<div class="trends-hd">Over / Under</div><ul class="trends">{items}</ul>'
+
     def _trend_block(team: str, sp_name: str, tr: Optional[dict], is_away: bool) -> str:
         if not tr:
             return ""
@@ -921,8 +975,8 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
     away_tr = g.get("away_trends")
     home_tr = g.get("home_trends")
 
-    def _trends_section(team: str, sp_name: str, tr, tid: str, is_away: bool) -> str:
-        inner = _trend_block(team, sp_name, tr, is_away)
+    def _trends_section(team: str, sp_name: str, tr, ou, tid: str, is_away: bool) -> str:
+        inner = _trend_block(team, sp_name, tr, is_away) + _ou_block(team, sp_name, ou)
         if not inner.strip():
             return ""
         return (
@@ -932,8 +986,10 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             f'</details>'
         )
     trends_html = (
-        _trends_section(away, sp_a["name"], away_tr, f"{g_id}-trends-away", True)
-        + _trends_section(home, sp_h["name"], home_tr, f"{g_id}-trends-home", False)
+        _trends_section(away, sp_a["name"], away_tr, g.get("away_ou"),
+                        f"{g_id}-trends-away", True)
+        + _trends_section(home, sp_h["name"], home_tr, g.get("home_ou"),
+                          f"{g_id}-trends-home", False)
     )
 
     bullpen_html = (
@@ -979,11 +1035,11 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         f'\n  </summary>'
         f'\n  <div class="gd">'
         f'\n    {matchup_html}'
+        f'\n    {bullpen_html}'
         f'\n    {odds_html}'
         f'\n    {outings_html}'
         f'\n    {splits_html}'
         f'\n    {trends_html}'
-        f'\n    {bullpen_html}'
         f'\n    {wx_html}'
         f'\n    {flags_html}'
         f'\n    {ai_sec_html}'
@@ -1032,7 +1088,7 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'<meta name="viewport" content="width=device-width,initial-scale=1">\n'
         f'<title>MLB Game Overviews · {_h(date_short)}</title>\n'
         f'<style>{_CSS}</style>\n'
-        f'</head>\n<body>\n'
+        f'</head>\n<body data-slot="{_h(slot)}">\n'
         f'<header><h1>MLB Game Overviews</h1>'
         f'<p class="sub">{_h(date_long)}</p>'
         f'<p class="sub">Updated {gen_span}{odds_sub}</p>'

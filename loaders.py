@@ -3,11 +3,13 @@
 import csv
 import json
 import sys
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
 from teams import to_stats
+
+_ET = timezone(timedelta(hours=-4))  # EDT (UTC-4); correct for MLB season Apr-Oct
 
 
 # ── File finding ──────────────────────────────────────────────────────────────
@@ -117,6 +119,8 @@ def _load_team_stats_json(path: Path) -> dict:
             "K%":       r.get("k_perc") or r.get("k_pct"),
             "BB%":      r.get("bb_perc") or r.get("bb_pct"),
             "HardHit%": r.get("hard_perc"),
+            # Feed gives contact rate, not whiff rate — they're complements.
+            "Whiff%":   (100 - r["contact_perc"]) if r.get("contact_perc") is not None else None,
             "FB%":      r.get("fb_perc"),
             "LD%":      r.get("ld_perc"),
             "GB%":      r.get("gb_perc"),
@@ -244,6 +248,55 @@ def load_pitcher_props(data_dir: Path, target_date: date) -> dict:
         return result
     except Exception:
         return {}
+
+
+def load_history_games(history_dir: Path) -> list[dict]:
+    """Load graded, de-duplicated games from history/*.json, oldest first.
+
+    Each slate file records every game the Odds API was serving that day, which
+    includes games one to three days out. The same game therefore appears in
+    several files with a different line each time, and its over_hit flips as the
+    line moves — counting raw rows would badly skew a trend record (1052 rows
+    covering only ~512 games).
+
+    Two passes fix it: keep only the row whose slate date matches the game's own
+    ET date (drops forward-looking snapshots), then keep the latest-recorded row
+    per game (the closing line). Doubleheaders collapse to a single game, since
+    history rows carry no game number.
+    """
+    rows: list[dict] = []
+    for p in sorted(history_dir.glob("*.json")):
+        try:
+            parsed = json.loads(p.read_text())
+        except Exception:
+            continue
+        if not isinstance(parsed, list):
+            continue
+        rows.extend(
+            r for r in parsed
+            if isinstance(r, dict) and r.get("over_hit") is not None
+        )
+
+    def et_date(r: dict) -> str:
+        t = r.get("game_time_utc") or ""
+        try:
+            return (datetime.fromisoformat(t.replace("Z", "+00:00"))
+                    .astimezone(_ET).strftime("%Y-%m-%d"))
+        except Exception:
+            return ""
+
+    best: dict[tuple, dict] = {}
+    for r in rows:
+        if et_date(r) != r.get("date"):
+            continue
+        key = (r.get("away_code"), r.get("home_code"), r.get("date"))
+        prev = best.get(key)
+        if prev is None or (r.get("odds_recorded_at") or "") > (prev.get("odds_recorded_at") or ""):
+            best[key] = r
+
+    games = list(best.values())
+    games.sort(key=lambda r: (r.get("date", ""), r.get("game_time_utc", "")))
+    return games
 
 
 def load_ballpark_weather(data_dir: Path, target_date: date) -> dict:
