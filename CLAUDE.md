@@ -162,6 +162,18 @@ pick set every 3 hours.
 This is exactly what happened on 2026-08-08: the commit step had been failing since 8/7,
 so no pick log was ever pushed and the deployed picks silently changed every run.
 
+**Reversed matchups break the dedupe key.** `_canon_pick_key()` contains `game`, so a
+pick the model emits backwards ("BOS @ ATH" for a game that is really ATH @ BOS) does not
+match the copy already logged — it lands as a second entry with no `game_time_utc` and a
+`team_side` pointing at the wrong club. `save_picks()` now looks the matchup up in both
+orientations and snaps it back to the real one.
+
+When correcting, the side is re-derived from the **team named in the bet text**, not by
+flipping the model's `away_`/`home_` prefix. In the case that surfaced this (2026-08-08,
+BOS Team Total Over 5.5) `team_side` was already correct for the true orientation and only
+`game` was wrong — a blind flip would have graded the Athletics' runs instead of Boston's.
+The leading code in the bet text is the one field independent of the model's framing.
+
 Two ordering rules in `publish.yml` protect the invariant:
 
 1. **`Annotate results` → `Commit history and picks` → HTML steps → `Deploy`.** Picks are

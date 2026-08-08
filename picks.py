@@ -139,9 +139,6 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
         game_key = pick.get("game", "")
         if not game_key:
             continue
-        ck = _canon_pick_key(pick)
-        if ck in by_key:
-            continue
 
         # Enrich with game_time_utc and codes from history
         # game_key is "AWAY_CODE @ HOME_CODE" (e.g., "TEX @ MIA")
@@ -151,6 +148,40 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
         away_full = _CODE_TO_FULL.get(away_code, away_code)
         home_full = _CODE_TO_FULL.get(home_code, home_code)
         info = game_info.get((away_full, home_full), {})
+
+        # The model occasionally emits the matchup backwards ("BOS @ ATH" for a game
+        # that is really ATH @ BOS). Left alone that lands as a *second* copy of a bet
+        # already logged — the dedupe key contains `game` — with no game_time_utc and a
+        # team_side pointing at the wrong club. Snap it back to the real orientation so
+        # it dedupes normally and grades against the right team.
+        if not info:
+            flipped = game_info.get((home_full, away_full))
+            if flipped:
+                info = flipped
+                away_code, home_code = home_code, away_code
+                away_full, home_full = home_full, away_full
+                game_key = f"{away_code} @ {home_code}"
+                pick["game"] = game_key
+                # Re-derive the side from the team named in the bet text rather than
+                # flipping the model's prefix. In the observed case team_side was
+                # already right for the true orientation and only `game` was backwards,
+                # so a blind flip would have pointed the bet at the wrong club. The
+                # leading code in the bet text ("BOS Team Total Over 5.5", "TBR ML") is
+                # the one field that does not depend on the model's home/away framing.
+                side = (pick.get("team_side") or "")
+                named = (pick.get("bet", "").split() or [""])[0].strip().upper()
+                if named in (away_code.upper(), home_code.upper()):
+                    prefix = "away" if named == away_code.upper() else "home"
+                    if "_" in side:
+                        pick["team_side"] = f"{prefix}_{side.split('_', 1)[1]}"
+                    elif side in ("away", "home"):
+                        pick["team_side"] = prefix
+                print(f"[picks] corrected reversed matchup → {game_key}: "
+                      f"{pick.get('bet','')} (side={pick.get('team_side')})")
+
+        ck = _canon_pick_key(pick)
+        if ck in by_key:
+            continue
 
         record = {
             "date":          date_str,
