@@ -3,3 +3,4 @@ data/*
 !data/starters_last3g_today_*.json
 __pycache__/
 *.pyc
+_site/

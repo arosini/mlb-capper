@@ -1064,6 +1064,7 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'<nav class="day-toggle">'
         f'<a href="/"{today_cls}>Today</a>'
         f'<a href="/tomorrow/"{tomorrow_cls}>Tomorrow</a>'
+        f'<a href="/results/">Results</a>'
         f'</nav>'
     )
 
