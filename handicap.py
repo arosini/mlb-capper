@@ -18,7 +18,7 @@ import sys
 from datetime import date, timedelta, datetime, timezone
 from pathlib import Path
 
-_ET = timezone(timedelta(hours=-4))
+from season import ET as _ET
 
 from teams import _MLB_MAP, to_mlb, ODDS_TEAM
 from loaders import (
@@ -182,7 +182,7 @@ def main():
     _log(f"Props: {len(props_data)} games loaded" if props_data else "Props: no file found")
     # Graded odds history backs the over/under trend lines; lives alongside the
     # code (git-tracked), not in data/.
-    hist_games = load_history_games(Path(__file__).parent / "history")
+    hist_games = load_history_games(Path(__file__).parent / "history", target_date)
     _log(f"History: {len(hist_games)} graded games loaded" if hist_games
          else "History: no graded games found")
 

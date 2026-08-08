@@ -14,7 +14,7 @@ import json
 import sys
 from datetime import date, timedelta, datetime, timezone
 
-_ET = timezone(timedelta(hours=-4))  # EDT (UTC-4); correct for MLB season Apr-Oct
+from season import ET as _ET, has_games
 from pathlib import Path
 
 try:
@@ -144,6 +144,26 @@ def _odds_age_minutes(data_dir: Path, date_str: str) -> float:
     return _meta_age_minutes(data_dir / f"odds_meta_{date_str}.json")
 
 
+def _record_quota(meta: dict, response) -> dict:
+    """Fold The Odds API's quota headers into a meta dict.
+
+    Every paid Odds API response carries x-requests-remaining / x-requests-used, and
+    until now we only printed them. Persisting them makes the monthly burn rate
+    something you can read off the repo instead of re-deriving by hand — which is the
+    only way to know how close a slate-size or market-count change puts us to the cap.
+    """
+    for hdr, field in (("x-requests-remaining", "quota_remaining"),
+                       ("x-requests-used", "quota_used")):
+        raw = response.headers.get(hdr)
+        if raw is None:
+            continue
+        try:
+            meta[field] = int(float(raw))
+        except (TypeError, ValueError):
+            pass
+    return meta
+
+
 def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 300) -> None:
     """Fetch full-game odds from The Odds API (DK, FanDuel, Fanatics). No auth needed.
     Skips if odds were fetched within max_age_minutes (default 5 hours)."""
@@ -186,7 +206,7 @@ def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 300) -> 
                    and _parse_utc(g.get("commence_time", "")) < now]
         data = new_data + started
         odds_path.write_text(json.dumps(data, indent=2))
-        meta = {"fetched_at": now.isoformat()}
+        meta = _record_quota({"fetched_at": now.isoformat()}, r)
         (data_dir / f"odds_meta_{date_str}.json").write_text(json.dumps(meta))
         print(f"  ✓  odds_{date_str}.json  ({len(new_data)} upcoming + {len(started)} started, {remaining} API calls remaining)")
     except Exception as e:
@@ -230,6 +250,7 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
         except Exception:
             pass
     all_props: dict = dict(existing_props)  # start with existing, overwrite with fresh
+    last_response = None  # kept so the quota headers of the final call reach the meta
 
     for game in games:
         event_id = game.get("id")
@@ -251,6 +272,7 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
         )
         try:
             r = requests.get(url, timeout=15)
+            last_response = r
             remaining = r.headers.get("x-requests-remaining", "?")
             if r.status_code == 401 or r.status_code == 403:
                 print(f"  [props] Auth error {r.status_code} — pitcher props may require Starter plan")
@@ -264,7 +286,10 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
             print(f"  [props] {away}@{home}: {e}")
 
     props_path.write_text(json.dumps(all_props, indent=2))
-    props_meta_path.write_text(json.dumps({"fetched_at": datetime.now(timezone.utc).isoformat()}))
+    props_meta = {"fetched_at": datetime.now(timezone.utc).isoformat()}
+    if last_response is not None:
+        _record_quota(props_meta, last_response)
+    props_meta_path.write_text(json.dumps(props_meta))
     print(f"  ✓  props_{date_str}.json ({len(all_props)} games)")
 
 
@@ -275,6 +300,20 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today",
     Returns True if all attempted downloads succeeded."""
     date_str = target_date.strftime("%Y-%m-%d")
     data_dir.mkdir(parents=True, exist_ok=True)
+
+    # Off-season gate. The Odds API's baseball_mlb feed keeps serving events outside
+    # the regular/postseason window — spring training in particular — so without this
+    # check we would pay for a bulk call plus one per-event props call per exhibition
+    # game, every run, for all of March, on games this site will never display
+    # (handicap.py drops anything missing from the regular/postseason MLB schedule).
+    # It also covers the true off-season and the All-Star break.
+    #
+    # has_games() fails OPEN: a statsapi outage returns "unknown" and we fetch as
+    # normal. Skipping a real slate would be far worse than a wasted call.
+    in_season = has_games(target_date, data_dir)
+    if not in_season:
+        print(f"  [season] No MLB games scheduled for {date_str} — "
+              f"skipping odds/props (off-season, break, or non-qualifying slate)")
 
     session = _build_session()
     print(f"Logging in as {config.HANDIGRAPHS_EMAIL}...")
@@ -343,7 +382,7 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today",
         count = len(rows) if rows else "?"
         print(f"  ✓  {fname}  ({count} rows)")
 
-    if not starters_only:
+    if not starters_only and in_season:
         print("  Fetching odds...")
         download_odds(data_dir, date_str, max_age_minutes=0 if force_odds else 300)
 

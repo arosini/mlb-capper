@@ -5,7 +5,7 @@ from typing import Optional
 
 from teams import to_stats, to_mlb, ODDS_TEAM, MLB_NAME_TO_CODE
 
-_ET = timezone(timedelta(hours=-4))
+from season import ET as _ET
 
 
 # ── Numeric helpers ───────────────────────────────────────────────────────────

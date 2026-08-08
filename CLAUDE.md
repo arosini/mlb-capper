@@ -20,7 +20,7 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHR
 |--------|------|-----------------|
 | Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L12RHP/LHP), bullpen stats (last 12), ballpark weather |
 | MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs |
-| The Odds API | API key (query param) | Full-game ML/spread/total + F5 ML/spread/total + pitcher K/outs props for DK, FanDuel, Fanatics — 500 req/month free |
+| The Odds API | API key (query param) | Full-game ML/spread/total + F5 ML/spread/total + team totals + pitcher K/outs props for DK, FanDuel, Fanatics. Paid plan (~20K credits/month); billed per market × region, **not** per call — see API Budget |
 | Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Opus 4.8 for AI Picks — one generation call per odds refresh plus one audit call per pick, cached to `data/suggestions_{date}.json` |
 
 ## Module Structure
@@ -28,11 +28,12 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHR
 The codebase is split into focused modules. Import order (no circular deps):
 
 ```
+season.py         — ET clock, MLB game types, in-season detection; NO project deps
 teams.py          — team code maps, logo helpers; no project deps
   ↓
 odds.py           — Odds API parsing + format helpers; imports teams
-loaders.py        — file loaders (CSV/JSON from data/); imports teams
-mlb_api.py        — MLB Stats API + Open-Meteo weather; no project deps at module level
+loaders.py        — file loaders (CSV/JSON from data/); imports teams, season
+mlb_api.py        — MLB Stats API + Open-Meteo weather; imports season
   ↓
 analysis.py       — analyze_game(), flags, trends; imports teams
   ↓
@@ -52,6 +53,8 @@ handicap.py       — slim entry point, main() only; imports everything
 - `results.py` — Results page renderer + unit math; reads `picks/`, writes `_site/results/index.html`
 
 ### Key exports by module
+
+**`season.py`**: `ET`, `GAME_TYPES`, `today_et()`, `game_count()`, `has_games()`, `season_start()`
 
 **`teams.py`**: `_STATS_MAP`, `_MLB_MAP`, `ODDS_TEAM`, `MLB_NAME_TO_CODE`, `to_stats()`, `to_mlb()`, `logo_img()`, `_LOGO`
 
@@ -87,6 +90,7 @@ Run locally: `python3 handicap.py` (terminal) or `python3 handicap.py --html > o
 - `props_{date}.json` — per-event pitcher K/outs props + F5 odds
 - `bullpen_stress_{date}.json` — cached bullpen IP for past 2 calendar days (written once/day)
 - `suggestions_{date}.json` / `suggestions_meta_{date}.json` — AI picks cache (post-verification)
+- `season_{date}.json` — cached count of qualifying MLB games (off-season gate; see Season Window)
 
 Outside `data/`: `picks/{date}.json` (git-tracked pick log) and `rejections/{date}.json`
 (git-tracked log of picks the verification pass threw out, for prompt tuning).
@@ -120,7 +124,7 @@ Third tab alongside Today and Tomorrow. Built by `results.py --html` from the gi
 `picks/{date}.json` logs — it reads the `result` field (`won`/`lost`/`push`/absent) that
 `picks.py --annotate` writes, and does no grading of its own.
 
-Shows trailing-7d / trailing-30d / year-to-date record and unit P&L, then yesterday's
+Shows trailing-7d / trailing-30d / all-time record and unit P&L, then yesterday's
 picks with a ✓ / ✗ / P mark and per-pick P&L.
 
 **Unit convention** — flat "risk 1 to win 1" staking, in `unit_pnl()`:
@@ -132,7 +136,9 @@ Rolling windows **end yesterday**, not today — today's picks are still open, a
 them would drag every number toward zero as the slate fills in.
 
 Every window is floored at `TRACK_RECORD_START` (2026-08-07, the day the rewritten prompt
-went live). Picks before that came from a materially different system. The older files
+went live). The widest window starts *at* that date rather than at Jan 1 — a year-to-date
+floor looked identical all of 2026 and would have silently reset the headline record to
+0-0 on New Year's Day. Picks before that came from a materially different system. The older files
 stay in `picks/` deliberately — they are the input to `scripts/review_rejections.py`.
 Move the constant if the prompt is rewritten again.
 
@@ -173,7 +179,7 @@ Two ordering rules in `publish.yml` protect the invariant:
 - **Pages built per run**: `_site/index.html` (today), `_site/tomorrow/index.html`, `_site/results/index.html`
 - **`git add` in the commit step goes through `_stage()`**, which `mkdir -p`s `history picks rejections` first. `rejections/` only exists on days a pick is rejected, and `git add <missing-dir>/` is fatal (exit 128) under `bash -e`. The mkdir must be inside `_stage()`, not run once up front: the retry path's `git clean -f rejections/` deletes the empty directory before the second add.
 - **No-cache headers**: written inline in workflow (`printf '/*\n  Cache-Control: no-cache...' > _site/_headers`) — not a repo file
-- **Secrets needed**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`
+- **Secrets needed**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHROPIC_API_KEY`
 - **Trigger manually**: `gh workflow run publish.yml`
 
 ## AI Picks — generation and verification
@@ -253,7 +259,153 @@ vertical axis wins, and anything starting inside a horizontally scrollable child
 3. Add to the `_sp()` / `_bp()` / `_off()` dict inside `analyze_game()` in `analysis.py`
 4. Render it in `_sp_card()` / `_bp_row()` / `_bat_card()` in `render_html.py`
 
-## Odds API Budget
-Paid tier — a full run on 2026-08-07 (1 bulk + 15 prop calls) reported ~15,795 remaining, so the old "500/month free" note no longer applies. Usage is ~16 calls per refresh (once per 3-hour window × number of games for props). Bulk odds: 1 call/run. Props: 1 call/game/run (skipped if < 3h old). To check remaining quota, run `python3 download.py` and watch the odds/props lines — they print `X API calls remaining`.
+## Season Window — regular + postseason only
 
-**CRITICAL**: Never let Claude run `curl https://api.the-odds-api.com/` — this costs credits. The `.claude/settings.json` denies this automatically.
+`season.py` owns two facts the whole project depends on.
+
+**1. ET is `ZoneInfo("America/New_York")`, not a fixed −4 offset.** Every module used to
+define its own `_ET = timezone(timedelta(hours=-4))`. That is EDT, correct from mid-March
+to early November and wrong the rest of the year — including the back half of the World
+Series. Import `from season import ET as _ET`; never re-derive it. The two workflows call
+`season.today_et()` for the same reason.
+
+**2. `GAME_TYPES = "R,F,D,L,W"` — regular season plus all four postseason rounds.**
+Spring training (`S`), exhibition (`E`) and the All-Star game (`A`) are excluded on
+purpose; this site covers the regular and postseason only.
+
+This list is load-bearing. `handicap.py` treats the MLB schedule as the authoritative game
+list and drops any game missing from it, so the previous `gameType: "R"` filter meant a
+**blank page every day of the postseason** — verified against the live API: 2025-10-25
+(World Series) and 2025-10-15 (LCS) both return `totalGames: 0` under `R` and `1` under
+`GAME_TYPES`. It also meant `history.py --annotate` could never grade a postseason pick.
+All four call sites use `GAME_TYPES` now (three in `mlb_api.py`, one in `history.py`).
+
+**Off-season / spring-training gating.** `download_all()` calls `season.has_games()` and
+skips the Odds API entirely when MLB has no qualifying game that day. This matters because
+the Odds API's `baseball_mlb` feed keeps serving *spring training* events — without the
+gate we paid for a bulk call plus one per-event props call per exhibition game, every run,
+for all of March, on games the site would never display. Verified: 2026-03-16 returns 0
+qualifying games alongside 12 spring-training games.
+
+`has_games()` **fails open**. A statsapi outage returns "unknown" and the run proceeds
+normally — skipping a real slate is far worse than one wasted call. It answers from a date
+window (Mar 15 – Nov 15) without a network call outside the season, and caches inside it to
+`data/season_{date}.json` so the three `handicap.py` invocations per run share one lookup.
+The Mar 15 floor is deliberately earlier than any real opening day (2024's Seoul Series
+opened Mar 20).
+
+Empty pages now distinguish three cases: off-season, tomorrow's slate not yet posted, and
+no games today.
+
+## Data Volume — what grows, and what is bounded
+
+`history/` and `picks/` are append-only and git-tracked, so they grow by one file per day
+forever. Current rates: history ~70 KB/day (~13 MB/season), picks ~20 KB/day. The repo is
+fine; the risk is code that reads *all* of it.
+
+- **`load_history_games(history_dir, target_date)` is windowed** to the last 45 days,
+  floored at `season_start()`. This is a **correctness** fix more than a speed one: without
+  the season floor, an April 2027 page would compute "last 10 games" over/under records
+  from September 2026 games — last year's roster presented as this year's trend. Filenames
+  are the slate date, so the window is applied before any file is opened. Verified: opening
+  day 2027 loads 0 historical games.
+- **`load_picks_range()` globs and filters** instead of walking the range day by day. The
+  all-time window grows without bound; a day-walk would stat one missing path per
+  off-season day, forever.
+- **`data/`** is bounded by the workflow's `Clean stale data files` step (keeps only
+  today/tomorrow).
+
+If `history/` ever does become a problem, the fix is to archive completed seasons into
+`history/{year}/` — the loader's filename-prefix filter would need to learn the subdirectory.
+
+## API Budget — where the money goes
+
+### The Odds API — the binding constraint
+
+Cost is **markets × regions per call**, not one credit per call:
+
+| Call | Markets | Credits |
+|------|---------|---------|
+| Bulk odds (`/odds`) | h2h, spreads, totals | **3** |
+| Per-event props (`/events/{id}/odds`) | 2 pitcher props + 3 F5 + 2 team totals = 7 | **7** |
+
+With 4 cron runs/day, a 300-minute throttle, and a ~15-game slate:
+
+| Stream | Calls/day | Credits/day |
+|--------|-----------|-------------|
+| Today's bulk | 3 | 9 |
+| Tomorrow's bulk | 4 (6:30 PM run forces) | 12 |
+| Today's props | 3 × ~14 games = 42 | 294 |
+| Tomorrow's props | 4 × 15 games = 60 | **420** |
+| **Total** | ~109 | **~735** |
+
+That is **~22,000 credits/month**. The one recorded observation — ~15,795 remaining on
+2026-08-07 — implies a **20,000/month plan** and ~647 credits/day actual, within 12% of
+the model above.
+
+**So the Odds API is running at roughly 98–110% of plan and is the thing most likely to
+break first.** It is not a future problem; some months are already at or over the cap.
+Postseason is cheap (1–8 games/day), so the exposure is every month from April to
+September. Adding one market to the props URL costs ~14% more; adding a fifth cron run
+costs ~25% more. Do neither without checking the numbers.
+
+**Tomorrow's props alone are 57% of total spend**, and the tomorrow page deliberately runs
+without an `ANTHROPIC_API_KEY` — it is a matchup/odds preview, not a picks page. Cutting it
+to the 6:30 PM run only would save ~315 credits/day (~43%). Not done: it changes what the
+preview shows during the day, which is a product call.
+
+`odds_meta_{date}.json` and `props_meta_{date}.json` now persist `quota_remaining` and
+`quota_used` from the response headers, so burn rate is readable from the repo instead of
+re-derived by hand. Check with:
+`jq '{fetched_at,quota_remaining,quota_used}' data/odds_meta_*.json`
+
+**CRITICAL**: Never let Claude run `curl https://api.the-odds-api.com/` — this costs
+credits. `.claude/settings.json` denies it automatically.
+
+### The Anthropic API — comfortable
+
+Per scheduled run: 1 generation call + one verification call per pick returned (~8).
+Measured from `picks/`, the model returns ~7–8 picks per run (~4 survive dedup as new).
+
+| | Input tokens | Output tokens |
+|---|---|---|
+| Generation (system 4.0K + ~15 cards × ~550) | ~12,400 | ~12,000 |
+| Verification × 8 (system 0.95K + card + rationale) | ~13,600 | ~16,000 |
+| **Per run** | ~26,000 | ~28,000 |
+| **Per day (×4 runs)** | ~104,000 | ~112,000 |
+
+At Opus 4.8 pricing ($5/MTok in, $25/MTok out): **~$3.30/day, ~$100/month, ~$700/season.**
+Output is ~84% of the bill, and verification is ~57% of the output. 36 calls/day is
+nowhere near any rate limit — spend is the only constraint, and it is not urgent.
+
+The AI call is skipped when no game on the slate has odds posted (early opening day, or a
+failed odds fetch) — the prompt cannot produce a bet without a price, so that call was
+guaranteed to return an empty picks array at full cost.
+
+## Early-Season Robustness
+
+The whole pipeline is exercised against a synthetic opening-day slate: one game, both
+starters making their first start (no last-3 stats), no team stats, no bullpen, no odds,
+no history, no prior picks. It renders without error — `analyze_game` returns
+`TOSS-UP / no clear edge`, `ou_trends` returns `None` below its sample floors
+(`_OU_MIN_TEAM = 3`, `_OU_MIN_PITCHER = 2`), `_team_trends` returns `None` on an empty
+record, and the results page reports "no graded picks" rather than dividing by zero.
+
+Two guards keep it cheap as well as safe: no odds → no AI call, and the prompt's own
+"NEVER bet a pitcher marked NO STATS" rule means an early-April slate correctly produces
+zero picks rather than noise.
+
+Re-run that check after touching `analysis.py` or `suggestions.py`:
+
+```bash
+python3 -c "
+import sys; sys.path.insert(0,'.')
+from datetime import date
+from analysis import analyze_game, build_games
+from render_html import render_html_page
+s=[{'Name':'A','Team':'NYY','Opponent':'BOS','Throws':'R','game_number':1,'mlbam_id':1},
+   {'Name':'B','Team':'BOS','Opponent':'NYY','Throws':'L','game_number':1,'mlbam_id':2}]
+p1,p2=build_games(s)[0]; g=analyze_game(p1,p2,{},{},{},{},{},date(2027,3,25))
+g['odds']=None; g['game_time_utc']=''; g['away_ou']=g['home_ou']=None
+print(len(render_html_page([g],date(2027,3,25),'x',slot='today')),'bytes OK')"
+```

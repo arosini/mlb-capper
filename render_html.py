@@ -2,6 +2,7 @@
 
 import re
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional
 
 from teams import _LOGO, logo_img
@@ -12,7 +13,20 @@ from suggestions import (
     _ai_game_map, _lookup_ai_for_game,
 )
 
-_ET = timezone(timedelta(hours=-4))
+from season import ET as _ET, has_games as _season_has_games
+
+
+def in_season(target_date) -> bool:
+    """Cheap in-season check for the empty-state copy.
+
+    Reads the season cache download.py wrote earlier in the run; falls back to the
+    plausible-season date window if there is no cache, so rendering never blocks on
+    a network call.
+    """
+    try:
+        return _season_has_games(target_date, Path("./data"))
+    except Exception:
+        return True
 
 
 def _h(text) -> str:
@@ -1126,8 +1140,16 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         ai_html = _render_suggestions_html(valid_picks, target_date)
         body_html = f'{ai_html}{cards}'
     else:
-        msg = ("Tomorrow's slate isn't posted yet — check back this evening."
-               if slot == "tomorrow" else "No games scheduled.")
+        # Three different reasons for an empty page, and telling them apart matters:
+        # a reader who sees "No games scheduled" in January should understand the site
+        # is idle for the winter, not that it broke.
+        if not in_season(target_date):
+            msg = ("The season is over — no regular-season or postseason games are "
+                   "scheduled. Cards return on Opening Day.")
+        elif slot == "tomorrow":
+            msg = "Tomorrow's slate isn't posted yet — check back this evening."
+        else:
+            msg = "No games scheduled today."
         body_html = f'<div class="empty-state">{_h(msg)}</div>'
 
     gen_span  = _ts_span(generated_at)

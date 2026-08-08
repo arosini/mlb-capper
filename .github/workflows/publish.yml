@@ -34,8 +34,10 @@ jobs:
 
       - name: Set cache date
         run: |
-          python3 -c "from datetime import datetime,timezone,timedelta; print('CACHE_DATE='+datetime.now(timezone(timedelta(hours=-4))).strftime('%Y-%m-%d'))" >> $GITHUB_ENV
-          python3 -c "from datetime import datetime,timezone,timedelta; print('TOMORROW_DATE='+(datetime.now(timezone(timedelta(hours=-4)))+timedelta(days=1)).strftime('%Y-%m-%d'))" >> $GITHUB_ENV
+          # season.today_et() is the one Eastern clock the whole project shares; a fixed
+          # -4 offset here would disagree with the code by an hour once EST starts.
+          python3 -c "import season; print('CACHE_DATE='+season.today_et().strftime('%Y-%m-%d'))" >> $GITHUB_ENV
+          python3 -c "import season,datetime; print('TOMORROW_DATE='+(season.today_et()+datetime.timedelta(days=1)).strftime('%Y-%m-%d'))" >> $GITHUB_ENV
 
       - name: Restore odds cache
         uses: actions/cache@v4

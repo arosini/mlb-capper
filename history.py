@@ -14,7 +14,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-_ET = timezone(timedelta(hours=-4))
+from season import ET as _ET, GAME_TYPES
 
 MLB_API = "https://statsapi.mlb.com/api/v1"
 
@@ -420,7 +420,7 @@ def _fetch_game_results(target_date: date) -> dict:
             params={
                 "sportId": 1,
                 "date": target_date.isoformat(),
-                "gameType": "R",
+                "gameType": GAME_TYPES,
                 "hydrate": "linescore,team",
             },
             timeout=15,

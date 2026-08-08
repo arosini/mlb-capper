@@ -5,7 +5,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-_ET = timezone(timedelta(hours=-4))
+from season import ET as _ET, GAME_TYPES
 
 try:
     import requests
@@ -50,6 +50,11 @@ def get_mlb_schedule(target_date: date) -> dict:
     """Fetch today's schedule; returns {(frozenset([away, home]), game_number): game_info_dict}.
 
     game_number distinguishes doubleheader legs (MLB API's "gameNumber" field, 1 or 2).
+
+    gameType spans regular season AND postseason (season.GAME_TYPES). This list is
+    load-bearing: handicap.py treats the schedule as the authoritative game list and
+    drops any game missing from it, so filtering to "R" alone renders an empty page
+    for every day of October.
     """
     if not HAS_REQUESTS:
         return {}
@@ -60,7 +65,7 @@ def get_mlb_schedule(target_date: date) -> dict:
                 "sportId": 1,
                 "date": target_date.isoformat(),
                 "hydrate": "probablePitcher,venue,team",
-                "gameType": "R",
+                "gameType": GAME_TYPES,
             },
             timeout=10,
         )
@@ -125,7 +130,7 @@ def get_team_schedule(team_id: int, season: int) -> list[dict]:
     try:
         r = requests.get(
             f"{MLB_API}/schedule",
-            params={"teamId": team_id, "season": season, "sportId": 1, "gameType": "R"},
+            params={"teamId": team_id, "season": season, "sportId": 1, "gameType": GAME_TYPES},
             timeout=15,
         )
         r.raise_for_status()
@@ -176,7 +181,7 @@ def get_bullpen_stress(team_mlb_ids: set, target_date: date, data_dir: Path) -> 
     try:
         r = requests.get(
             f"{MLB_API}/schedule",
-            params={"sportId": 1, "startDate": start, "endDate": end, "gameType": "R"},
+            params={"sportId": 1, "startDate": start, "endDate": end, "gameType": GAME_TYPES},
             timeout=10,
         )
         r.raise_for_status()

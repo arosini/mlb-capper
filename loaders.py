@@ -9,7 +9,7 @@ from typing import Optional
 
 from teams import to_stats
 
-_ET = timezone(timedelta(hours=-4))  # EDT (UTC-4); correct for MLB season Apr-Oct
+from season import ET as _ET, season_start
 
 
 # ── File finding ──────────────────────────────────────────────────────────────
@@ -250,7 +250,14 @@ def load_pitcher_props(data_dir: Path, target_date: date) -> dict:
         return {}
 
 
-def load_history_games(history_dir: Path) -> list[dict]:
+# How far back the over/under trend lines can possibly look: the widest slice is a
+# team's last 10 games, and a team plays ~10 games in two weeks. 45 days is generous
+# headroom for off-days and postponements while keeping the read bounded.
+_OU_WINDOW_DAYS = 45
+
+
+def load_history_games(history_dir: Path, target_date: Optional[date] = None,
+                       days: int = _OU_WINDOW_DAYS) -> list[dict]:
     """Load graded, de-duplicated games from history/*.json, oldest first.
 
     Each slate file records every game the Odds API was serving that day, which
@@ -263,9 +270,23 @@ def load_history_games(history_dir: Path) -> list[dict]:
     ET date (drops forward-looking snapshots), then keep the latest-recorded row
     per game (the closing line). Doubleheaders collapse to a single game, since
     history rows carry no game number.
+
+    Pass target_date to read only the files that can affect its trend lines. This
+    is not just a speed cap — it is a correctness one. history/ is append-only and
+    git-tracked, so it grows by a file a day forever (~70KB/day, ~13MB a season).
+    Without a floor at the season boundary, an April 2027 page would compute "last
+    10 games" over/under records from games played in September 2026, silently
+    presenting last year's roster as this year's trend. Filenames are the slate
+    date, so the window is applied before any file is opened.
     """
+    paths = sorted(history_dir.glob("*.json"))
+    if target_date is not None:
+        floor = max(target_date - timedelta(days=days), season_start(target_date))
+        lo, hi = floor.isoformat(), target_date.isoformat()
+        paths = [p for p in paths if lo <= p.stem <= hi]
+
     rows: list[dict] = []
-    for p in sorted(history_dir.glob("*.json")):
+    for p in paths:
         try:
             parsed = json.loads(p.read_text())
         except Exception:

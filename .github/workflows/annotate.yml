@@ -2,7 +2,7 @@ name: Annotate Game Results
 
 on:
   schedule:
-    - cron: '0 7 * * *'  # 3 AM ET (UTC-4) — after all US games finish
+    - cron: '0 7 * * *'  # 3 AM EDT / 2 AM EST — after all US games finish
   workflow_dispatch:
     inputs:
       date:
@@ -36,7 +36,7 @@ jobs:
         run: |
           DATE="${{ github.event.inputs.date }}"
           if [ "${DATE}" = "yesterday" ] || [ -z "${DATE}" ]; then
-            ANNOT_DATE=$(python3 -c "from datetime import datetime,timezone,timedelta; print((datetime.now(timezone(timedelta(hours=-4)))-timedelta(days=1)).strftime('%Y-%m-%d'))")
+            ANNOT_DATE=$(python3 -c "import season,datetime; print((season.today_et()-datetime.timedelta(days=1)).strftime('%Y-%m-%d'))")
           else
             ANNOT_DATE="${DATE}"
           fi

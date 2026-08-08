@@ -21,7 +21,7 @@ from pathlib import Path
 from render_html import _CSS, _SWIPE_SCRIPT, _h
 from suggestions import _pick_summary_title
 
-_ET = timezone(timedelta(hours=-4))
+from season import ET as _ET
 
 # The AI picks prompt was rewritten (and the per-pick verification pass added) in
 # e38317a on 2026-08-07. Picks logged before that came from a materially different
@@ -79,26 +79,36 @@ def summarize(picks: list) -> dict:
 # ── Loading ──────────────────────────────────────────────────────────────────
 
 def load_picks_range(picks_dir: Path, start: date, end: date) -> list:
-    """All picks dated in [start, end] inclusive."""
+    """All picks dated in [start, end] inclusive.
+
+    Globs the directory and filters on the filename date rather than walking the
+    range a day at a time. The two are equivalent for a 7-day window, but the
+    all-time window grows without bound — a day-walk would stat one missing path
+    per off-season day, forever, and the count only ever rises.
+    """
+    lo, hi = start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
     out = []
-    day = start
-    while day <= end:
-        path = picks_dir / f"{day.strftime('%Y-%m-%d')}.json"
-        if path.exists():
-            try:
-                out.extend(json.loads(path.read_text()) or [])
-            except Exception as e:
-                print(f"[results] skipping {path.name}: {e}", file=sys.stderr)
-        day += timedelta(days=1)
+    for path in sorted(picks_dir.glob("*.json")):
+        if not (lo <= path.stem <= hi):
+            continue
+        try:
+            out.extend(json.loads(path.read_text()) or [])
+        except Exception as e:
+            print(f"[results] skipping {path.name}: {e}", file=sys.stderr)
     return out
 
 
 def build_windows(picks_dir: Path, today: date) -> dict:
-    """Record + units for the trailing week, month, and year (ending yesterday).
+    """Record + units for the trailing week, month, and all time (ending yesterday).
 
     Every window is floored at TRACK_RECORD_START, so a window that reaches back
     further than the current prompt simply covers fewer days rather than mixing in
     picks the present system did not make.
+
+    "All time" means exactly that — it starts at TRACK_RECORD_START, not at Jan 1.
+    A year-to-date floor looked identical for the whole of 2026 and then silently
+    reset the headline record to 0-0 on New Year's Day, discarding every graded
+    pick the current model had made.
     """
     end = today - timedelta(days=1)  # only completed days are graded
 
@@ -108,7 +118,7 @@ def build_windows(picks_dir: Path, today: date) -> dict:
     return {
         "week":  _win(end - timedelta(days=6)),
         "month": _win(end - timedelta(days=29)),
-        "year":  _win(date(end.year, 1, 1)),
+        "all":   _win(TRACK_RECORD_START),
     }
 
 
@@ -226,7 +236,7 @@ def render_results_page(picks_dir: Path, today: date, generated_at: str = "") ->
     cards = "".join([
         _stat_card("Last 7d",  windows["week"]),
         _stat_card("Last 30d", windows["month"]),
-        _stat_card("All Time", windows["year"]),
+        _stat_card("All Time", windows["all"]),
     ])
     # Say so plainly rather than letting "Last 30d" imply 30 days of picks when the
     # track record is younger than the window.
@@ -293,7 +303,7 @@ def main():
 
     w = build_windows(picks_dir, today)
     print(f"track record from {TRACK_RECORD_START}")
-    for label, key in (("Last 7d", "week"), ("Last 30d", "month"), ("All Time", "year")):
+    for label, key in (("Last 7d", "week"), ("Last 30d", "month"), ("All Time", "all")):
         s = w[key]
         if not s["graded"]:
             print(f"{label:>9}: no graded picks")

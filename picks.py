@@ -13,7 +13,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-_ET = timezone(timedelta(hours=-4))
+from season import ET as _ET
 
 from teams import ODDS_TEAM as _CODE_TO_FULL, MLB_NAME_TO_CODE as _NAME_TO_CODE
 

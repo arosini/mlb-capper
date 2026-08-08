@@ -33,7 +33,9 @@ from loaders import (
 from odds import load_odds
 from mlb_api import get_mlb_schedule
 
-_ET = timezone(timedelta(hours=-4))
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent.parent))
+from season import ET as _ET
 _ROOT = Path(__file__).resolve().parent.parent
 
 

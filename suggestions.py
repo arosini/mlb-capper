@@ -10,7 +10,7 @@ from typing import Optional
 from analysis import flt
 from odds import fmt_k_line, fmt_outs_line
 
-_ET = timezone(timedelta(hours=-4))
+from season import ET as _ET
 
 
 def _h(text) -> str:
@@ -231,12 +231,28 @@ things and should be expressed differently.
 ═══════════════════════════════════════════════════════════════════
 
 STRIKEOUTS. Use exactly four inputs, then the price:
-  1. The pitcher's K% (last 3 starts)
-  2. Today's opponent's K% (last 12 games vs his hand)
+  1. TODAY'S OPPONENT'S K% (last 12 vs his hand) — the STRONGEST signal here. A lineup
+     that does not strike out will not strike out today, no matter who is pitching.
+  2. The pitcher's K% (last 3 starts)
   3. The K totals in his recent box scores, and who they came against
   4. Any flag about recent opponents being unusually high-K or low-K — if his recent K
      totals were built against strikeout-prone lineups and today's opponent makes more
      contact, discount them; if the reverse, his recent numbers understate today
+
+  THE TWO SIGNALS MUST AGREE. Only take a K prop when the lineup's K% and the pitcher's
+  K rate point the same way:
+    • OVER  → high opponent K% AND high pitcher K rate
+    • UNDER → low opponent K% AND low pitcher K rate
+  Middling on ONE side is acceptable if the price still offers value. Middling on both,
+  or the two pointing in opposite directions, is a pass.
+
+  NEVER take an over into a low-K lineup, and never take an under against a high-K lineup
+  — that is fighting the strongest input in the section. A high-K arm facing a very low-K
+  team is specifically NOT an over unless the number is so low it is undeniable; the
+  contact-heavy lineup beats the strikeout arm here more often than the market implies.
+  The reverse is one of the best spots available: an UNDER on a modest-K pitcher facing a
+  lineup that puts the ball in play is often the cleanest K bet on the board.
+
   Then check the line and the price. Also sanity-check his outs line: a low K line
   alongside a normal outs line is the green light; a low K line with a low outs line means
   the market expects a short outing and the Ks will not be there.
@@ -290,6 +306,39 @@ Each reason must contain, in order:
      is mispricing, you do not have a bet and should not be submitting it.
 
 Be concrete and specific. No filler, no hedging language, no restating the bet.
+
+WRITE FOR A READER WHO HAS NEVER SEEN THESE INSTRUCTIONS. The reason is public-facing
+copy on a betting page, not a transcript of your reasoning. Do your thinking privately,
+then state only the conclusion and the evidence behind it.
+
+NEVER write any of the following in a reason, pass_reason, or alt_suggestion:
+  • References to these instructions or their structure — no "Tier 1", "per the rules",
+    "Section 3", "the guidance says", "as instructed", "the two signals agree".
+  • Reminders of baseball or methodology rules you are following. The reader knows a team
+    bats against the opposing pitcher. Do not write "their own starter's ERA doesn't
+    affect how they hit" or "the pitcher's numbers tell you nothing about his offense."
+    If a factor is not part of your case, simply leave it out.
+  • Self-correction, self-monitoring, or process narration — no "Calibrating:",
+    "adjusting down", "to be clear", "Note:", "Important:", "checking that", "this is not
+    a case of X", "I considered X but".
+  • Defenses of a stat you chose not to use, or explanations of why some number in the
+    card is irrelevant. Omit it instead.
+  • Meta-commentary about confidence, effort, or the analysis itself — no "this is a
+    strong read", "worth flagging that", "the model view here".
+
+Every sentence must assert something about THIS game: a matchup, a number with its
+window, a trend, or why the price is wrong. If a sentence is about how you reasoned
+rather than about the game, delete it.
+
+  BAD:  "STL's wRC+ vs RHP sits at 78, but that is irrelevant here — you don't need a
+         great offense to score off a pitcher giving up 8 ER in 2.1 IP."
+  GOOD: "Scherzer has allowed 8 ER in 2.1 IP and 7 ER in 2.1 IP in two of his last 3
+         starts, averaging 2.8 IP/gs — STL gets to a stressed bullpen by the third."
+
+  BAD:  "The flag note about his one bad outing does not affect the K projection, as the
+         Ks came regardless."
+  GOOD: "He struck out 7, 9, and 7 over his last 3 starts, including the outing where he
+         allowed 5 ER in 3.2 IP."
 
 ═══════════════════════════════════════════════════════════════════
 
@@ -347,6 +396,16 @@ REJECT if ANY of the following is true
 
 6. DISQUALIFIED SETUP. A pitcher prop when the card shows meaningful rain risk, or any
    bet on a pitcher marked "NO STATS."
+
+7. K PROP FIGHTING THE LINEUP. The opponent's K% (last 12 vs that hand) is the strongest
+   input on a strikeout prop, and the two signals must agree.
+     • REJECT: a K OVER into a lineup that does not strike out, unless the rationale
+       explicitly confronts the low K% and explains why the number is beatable anyway.
+     • REJECT: a K UNDER against a high-K lineup on the same terms.
+     • REJECT: a K prop justified ONLY by the pitcher's own K% with no mention at all of
+       what the opposing lineup does against that hand.
+   A prop where both signals align, or where one is middling and the rationale accounts
+   for it, is fine — do not reject those.
 
 ═══════════════════════════════════════════════════════════════════
 ACCEPT otherwise
@@ -760,6 +819,21 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
     if n_skipped:
         print(f"[suggestions] Skipping {n_skipped} already-started game(s)", file=sys.stderr)
 
+    # "Price is the whole job" — the prompt cannot produce a bet without a posted
+    # number, so a slate where no game has odds yields an empty picks array at the
+    # cost of a full Opus call. This happens for real: early on opening day the MLB
+    # schedule is populated well before the books post, and any morning the Odds API
+    # call fails leaves every card reading "ODDS: None available".
+    def _has_odds(g: dict) -> bool:
+        od = g.get("odds") or {}
+        return any(od.get(k) not in (None, "", "—")
+                   for k in ("away_ml", "over", "away_spread"))
+
+    if not any(_has_odds(g) for g in unstarted):
+        print(f"[suggestions] No odds posted for any of {len(unstarted)} game(s) — "
+              f"skipping AI call", file=sys.stderr)
+        return json.loads(sugg_path.read_text()) if sugg_path.exists() else None
+
     # Kept as a list as well as a joined blob — the verification pass re-sends the exact
     # card for whichever game a pick came from.
     serialized = [_serialize_game_for_ai(g) for g in unstarted]
@@ -799,7 +873,12 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                                     "Why this is a bet. Every stat MUST carry its time window "
                                     "(e.g. '3.05 xERA over his last 3', '112 wRC+ vs LHP over "
                                     "their last 12'). Must end by stating what the market is "
-                                    "mispricing — a reason without that is not a bet."
+                                    "mispricing — a reason without that is not a bet. "
+                                    "Public-facing copy: every sentence asserts something about "
+                                    "THIS game. No references to these instructions, no reminders "
+                                    "of methodology or baseball rules, no self-correction or "
+                                    "process narration ('Calibrating:', 'Note:', 'that is "
+                                    "irrelevant here'), no defending stats you chose not to use."
                                 ),
                             },
                             "line_warning":   {"type": "boolean"},
@@ -810,7 +889,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                 },
                 "pass_reasons": {
                     "type": "object",
-                    "description": "Key = game header exactly (e.g. 'TEX @ MIA'). Value = 1-sentence reason why no bet. Include every game not in picks.",
+                    "description": "Key = game header exactly (e.g. 'TEX @ MIA'). Value = 1-sentence reason why no bet, written for a reader who has not seen these instructions — no rule or methodology references. Include every game not in picks.",
                     "additionalProperties": {"type": "string"},
                 },
             },
