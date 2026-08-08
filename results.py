@@ -18,10 +18,17 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from render_html import _CSS, _h
+from render_html import _CSS, _SWIPE_SCRIPT, _h
 from suggestions import _pick_summary_title
 
 _ET = timezone(timedelta(hours=-4))
+
+# The AI picks prompt was rewritten (and the per-pick verification pass added) in
+# e38317a on 2026-08-07. Picks logged before that came from a materially different
+# system, so counting them would misstate the current one's track record. The older
+# files stay in picks/ on purpose — they are the input to scripts/review_rejections.py
+# and to any future prompt evaluation. Move this date if the prompt is rewritten again.
+TRACK_RECORD_START = date(2026, 8, 7)
 
 
 # ── Unit math ────────────────────────────────────────────────────────────────
@@ -87,12 +94,21 @@ def load_picks_range(picks_dir: Path, start: date, end: date) -> list:
 
 
 def build_windows(picks_dir: Path, today: date) -> dict:
-    """Record + units for the trailing week, month, and year (ending yesterday)."""
+    """Record + units for the trailing week, month, and year (ending yesterday).
+
+    Every window is floored at TRACK_RECORD_START, so a window that reaches back
+    further than the current prompt simply covers fewer days rather than mixing in
+    picks the present system did not make.
+    """
     end = today - timedelta(days=1)  # only completed days are graded
+
+    def _win(start: date) -> dict:
+        return summarize(load_picks_range(picks_dir, max(start, TRACK_RECORD_START), end))
+
     return {
-        "week":  summarize(load_picks_range(picks_dir, end - timedelta(days=6),  end)),
-        "month": summarize(load_picks_range(picks_dir, end - timedelta(days=29), end)),
-        "year":  summarize(load_picks_range(picks_dir, date(end.year, 1, 1),     end)),
+        "week":  _win(end - timedelta(days=6)),
+        "month": _win(end - timedelta(days=29)),
+        "year":  _win(date(end.year, 1, 1)),
     }
 
 
@@ -112,19 +128,23 @@ _RESULTS_CSS = """
 .res-row{display:flex;align-items:flex-start;gap:.55rem;padding:.5rem .875rem;border-bottom:1px solid #f6f6f6}
 .res-row:last-child{border-bottom:none}
 .res-mark{width:1.25rem;height:1.25rem;border-radius:50%;color:#fff;font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.05rem;line-height:1}
-.m-won{background:#16a34a}.m-lost{background:#dc2626}.m-push{background:#9ca3af}.m-pend{background:#e5e7eb;color:#6b7280}
+.m-won{background:#16a34a}.m-lost{background:#dc2626}.m-push{background:#6b7280}
+/* Pending reads as an empty outline, not a filled chip, so it can't be mistaken
+   for a graded push at a glance. */
+.m-pend{background:transparent;border:1.5px dashed #d1d5db;color:#9ca3af}
 .res-body{flex:1;min-width:0}
 .res-game{font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em}
 .res-bet{font-size:.86rem;font-weight:700;margin:.05rem 0;line-height:1.3}
 .res-meta{font-size:.7rem;color:#6b7280;font-variant-numeric:tabular-nums}
 .res-pl{font-size:.8rem;font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0;margin-top:.15rem}
 .res-note{font-size:.62rem;color:#9ca3af;text-align:center;padding:.5rem 1rem 0;line-height:1.5}
+.res-cutoff{padding:0 1rem .6rem}
 @media(prefers-color-scheme:dark){
 .res-card,.res-day{background:#111827;border-color:#1f2937}
 .res-row{border-bottom-color:#1f2937}
 .res-day-hd{border-bottom-color:#1f2937}
 .res-bet{color:#f3f4f6}
-.m-pend{background:#374151;color:#9ca3af}
+.m-pend{background:transparent;border-color:#374151;color:#6b7280}
 }
 """
 
@@ -161,6 +181,13 @@ def _pick_row(p: dict) -> str:
     # _pick_summary_title() already carries the price, so meta only adds confidence.
     title = _pick_summary_title(p)
     meta  = (p.get("confidence") or "").title()
+
+    # Spell out the non-win/loss states. A grey circle alone reads as a push when the
+    # pick is really still ungraded, which is a materially different thing.
+    if result == "push":
+        meta = " · ".join(x for x in ("Push", meta) if x)
+    elif result is None:
+        meta = " · ".join(x for x in ("Pending", meta) if x)
 
     if result in ("won", "lost", "push"):
         u = unit_pnl(p.get("odds_num"), result)
@@ -199,8 +226,14 @@ def render_results_page(picks_dir: Path, today: date, generated_at: str = "") ->
     cards = "".join([
         _stat_card("Last 7d",  windows["week"]),
         _stat_card("Last 30d", windows["month"]),
-        _stat_card(str(today.year), windows["year"]),
+        _stat_card("All Time", windows["year"]),
     ])
+    # Say so plainly rather than letting "Last 30d" imply 30 days of picks when the
+    # track record is younger than the window.
+    start_s = TRACK_RECORD_START.strftime(f"%b {TRACK_RECORD_START.day}, %Y")
+    cutoff_note = (f'<p class="res-note res-cutoff">Track record begins '
+                   f'{_h(start_s)}, when the current picks model went live. '
+                   f'Earlier picks came from a different prompt and are excluded.</p>')
     y_label = yesterday.strftime(f"Yesterday · %a, %b {yesterday.day}")
     gen = f'<p class="sub">Updated {_h(generated_at)}</p>' if generated_at else ""
 
@@ -214,12 +247,13 @@ def render_results_page(picks_dir: Path, today: date, generated_at: str = "") ->
         f'<header><h1>MLB Game Overviews</h1>'
         f'<p class="sub">Pick Results</p>{gen}'
         f'<nav class="day-toggle">'
+        f'<a href="/results/" class="active">Results</a>'
         f'<a href="/">Today</a>'
         f'<a href="/tomorrow/">Tomorrow</a>'
-        f'<a href="/results/" class="active">Results</a>'
         f'</nav></header>\n'
         f'<main>'
         f'<div class="res-grid">{cards}</div>'
+        f'{cutoff_note}'
         f'{_day_section(y_label, y_picks)}'
         f'<p class="res-note">Flat 1-unit staking: plus money risks 1u, '
         f'minus money risks to win 1u. Pushes count as 0 and are excluded from '
@@ -228,7 +262,7 @@ def render_results_page(picks_dir: Path, today: date, generated_at: str = "") ->
         f'<footer style="text-align:center;padding:1.5rem 1rem;font-size:.75rem;color:#9ca3af">'
         f'Powered by <a href="https://handigraphs.com" target="_blank" rel="noopener" '
         f'style="color:#9ca3af">Handigraphs</a>'
-        f'</footer>\n</body>\n</html>'
+        f'</footer>{_SWIPE_SCRIPT}\n</body>\n</html>'
     )
 
 
@@ -258,7 +292,8 @@ def main():
         return
 
     w = build_windows(picks_dir, today)
-    for label, key in (("Last 7d", "week"), ("Last 30d", "month"), (str(today.year), "year")):
+    print(f"track record from {TRACK_RECORD_START}")
+    for label, key in (("Last 7d", "week"), ("Last 30d", "month"), ("All Time", "year")):
         s = w[key]
         if not s["graded"]:
             print(f"{label:>9}: no graded picks")

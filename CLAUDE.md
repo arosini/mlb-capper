@@ -131,13 +131,39 @@ picks with a ✓ / ✗ / P mark and per-pick P&L.
 Rolling windows **end yesterday**, not today — today's picks are still open, and counting
 them would drag every number toward zero as the slate fills in.
 
+Every window is floored at `TRACK_RECORD_START` (2026-08-07, the day the rewritten prompt
+went live). Picks before that came from a materially different system. The older files
+stay in `picks/` deliberately — they are the input to `scripts/review_rejections.py`.
+Move the constant if the prompt is rewritten again.
+
 A handful of older picks have `odds_num: null` (~14 of 448 as of 2026-08-08). They count
 in the W-L record but contribute 0 units, so P&L is very slightly understated rather than
 inventing a price for them.
 
-**Step ordering matters**: `Annotate results` runs *before* the HTML steps in
-`publish.yml`. It used to run after the deploy, which shipped a Results page (and pick
-check marks) that were always one run stale.
+Pending and push are visually distinct on purpose: push is a filled grey chip, pending is
+a dashed outline, and both spell the state out in the meta line. They were both plain grey
+circles at first and got misread as the same thing.
+
+## Published Picks Are Immutable
+
+`save_picks()` is an append-only merge keyed on `(game, bet_type, line, team_side)`,
+keeping the first price seen. That guarantee depends entirely on `picks/{date}.json`
+being **committed and pushed in the same run that deployed it** — the next run starts
+from a fresh checkout, so an uncommitted pick log means `existing = []` and the freshly
+regenerated suggestions become the whole file. The public page then shows a different
+pick set every 3 hours.
+
+This is exactly what happened on 2026-08-08: the commit step had been failing since 8/7,
+so no pick log was ever pushed and the deployed picks silently changed every run.
+
+Two ordering rules in `publish.yml` protect the invariant:
+
+1. **`Annotate results` → `Commit history and picks` → HTML steps → `Deploy`.** Picks are
+   persisted *before* anything is published, and the pages render the exact state that
+   was committed. Annotating first also means grades ship this run instead of one behind.
+2. **The commit step `exit 1`s when the push fails after retries**, which skips the
+   deploy. Leaving the last good page up beats publishing picks that cannot be
+   reproduced.
 
 ## Deployment
 - **Repo**: `github.com/arosini/mlb-capper`
@@ -170,6 +196,14 @@ The auditor's top check is backwards baseball logic — backing a team while cit
 team's *own* pitcher's bad xERA/ERA. Each team bats against the OPPOSING pitcher; this
 was the most common failure in the pre-rewrite prompt.
 
+**Rationales are public-facing copy, not a reasoning transcript.** Section 10 of
+`_AI_SYSTEM_PROMPT` (and the `reason` / `pass_reasons` tool-schema descriptions) forbid
+leaking the prompt's own rules into the output: no "Tier 1"/"per the rules", no reminders
+of methodology ("their own starter's ERA doesn't affect how they hit"), no self-correction
+or process narration ("Calibrating:", "Note:", "that is irrelevant here"), no defending
+stats the model chose not to use. The auditor does **not** reject on this — style is not
+worth dropping an otherwise sound pick — so it is enforced only at generation time.
+
 **Stat windows are temporal and the prompt depends on it.** SP xERA/ERA/K%/BB% are the
 last 3 starts (`starters_last3g_*`), team wRC+/K% are the last 12 games split by opposing
 starter hand, bullpens are the last 12. xERA and ERA cover the *same* 3-start window —
@@ -178,6 +212,40 @@ its window in the output text.
 
 `extract_outings()` returns outings **newest-first**. `render_html.py` slices `[:n]`;
 `suggestions.py` takes `[:3]` then reverses for chronological display. Do not `[-3:]`.
+
+## Grading Pitcher Props
+
+Prop picks grade off `history/{date}.json` → `pitchers[]`, which is built from **posted
+prop lines**. Books pull a pitcher's line once his game starts, so rebuilding that list
+purely from the current `bookmakers` payload silently dropped pitchers — and any pick
+naming one could never grade. 62% of prop picks (82 of 133) were stuck at `result: null`
+before this was fixed on 2026-08-08.
+
+Three pieces keep it working; all three are load-bearing:
+
+1. `_build_pitcher_props()` **carries forward** any pitcher already in the record whose
+   props have since vanished.
+2. Annotation **adds starters found in the boxscore** but missing from `pitchers[]`, with
+   a `null` line. Starters only — `_fetch_pitcher_stats()` marks index 0 per side as
+   `started`, and adding relievers risks a last-name collision in the substring match
+   `_resolve_pick()` uses.
+3. `_resolve_pick()` **falls back to the pick's own `line`** when the history entry has
+   none. This is the more correct semantics anyway: grade against the line that was
+   actually taken, not whatever the books last showed.
+
+To re-grade a day after a fix, clear `annotated_at` on the affected records (history) and
+on ungraded picks, then re-run `history.py --annotate --date X` and `picks.py --annotate
+--date X`. Both skip anything already annotated.
+
+## Day Navigation
+
+Three sibling pages — `/results/`, `/`, `/tomorrow/` — ordered chronologically in the nav
+strip. `_SWIPE_SCRIPT` in `render_html.py` maps a horizontal swipe onto that same order
+and is included by both `render_html_page()` and `results.py`. Keep the nav order and the
+`ORDER` array in sync or the gesture direction stops matching the visual layout.
+
+Guards: ignores multi-touch, swipes under 60px, swipes with |dy| > 80, gestures where the
+vertical axis wins, and anything starting inside a horizontally scrollable child.
 
 ## Adding New Data Fields
 1. Check what's available: `python3 download.py --inspect`

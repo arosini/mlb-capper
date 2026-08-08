@@ -103,7 +103,9 @@ def _build_pitcher_props(bookmakers: list, existing_by_name: dict) -> list:
     Preserves existing annotated results (actual_ks, actual_outs, *_over_hit).
     """
     pitchers = []
+    seen = set()
     for name in _pitcher_names_in_props(bookmakers):
+        seen.add(name.lower())
         k_line,    k_over_pr  = _prop_best(bookmakers, "pitcher_strikeouts", "Over",  name)
         _,         k_under_pr = _prop_best(bookmakers, "pitcher_strikeouts", "Under", name)
         outs_line, outs_ov_pr = _prop_best(bookmakers, "pitcher_outs",       "Over",  name)
@@ -123,6 +125,15 @@ def _build_pitcher_props(bookmakers: list, existing_by_name: dict) -> list:
             "k_over_hit":      existing.get("k_over_hit"),
             "outs_over_hit":   existing.get("outs_over_hit"),
         })
+
+    # Books pull prop lines once a game starts, so a pitcher present at pick time can
+    # be absent from a later fetch. Rebuilding purely from `bookmakers` would drop him
+    # — and with him the line the pick was graded against, leaving that pick stuck at
+    # result=null forever. Carry forward anyone we already recorded.
+    for lname, prev in existing_by_name.items():
+        if lname not in seen:
+            pitchers.append(prev)
+
     return pitchers
 
 
@@ -378,14 +389,17 @@ def _fetch_pitcher_stats(game_pk: int) -> dict:
     for side in ("away", "home"):
         side_data = bs.get("teams", {}).get(side, {})
         players   = side_data.get("players", {})
-        for pid in side_data.get("pitchers", []):
+        # `pitchers` is in appearance order, so index 0 is that side's starter.
+        for idx, pid in enumerate(side_data.get("pitchers", [])):
             pdata = players.get(f"ID{pid}") or players.get(str(pid)) or {}
             name  = pdata.get("person", {}).get("fullName", "")
             pstat = pdata.get("stats", {}).get("pitching", {})
             if name and pstat:
                 stats[name.lower()] = {
-                    "ks":   pstat.get("strikeOuts"),
-                    "outs": pstat.get("outs"),
+                    "name":    name,
+                    "ks":      pstat.get("strikeOuts"),
+                    "outs":    pstat.get("outs"),
+                    "started": idx == 0,
                 }
     return stats
 
@@ -574,6 +588,29 @@ def annotate_results(history_dir: Path, target_date: date) -> int:
 
         # Pitcher stats
         pitchers = rec.get("pitchers", [])
+
+        # The pitchers list is built from posted props, so a starter who never had a
+        # line (or whose line was pulled) is absent — and a pick naming him could never
+        # grade. The boxscore has every starter, so add the missing ones with a null
+        # line; picks.py grades those against the line stored on the pick itself.
+        # Starters only: relievers are never the subject of a prop pick, and adding
+        # them risks a last-name collision in picks.py's substring match.
+        known = {(p.get("name") or "").lower() for p in pitchers}
+        known_last = {n.split()[-1] for n in known if n}
+        for pname, stats in pitcher_stats.items():
+            if not stats.get("started"):
+                continue
+            if pname in known or (pname.split() and pname.split()[-1] in known_last):
+                continue
+            pitchers.append({
+                "name": stats.get("name") or pname,
+                "k_line": None, "k_over_price": None, "k_under_price": None,
+                "outs_line": None, "outs_over_price": None, "outs_under_price": None,
+                "actual_ks": None, "actual_outs": None,
+                "k_over_hit": None, "outs_over_hit": None,
+            })
+        rec["pitchers"] = pitchers
+
         for p in pitchers:
             pname = p.get("name", "")
             stats = pitcher_stats.get(pname.lower())

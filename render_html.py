@@ -361,6 +361,54 @@ def _time_sort_key(g: dict) -> int:
 
 # ── JavaScript ────────────────────────────────────────────────────────────────
 
+# Horizontal swipe moves between the three day pages. They are separate static
+# documents, so a swipe is just a navigation — ordered chronologically so the
+# gesture direction matches the order of the nav strip.
+_SWIPE_SCRIPT = """
+<script>
+(function(){
+  var ORDER = ['/results/', '/', '/tomorrow/'];
+  var slot  = document.body.getAttribute('data-slot') || 'today';
+  var here  = slot === 'results' ? 0 : (slot === 'tomorrow' ? 2 : 1);
+  var x0 = null, y0 = null, axis = null;
+
+  // Don't hijack a swipe that belongs to a horizontally scrollable child (the
+  // outing tables and odds grids scroll sideways on narrow screens).
+  function inScrollerX(node){
+    while (node && node !== document.body){
+      if (node.scrollWidth > node.clientWidth + 2){
+        var ov = getComputedStyle(node).overflowX;
+        if (ov === 'auto' || ov === 'scroll') return true;
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+
+  document.addEventListener('touchstart', function(e){
+    if (e.touches.length !== 1 || inScrollerX(e.target)){ x0 = null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; axis = null;
+  }, {passive:true});
+
+  document.addEventListener('touchmove', function(e){
+    if (x0 === null || e.touches.length !== 1) return;
+    var dx = e.touches[0].clientX - x0, dy = e.touches[0].clientY - y0;
+    if (axis === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
+      axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+  }, {passive:true});
+
+  document.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    if (axis !== 'x' || Math.abs(dx) < 60 || Math.abs(dy) > 80) return;
+    var to = here + (dx < 0 ? 1 : -1);
+    if (to >= 0 && to < ORDER.length) location.href = ORDER[to];
+  }, {passive:true});
+})();
+</script>
+"""
+
 _SPLIT_SCRIPT = """
 <script>
 (function(){
@@ -1062,9 +1110,10 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
     tomorrow_cls = ' class="active"' if slot == "tomorrow" else ""
     toggle_html = (
         f'<nav class="day-toggle">'
+        # Chronological, so swiping left/right matches the visual order.
+        f'<a href="/results/">Results</a>'
         f'<a href="/"{today_cls}>Today</a>'
         f'<a href="/tomorrow/"{tomorrow_cls}>Tomorrow</a>'
-        f'<a href="/results/">Results</a>'
         f'</nav>'
     )
 
@@ -1098,5 +1147,5 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'<footer style="text-align:center;padding:1.5rem 1rem;font-size:.75rem;color:#9ca3af">'
         f'Powered by <a href="https://handigraphs.com" target="_blank" rel="noopener" style="color:#9ca3af">Handigraphs</a>'
         f'</footer>'
-        f'{_SPLIT_SCRIPT}\n</body>\n</html>'
+        f'{_SWIPE_SCRIPT}{_SPLIT_SCRIPT}\n</body>\n</html>'
     )

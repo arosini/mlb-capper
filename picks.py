@@ -395,6 +395,11 @@ def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
                 continue
             actual = p.get("actual_ks")   if is_ks else p.get("actual_outs")
             p_line = p.get("k_line")      if is_ks else p.get("outs_line")
+            # Grade against the line the pick was actually taken at. The history entry's
+            # line is whatever the books last showed and can be missing entirely once
+            # they pull the prop, but `line` on the pick is fixed at pick time.
+            if p_line is None:
+                p_line = line
             if actual is None or p_line is None:
                 return None
             raw = _ou(actual, p_line)  # "won"=over hit
