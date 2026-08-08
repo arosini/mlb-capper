@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(gh *)",
+      "Bash(git *)",
+      "Bash(curl https://api.handigraphs.com/*)",
+      "Bash(curl https://statsapi.mlb.com/*)",
+      "Bash(curl https://lookup-service-prod.mlb.com/*)",
+      "Bash(curl https://www.baseball-reference.com/*)",
+      "Bash(wget *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(jq *)",
+      "Bash(pip *)",
+      "Bash(pip3 *)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)"
+    ],
+    "deny": [
+      "Bash(curl https://api.the-odds-api.com/*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys,json,re;d=json.load(sys.stdin);c=(d.get('tool_input') or {}).get('command') or '';print(json.dumps({'hookSpecificOutput':{'hookEventName':'PreToolUse','permissionDecision':'deny','permissionDecisionReason':'Blocked: direct calls to api.the-odds-api.com cost paid credits. Use python3 download.py, which throttles on odds_meta and prints remaining quota.'}})) if re.search(r'the-odds-api[.]com',c,re.I) and re.search(r'https?://|curl|wget|requests[.]|urllib|httpx|aiohttp|httpie',c,re.I) else None\"",
+            "statusMessage": "Checking for paid Odds API calls"
+          }
+        ]
+      }
+    ]
+  }
+}
