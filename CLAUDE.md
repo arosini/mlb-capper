@@ -41,6 +41,7 @@ suggestions.py    — AI picks generation + HTML rendering; imports analysis, od
   ↓
 render_html.py    — HTML page renderer (_html_game, render_html_page, CSS/JS); imports all above
   ↓
+results.py        — Results page (record + unit P&L); imports render_html, suggestions
 handicap.py       — slim entry point, main() only; imports everything
 ```
 
@@ -48,6 +49,7 @@ handicap.py       — slim entry point, main() only; imports everything
 - `download.py` — fetches all data endpoints; only file that calls the Odds API
 - `history.py` — permanent odds log; imports team maps from teams.py
 - `picks.py` — permanent AI picks log; imports team maps from teams.py
+- `results.py` — Results page renderer + unit math; reads `picks/`, writes `_site/results/index.html`
 
 ### Key exports by module
 
@@ -66,6 +68,8 @@ handicap.py       — slim entry point, main() only; imports everything
 **`suggestions.py`**: `generate_suggestions()`, `_render_suggestions_html()`, `_ai_game_map()`, `_pick_dom_id()`, `_pick_summary_title()`
 
 **`render_html.py`**: `render_html_page()`, `_html_game()`
+
+**`results.py`**: `unit_pnl()`, `summarize()`, `load_picks_range()`, `build_windows()`, `render_results_page()`
 
 ## Data Flow
 
@@ -110,11 +114,38 @@ Each card renders collapsed `<details>` sections except Matchup (open by default
 
 CSS uses `prefers-color-scheme: dark` for automatic dark mode.
 
+## Results Page (`/results/`)
+
+Third tab alongside Today and Tomorrow. Built by `results.py --html` from the git-tracked
+`picks/{date}.json` logs — it reads the `result` field (`won`/`lost`/`push`/absent) that
+`picks.py --annotate` writes, and does no grading of its own.
+
+Shows trailing-7d / trailing-30d / year-to-date record and unit P&L, then yesterday's
+picks with a ✓ / ✗ / P mark and per-pick P&L.
+
+**Unit convention** — flat "risk 1 to win 1" staking, in `unit_pnl()`:
+- Plus money `+130`: risk 1u → win **+1.30u**, lose **−1.00u**
+- Minus money `−130`: risk 1.30u to win 1u → win **+1.00u**, lose **−1.30u**
+- Push → 0.00u, and excluded from the win-rate denominator
+
+Rolling windows **end yesterday**, not today — today's picks are still open, and counting
+them would drag every number toward zero as the slate fills in.
+
+A handful of older picks have `odds_num: null` (~14 of 448 as of 2026-08-08). They count
+in the W-L record but contribute 0 units, so P&L is very slightly understated rather than
+inventing a price for them.
+
+**Step ordering matters**: `Annotate results` runs *before* the HTML steps in
+`publish.yml`. It used to run after the deploy, which shipped a Results page (and pick
+check marks) that were always one run stale.
+
 ## Deployment
 - **Repo**: `github.com/arosini/mlb-capper`
 - **Hosting**: Cloudflare Pages — project `mlb-capper`, custom domain `mlbautocap.com`
 - **Workflow**: `.github/workflows/publish.yml` — cron `0 */3 * * *` (every 3 hours), also `workflow_dispatch` and push-to-main
 - **Deploy step**: `cloudflare/wrangler-action@v3` with `pages deploy _site --project-name=mlb-capper --commit-dirty=true`
+- **Pages built per run**: `_site/index.html` (today), `_site/tomorrow/index.html`, `_site/results/index.html`
+- **`git add` in the commit step goes through `_stage()`**, which `mkdir -p`s `history picks rejections` first. `rejections/` only exists on days a pick is rejected, and `git add <missing-dir>/` is fatal (exit 128) under `bash -e`. The mkdir must be inside `_stage()`, not run once up front: the retry path's `git clean -f rejections/` deletes the empty directory before the second add.
 - **No-cache headers**: written inline in workflow (`printf '/*\n  Cache-Control: no-cache...' > _site/_headers`) — not a repo file
 - **Secrets needed**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`
 - **Trigger manually**: `gh workflow run publish.yml`
