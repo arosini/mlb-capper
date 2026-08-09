@@ -100,13 +100,27 @@ jobs:
             python3 download.py --date tomorrow --no-odds
             exit 0
           fi
-          # 6:30 PM ET run forces a fresh odds/props fetch — earlier runs may land
-          # before Handigraphs/the Odds API have posted tomorrow's slate at all, so
-          # the normal 5h throttle would otherwise lock in an empty/stale fetch for
-          # the rest of the evening.
-          if [ "${{ github.event.schedule }}" = "30 22 * * *" ]; then
+          # Tomorrow's ODDS are only wanted from about 6 PM ET onward, so the earlier
+          # runs fetch Handigraphs data only and leave the metered Odds API alone.
+          #
+          # This is also the single biggest line on the Odds API bill. Billing is per
+          # market x region, and a per-event props call covers 7 markets: fetching
+          # tomorrow's props on all four daily runs was 4 x 15 games x 7 = 420 credits
+          # a day, 57% of total spend, for a preview page nobody reads before evening.
+          # Once a day instead of four takes that to 105 and drops the daily total from
+          # roughly 735 to 420 — from over a 20k/month plan to comfortably inside it.
+          ET_HOUR=$(python3 -c "import season, datetime; print(datetime.datetime.now(season.ET).hour)")
+          if [ "$ET_HOUR" -lt 17 ]; then
+            echo "[tomorrow] ${ET_HOUR}:00 ET — before the 5 PM cutoff, skipping the Odds API"
+            python3 download.py --date tomorrow --no-odds
+          elif [ "${{ github.event.schedule }}" = "30 22 * * *" ]; then
+            # The evening scheduled run forces past the 5h throttle so the first real
+            # pull of tomorrow's board always lands, rather than being skipped because
+            # some earlier fetch happened to record a timestamp.
             python3 download.py --date tomorrow --force-odds
           else
+            # Manual runs after 5 PM: throttled, so repeated dispatches don't re-buy
+            # the same board at ~108 credits a time.
             python3 download.py --date tomorrow
           fi
 

@@ -145,12 +145,23 @@ picks with a ✓ / ✗ / P mark and per-pick P&L.
 Rolling windows **end yesterday**, not today — today's picks are still open, and counting
 them would drag every number toward zero as the slate fills in.
 
-Every window is floored at `TRACK_RECORD_START` (2026-08-07, the day the rewritten prompt
-went live). The widest window starts *at* that date rather than at Jan 1 — a year-to-date
-floor looked identical all of 2026 and would have silently reset the headline record to
-0-0 on New Year's Day. Picks before that came from a materially different system. The older files
-stay in `picks/` deliberately — they are the input to `scripts/review_rejections.py`.
-Move the constant if the prompt is rewritten again.
+Every window is floored at `TRACK_RECORD_START` (**2026-08-10** — a deliberate clean
+slate after the old prompt and the unsettled days replacing it). The widest window starts
+*at* that date rather than at Jan 1 — a year-to-date floor looked identical all of 2026
+and would have silently reset the headline record to 0-0 on New Year's Day.
+
+The 40 pre-cutoff files live in **`picks/archive/`**. `load_picks_range()` globs
+`picks/*.json` **non-recursively**, so archiving is all it takes to exclude them — and
+they stay available for comparing the old prompt against the new one. Move the constant
+(and archive the superseded files) if the prompt is rewritten again.
+
+The constant only controls what the **record counts**. Picks are still generated,
+published and displayed every day, which is why the site keeps showing picks over a
+weekend that does not count toward the number.
+
+> An earlier version of this file said the old pick files were the input to
+> `scripts/review_rejections.py`. They are not — that script reads `rejections/`.
+> Archiving or deleting `picks/` does not affect the weekly prompt review.
 
 A handful of older picks have `odds_num: null` (~14 of 448 as of 2026-08-08). They count
 in the W-L record but contribute 0 units, so P&L is very slightly understated rather than
@@ -435,10 +446,20 @@ Postseason is cheap (1–8 games/day), so the exposure is every month from April
 September. Adding one market to the props URL costs ~14% more; adding a fifth cron run
 costs ~25% more. Do neither without checking the numbers.
 
-**Tomorrow's props alone are 57% of total spend**, and the tomorrow page deliberately runs
-without an `ANTHROPIC_API_KEY` — it is a matchup/odds preview, not a picks page. Cutting it
-to the 6:30 PM run only would save ~315 credits/day (~43%). Not done: it changes what the
-preview shows during the day, which is a product call.
+**Tomorrow's odds are now fetched once a day, not four times.** They are only wanted from
+about 6 PM ET, so `Download tomorrow's data` checks the ET hour and passes `--no-odds`
+before 17:00 — Handigraphs data still refreshes on every run, the metered API does not.
+That cut the largest line on the bill from 420 credits/day to 105:
+
+| | Before | After |
+|---|---|---|
+| Tomorrow's props | 4 × 15 × 7 = 420 | 1 × 15 × 7 = **105** |
+| Daily total | ~735 | **~420** |
+| Monthly | ~22,000 (over a 20k plan) | **~12,800** (comfortably inside) |
+
+The evening scheduled run uses `--force-odds` so the first real pull always lands rather
+than being skipped by a stale throttle timestamp; manual runs after 5 PM stay throttled so
+repeated dispatches do not re-buy the same board at ~108 credits each.
 
 `odds_meta_{date}.json` and `props_meta_{date}.json` now persist `quota_remaining` and
 `quota_used` from the response headers, so burn rate is readable from the repo instead of
