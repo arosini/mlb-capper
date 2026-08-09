@@ -46,10 +46,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-09T08:12:16.670023+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 10,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-09T23:03:03.512931+00:00"
   },
   {
     "date": "2026-08-09",
@@ -72,10 +72,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-09T08:12:16.670023+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 10,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-09T23:03:03.512931+00:00"
   },
   {
     "date": "2026-08-09",
@@ -98,10 +98,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-09T08:12:16.670023+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-09T23:03:03.512931+00:00"
   },
   {
     "date": "2026-08-09",
@@ -176,10 +176,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-09T08:12:16.670023+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 6,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-09T23:03:03.512931+00:00"
   },
   {
     "date": "2026-08-09",
@@ -202,10 +202,10 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-09T14:26:33.210846+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-09T23:03:03.512931+00:00"
   },
   {
     "date": "2026-08-09",
@@ -228,6 +228,32 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-09T14:26:33.210846+00:00",
+    "result": "lost",
+    "away_score_final": 6,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-09T23:03:03.512931+00:00"
+  },
+  {
+    "date": "2026-08-09",
+    "game": "HOU @ SDP",
+    "away": "Houston Astros",
+    "away_code": "HOU",
+    "home": "San Diego Padres",
+    "home_code": "SDP",
+    "game_time_utc": "2026-08-10T00:20:00Z",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Cristian Javier Under 3.5 Strikeouts",
+    "team_side": null,
+    "line": 3.5,
+    "period": "props",
+    "odds": "-128",
+    "odds_num": -128,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Javier's raw strikeout totals sit at roughly 3.0 per start over his last 3, and his 23.9% K% in that span was built against COL (25%) and TEX (27%), two of the most strikeout-prone lineups he could draw. Today he faces a contact-oriented SDP offense running an 18.3% K rate over their last 12 vs RHP, which pulls his effective whiff rate below the shine. At a line of 3.5 the market is leaning on inflated recent K numbers against a lineup built to avoid them.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-08-09T23:03:02.268539+00:00",
     "result": null,
     "away_score_final": null,
     "home_score_final": null,
