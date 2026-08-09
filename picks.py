@@ -49,6 +49,67 @@ def _extract_picks(sugg: dict) -> list:
     return result
 
 
+def _et_date(ts: str) -> str:
+    """ET calendar date of a UTC timestamp, or '' if unparseable."""
+    if not ts:
+        return ""
+    try:
+        return (datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                .astimezone(_ET).strftime("%Y-%m-%d"))
+    except Exception:
+        return ""
+
+
+def _build_game_info(history: list, date_str: str) -> dict:
+    """{(away_full, home_full): {game_time_utc, codes...}} for games played on date_str.
+
+    A slate file records every game the Odds API was serving that day, and the API
+    serves one to three days ahead — so history/{date}.json holds several records per
+    matchup with different start times, sorted ascending. Keying on (away, home) alone
+    let the LAST record win, which is the furthest-FUTURE one, and stamped every pick
+    with a later day's first pitch.
+
+    That is what made picks stick in "upcoming" after their game had finished: both the
+    server-side split in _render_suggestions_html() and splitPicks() in the page JS
+    compare game_time_utc against now, and the timestamp really was hours away — it just
+    belonged to a different day's game.
+
+    So: prefer the record whose own ET date matches the slate date, and fall back to the
+    earliest available only when nothing matches, rather than silently taking the latest.
+    """
+    best: dict = {}
+    for rec in history:
+        away_full = rec.get("away", "")
+        home_full = rec.get("home", "")
+        if not away_full or not home_full:
+            continue
+        gt = rec.get("game_time_utc", "")
+        key = (away_full, home_full)
+        cand = {
+            "game_time_utc": gt,
+            "away_code": rec.get("away_code", "") or _NAME_TO_CODE.get(away_full, ""),
+            "home_code": rec.get("home_code", "") or _NAME_TO_CODE.get(home_full, ""),
+            "away": away_full,
+            "home": home_full,
+            "_on_date": _et_date(gt) == date_str,
+        }
+        prev = best.get(key)
+        if prev is None:
+            best[key] = cand
+            continue
+        # An on-date record always beats an off-date one; between two of the same kind
+        # take the earlier start (the first leg of a doubleheader, which picks carry no
+        # game number to distinguish anyway).
+        if cand["_on_date"] != prev["_on_date"]:
+            if cand["_on_date"]:
+                best[key] = cand
+        elif (cand["game_time_utc"] or "9") < (prev["game_time_utc"] or "9"):
+            best[key] = cand
+    for v in best.values():
+        v.pop("_on_date", None)
+    return best
+
+
 def _canon_pick_key(pick: dict) -> tuple:
     """
     Canonical dedup key. Once a market group is picked for a game, the whole group is
@@ -109,19 +170,7 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
 
     # Build game info lookup from history file: full_name_key → {game_time_utc, away_code, home_code}
     history_path = history_dir / f"{date_str}.json"
-    game_info: dict = {}
-    for rec in (_read_json(history_path) or []):
-        away_full = rec.get("away", "")
-        home_full = rec.get("home", "")
-        away_code = rec.get("away_code", "") or _NAME_TO_CODE.get(away_full, "")
-        home_code = rec.get("home_code", "") or _NAME_TO_CODE.get(home_full, "")
-        game_info[(away_full, home_full)] = {
-            "game_time_utc": rec.get("game_time_utc", ""),
-            "away_code":     away_code,
-            "home_code":     home_code,
-            "away":          away_full,
-            "home":          home_full,
-        }
+    game_info: dict = _build_game_info(_read_json(history_path) or [], date_str)
 
     picks_path = picks_dir / f"{date_str}.json"
     existing = _read_json(picks_path) or []
@@ -219,6 +268,41 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
         print(f"[picks] {date_str}: {added} new pick(s), {len(records)} total — picks/{date_str}.json")
 
     return added
+
+
+def fix_game_times(picks_dir: Path, history_dir: Path, target_date: date) -> int:
+    """Re-derive game_time_utc on already-saved picks. Returns count corrected.
+
+    Repairs picks written before _build_game_info() preferred the on-date history
+    record. This does NOT touch the bet, line, price or reason, so the immutability
+    guarantee in save_picks() is intact — it only corrects a start time that was
+    always wrong and that decides which section of the page a pick renders in.
+    """
+    date_str = target_date.strftime("%Y-%m-%d")
+    picks_path = picks_dir / f"{date_str}.json"
+    picks = _read_json(picks_path) or []
+    if not picks:
+        print(f"[picks] No picks file for {date_str}")
+        return 0
+    info = _build_game_info(_read_json(history_dir / f"{date_str}.json") or [], date_str)
+
+    fixed = 0
+    for p in picks:
+        want = info.get((p.get("away", ""), p.get("home", "")))
+        if not want:
+            continue
+        new = want.get("game_time_utc", "")
+        old = p.get("game_time_utc", "")
+        if new and new != old:
+            p["game_time_utc"] = new
+            fixed += 1
+            print(f"  {p['game']:14s} {p['bet'][:34]:36s} {old or '(none)'} -> {new}")
+    if fixed:
+        picks_path.write_text(json.dumps(picks, indent=2))
+        print(f"[picks] {date_str}: corrected {fixed} game time(s)")
+    else:
+        print(f"[picks] {date_str}: all game times already correct")
+    return fixed
 
 
 def load_all_picks(picks_dir: Path, target_date: date) -> list:
@@ -448,14 +532,16 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="MLB AI picks log")
     ap.add_argument("--save", action="store_true", help="Merge today's suggestions into picks log")
     ap.add_argument("--annotate", action="store_true", help="Annotate picks with final results")
+    ap.add_argument("--fix-times", action="store_true",
+                    help="Re-derive game_time_utc on saved picks from history/")
     ap.add_argument("--date", default="today", help="today, yesterday, or YYYY-MM-DD")
     ap.add_argument("--data-dir", default="./data", help="Data directory (for suggestions)")
     ap.add_argument("--picks-dir", default="./picks", help="Picks output directory")
     ap.add_argument("--history-dir", default="./history", help="History directory (for annotation)")
     args = ap.parse_args()
 
-    if not args.save and not args.annotate:
-        ap.error("Specify --save or --annotate")
+    if not args.save and not args.annotate and not args.fix_times:
+        ap.error("Specify --save, --annotate or --fix-times")
 
     today_et = datetime.now(_ET).date()
     if args.date == "today":
@@ -470,6 +556,9 @@ if __name__ == "__main__":
 
     if args.save:
         save_picks(Path(args.data_dir), Path(args.picks_dir), target, Path(args.history_dir))
+
+    if args.fix_times:
+        fix_game_times(Path(args.picks_dir), Path(args.history_dir), target)
 
     if args.annotate:
         annotate_picks(Path(args.picks_dir), Path(args.history_dir), target)
