@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-08-09",
+    "game": "MIN @ MIL",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Jacob Misiorowski Under 8.5 Ks",
+    "odds": "+109",
+    "confidence": "medium",
+    "reason": "Misiorowski's gaudy recent strikeout totals came against COL and LAA, both high-strikeout lineups, and today he draws a MIN club that fans at just a 16.3% rate vs RHP over its last 12 \u2014 the most contact-oriented offense he has seen. He struck out 6 across 6 innings the last time he faced them, and a rain-risk game only shortens his window. At 8.5, the line prices his best outcomes against a lineup built to spoil them.",
+    "reject_reason": "Rule 6 disqualified setup: this is a pitcher prop and the card shows meaningful rain risk (\"RAIN RISK 38%\"), which the rationale itself leans on (\"a rain-risk game only shortens his window\").",
+    "rejected_at": "2026-08-09T08:12:05.232018+00:00"
+  }
+]
