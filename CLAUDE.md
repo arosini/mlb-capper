@@ -512,6 +512,33 @@ Odds credits consumed per day are computed as **first reading − low-water mark
 from the `used` counter, so a mid-month billing reset shows up as a new baseline instead
 of one enormous negative day.
 
+## CI Cache — the run-scoped key is load-bearing
+
+`actions/cache` **never overwrites an existing key**. It logs
+`Cache hit occurred on the primary key, not saving cache` and discards whatever the run
+downloaded. With the old date-only key (`odds-${CACHE_DATE}`) that froze `data/` at
+whatever the *first* run of the day happened to save — on 2026-08-08 a sparse 83 KB
+snapshot. Every later run restored the sparse copy: the 6:30 PM run downloaded
+tomorrow's Handigraphs files, used them in-job, and threw them away.
+
+That is invisible until something re-renders without downloading. **Push-triggered runs
+do exactly that** — `Clean stale data files`, `Download data` and `Download tomorrow's
+data` are all gated on `schedule`/`workflow_dispatch`, but the HTML steps and the deploy
+are not. So every push rebuilt `/tomorrow/` from a data dir with no tomorrow files and
+deployed it: 15 game cards, every stat `?` or "No data". Cloudflare Pages deploys are
+full-snapshot replacements, so a good page from the scheduled run was overwritten by an
+empty one from the next push.
+
+The key is now `odds-${CACHE_DATE}-${github.run_id}` with `restore-keys` falling back
+through `odds-${CACHE_DATE}-` then `odds-`. Every run saves; every run restores the
+newest. **Do not collapse it back to a date-only key.**
+
+Belt and braces: the `Generate tomorrow HTML` step checks for
+`data/starters_last3g_tomorrow_${TOMORROW_DATE}.json` first and, if it is missing,
+curls the live page into `_site/tomorrow/index.html` rather than rebuilding it empty.
+The today page needs no such guard — `data/starters_last3g_today_*.json` is git-tracked
+(the one `.gitignore` exception), which is why today survived while tomorrow did not.
+
 ## Secrets — where they can leak
 
 The repo is private and no secret value appears in any commit or tracked file (checked

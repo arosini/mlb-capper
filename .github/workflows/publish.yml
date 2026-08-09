@@ -39,12 +39,22 @@ jobs:
           python3 -c "import season; print('CACHE_DATE='+season.today_et().strftime('%Y-%m-%d'))" >> $GITHUB_ENV
           python3 -c "import season,datetime; print('TOMORROW_DATE='+(season.today_et()+datetime.timedelta(days=1)).strftime('%Y-%m-%d'))" >> $GITHUB_ENV
 
+      # The key MUST be unique per run. actions/cache never overwrites an existing
+      # key — it logs "Cache hit occurred on the primary key, not saving cache" — so a
+      # date-only key freezes data/ at whatever the first run of the day happened to
+      # save. On 2026-08-08 that was a sparse 83 KB snapshot: the 6:30 PM run downloaded
+      # tomorrow's Handigraphs files, used them, and then threw them away, and every
+      # later run restored the sparse copy instead. Push-triggered runs skip the
+      # download steps but still regenerate and deploy every page, so they published a
+      # /tomorrow/ built from an empty data dir — 15 game cards with no stats at all.
+      # A run-scoped key means every run saves; restore-keys still finds the newest.
       - name: Restore odds cache
         uses: actions/cache@v4
         with:
           path: data/
-          key: odds-${{ env.CACHE_DATE }}
+          key: odds-${{ env.CACHE_DATE }}-${{ github.run_id }}
           restore-keys: |
+            odds-${{ env.CACHE_DATE }}-
             odds-
 
       - name: Clean stale data files
@@ -202,6 +212,19 @@ jobs:
 
       - name: Generate tomorrow HTML
         run: |
+          # Defence in depth against publishing a stats-less page. Cloudflare Pages
+          # deploys replace the whole site, so regenerating /tomorrow/ from a data dir
+          # that lacks tomorrow's Handigraphs files overwrites a good page with an
+          # empty one. If the data is not here, keep whatever is already live.
+          if ! ls data/starters_last3g_tomorrow_${TOMORROW_DATE}.json >/dev/null 2>&1; then
+            echo "::warning::No starters file for $TOMORROW_DATE — preserving the deployed /tomorrow/ page instead of rebuilding it empty"
+            mkdir -p _site/tomorrow
+            if curl -fsS --max-time 30 https://mlbautocap.com/tomorrow/ -o _site/tomorrow/index.html; then
+              echo "Preserved live page ($(wc -c < _site/tomorrow/index.html) bytes)"
+              exit 0
+            fi
+            echo "::warning::Could not fetch the live page either — rebuilding from what we have"
+          fi
           # Deliberately no ANTHROPIC_API_KEY here — this is a matchup/odds preview,
           # not the AI-picks page, so we skip triggering a Claude call for it.
           # Runs every deploy (not just the tomorrow-data steps above) because
