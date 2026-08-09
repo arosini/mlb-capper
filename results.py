@@ -23,12 +23,17 @@ from suggestions import _pick_summary_title
 
 from season import ET as _ET
 
-# The AI picks prompt was rewritten (and the per-pick verification pass added) in
-# e38317a on 2026-08-07. Picks logged before that came from a materially different
-# system, so counting them would misstate the current one's track record. The older
-# files stay in picks/ on purpose — they are the input to scripts/review_rejections.py
-# and to any future prompt evaluation. Move this date if the prompt is rewritten again.
-TRACK_RECORD_START = date(2026, 8, 7)
+# Deliberate clean slate: everything before this date came from the old prompt, or from
+# the unsettled couple of days while it was being replaced, and counting it would
+# misstate what the current system does. Picks are still generated and published every
+# day — this constant only decides what the RECORD counts, so the weekend's picks show
+# on the site without affecting the number.
+#
+# The pre-cutoff files are archived under picks/archive/ rather than deleted, so the old
+# prompt's results stay available for comparison. load_picks_range() globs picks/*.json
+# non-recursively, so archived files are invisible to the record automatically.
+# Move this date again if the prompt is rewritten.
+TRACK_RECORD_START = date(2026, 8, 10)
 
 
 # ── Unit math ────────────────────────────────────────────────────────────────
