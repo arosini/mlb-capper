@@ -482,11 +482,27 @@ the footer of every page rather than the nav strip (the nav's three tabs and
 | "Remaining" means | real quota | spend against `CLAUDE_MONTHLY_BUDGET_USD`, an operator-chosen ceiling |
 | Sees other usage on the key? | yes | **no** — this project's calls only |
 
-Anthropic's Usage & Cost API would give org-wide truth, but it requires an **Admin API
-key** (`sk-ant-admin…`) or an `org:admin` OAuth token — not the `ANTHROPIC_API_KEY` this
-project uses — and is **unavailable to individual accounts**. Self-metering avoids a
-second credential and is exact for our own calls. Rates live in `usage.PRICING`; keep
-them in step with the model `suggestions.py` actually calls.
+**Anthropic spend can be authoritative — it just needs a second credential.** Setting
+`ANTHROPIC_ADMIN_KEY` switches the headline figure to `GET /v1/organizations/cost_report`,
+which returns real USD and reconciles with billing: it also captures Workbench usage,
+anything else sharing the key, server-tool costs, and any model whose rate `usage.PRICING`
+has wrong. That is an **Admin key** (`sk-ant-admin01-…`), *not* `ANTHROPIC_API_KEY`, and
+the Admin API needs an organization rather than an individual account (Console → Settings
+→ Organization). Absent or invalid, the page logs and falls back to the ledger — it never
+fails the run.
+
+**What does NOT exist either way is a remaining balance.** Both Anthropic endpoints report
+spend to date; there is no budget or limit endpoint on the Console path (spend limits are
+a Claude Enterprise feature). So `CLAUDE_MONTHLY_BUDGET_USD` remains a locally chosen
+ceiling regardless of which spend source is in use — do not present it as an Anthropic
+quota.
+
+⚠️ The `cost_report` response shape has **not been verified against a live call** (no Admin
+key available). `usage.anthropic_cost_report()` sums any `amount`/`cost`/`value` field it
+finds recursively and treats the total as cents, which degrades to a wrong-ish number
+rather than a crash if the layout differs. Verify against one real response before
+trusting the figure. Rates for the fallback live in `usage.PRICING`; keep them in step
+with the model `suggestions.py` actually calls.
 
 `usage/{YYYY-MM}.json` is **git-tracked**, for the same reason `history/` and `picks/`
 are: `data/` is wiped between runs, so a ledger there would be forgotten at the next

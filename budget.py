@@ -11,12 +11,14 @@ quota to report:
 * **The Odds API** returns `x-requests-remaining` on every response, so "remaining" is
   measured, not modelled. Credits are billed per market x region, which is why the
   credit count falls ~7x faster than the call count on per-event props requests.
-* **The Anthropic API** is pay-as-you-go with no readable balance. Its Usage & Cost API
-  needs an Admin key (`sk-ant-admin...`) or an `org:admin` OAuth token, and is not
-  available to individual accounts at all — so spend here is self-metered from each
-  response's `usage` block and priced against published rates. It counts this project's
-  own calls only, and "remaining" is measured against CLAUDE_MONTHLY_BUDGET_USD, an
-  operator-chosen ceiling rather than anything Anthropic enforces.
+* **The Anthropic API** has no readable balance in either mode. Spend is self-metered
+  from each response's `usage` block by default, which counts this project's calls only.
+  Setting ANTHROPIC_ADMIN_KEY switches the headline figure to Anthropic's own
+  `cost_report` — billing truth, org-wide — but that needs an Admin key
+  (`sk-ant-admin01-...`) and an organization rather than an individual account.
+  Either way "remaining" is measured against CLAUDE_MONTHLY_BUDGET_USD: Anthropic
+  exposes no budget or remaining-limit endpoint on this path (spend limits are a
+  Claude Enterprise feature).
 """
 import sys
 from datetime import date, datetime, timedelta
@@ -24,7 +26,7 @@ from pathlib import Path
 
 from render_html import _CSS, _h
 from season import ET
-from usage import load_days, monthly_budget_usd
+from usage import load_days, monthly_budget_usd, anthropic_cost_report
 
 
 def _month_bounds(today: date) -> tuple:
@@ -89,6 +91,10 @@ def collect(usage_dir: Path, today: date) -> dict:
         "claude": {
             "month": _claude(month), "week": _claude(week),
             "budget": monthly_budget_usd(),
+            # Authoritative billing figure when an Admin key is configured; the
+            # self-metered ledger otherwise. Only the headline number changes —
+            # token counts and call counts stay local either way.
+            "authoritative": anthropic_cost_report(m_start, today),
         },
     }
 
@@ -160,11 +166,14 @@ def render_budget_page(usage_dir: Path, today: date, generated_at: str = "") -> 
     )
 
     # ── Claude card ──
-    spend, budget = c["month"]["cost_usd"], c["budget"]
+    auth = c.get("authoritative")
+    spend = auth["cost_usd"] if auth else c["month"]["cost_usd"]
+    budget = c["budget"]
     frac = (spend / budget) if budget else 0
     left = budget - spend
     claude_body = (
-        f'<div class="bg-big">${spend:,.2f}<span class="bg-sub"> this month</span></div>'
+        f'<div class="bg-big">${spend:,.2f}<span class="bg-sub"> this month'
+        f'{" · billed" if auth else " · estimated"}</span></div>'
         f'{_bar(frac)}'
         f'<div class="bg-row"><span>Budget</span><span>${budget:,.2f}</span></div>'
         f'<div class="bg-row"><span>Remaining</span>'
@@ -174,13 +183,25 @@ def render_budget_page(usage_dir: Path, today: date, generated_at: str = "") -> 
         f'<div class="bg-row"><span>Tokens in / out</span>'
         f'<span>{c["month"]["input_tokens"]:,} / {c["month"]["output_tokens"]:,}</span></div>'
     )
-    claude_note = (
-        'Anthropic exposes no balance to read: the Usage &amp; Cost API needs an Admin '
-        'key and is unavailable to individual accounts. This is self-metered from each '
-        'response\'s <code>usage</code> block at published rates, so it counts this '
-        'project\'s calls only, and the budget is a locally configured ceiling '
-        '(<code>CLAUDE_MONTHLY_BUDGET_USD</code>) rather than a limit Anthropic enforces.'
-    )
+    if auth:
+        claude_note = (
+            "Spend is Anthropic's own <code>cost_report</code> figure — billing truth, "
+            "covering everything on the organization including usage outside this "
+            "project. There is still no balance to read: Anthropic exposes no budget or "
+            "remaining-limit endpoint on this path, so the ceiling below is "
+            "<code>CLAUDE_MONTHLY_BUDGET_USD</code>, chosen locally."
+        )
+    else:
+        claude_note = (
+            "Self-metered from each response's <code>usage</code> block at published "
+            "rates, so it counts this project's calls only. Set "
+            "<code>ANTHROPIC_ADMIN_KEY</code> to use Anthropic's <code>cost_report</code> "
+            "instead, which is billing truth — it needs an Admin key "
+            "(<code>sk-ant-admin01-…</code>), and the Admin API requires an organization "
+            "rather than an individual account. Either way the ceiling is "
+            "<code>CLAUDE_MONTHLY_BUDGET_USD</code>, chosen locally: Anthropic exposes no "
+            "remaining-budget endpoint."
+        )
 
     gen = f'<p class="sub">Updated {_h(generated_at)}</p>' if generated_at else ""
     return (

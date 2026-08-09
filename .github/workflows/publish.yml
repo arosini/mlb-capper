@@ -221,8 +221,14 @@ jobs:
       - name: Generate budget HTML
         env:
           CLAUDE_MONTHLY_BUDGET_USD: ${{ vars.CLAUDE_MONTHLY_BUDGET_USD }}
+          # Optional. When set, the page reports Anthropic's own cost_report figure
+          # (billing truth, org-wide) instead of the self-metered ledger. This is an
+          # Admin key (sk-ant-admin01-...), NOT ANTHROPIC_API_KEY, and the Admin API
+          # needs an organization rather than an individual account. Absent or invalid,
+          # the page falls back to the ledger without failing the run.
+          ANTHROPIC_ADMIN_KEY: ${{ secrets.ANTHROPIC_ADMIN_KEY }}
         run: |
-          # Reads the git-tracked usage/ ledger only — no API calls, no credentials.
+          # Reads the git-tracked usage/ ledger, plus cost_report if an Admin key is set.
           mkdir -p _site/budget
           python3 budget.py --html > _site/budget/index.html
           echo "Generated $(wc -c < _site/budget/index.html) bytes"
