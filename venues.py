@@ -28,8 +28,6 @@ from datetime import date
 from pathlib import Path
 from typing import Optional
 
-from season import ET, GAME_TYPES
-
 MLB_API = "https://statsapi.mlb.com/api/v1"
 
 # Parks with a fixed or retractable roof. Wind and rain readings are meaningless under

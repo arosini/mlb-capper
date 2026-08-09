@@ -32,7 +32,7 @@ from mlb_api import (
     get_recent_starts, get_team_schedule, get_weather,
 )
 from analysis import analyze_game, build_games, validate_pitchers, ou_trends
-from venues import home_venue_ids, coords_are_sane, roof_kind
+from venues import home_venue_ids, coords_are_sane, roof_kind, venue_geo
 import render_terminal
 from render_html import render_html_page
 from suggestions import generate_suggestions
@@ -245,15 +245,27 @@ def main():
         # normal case for the tomorrow page, since ballpark_weather is not date-aware
         # upstream and is skipped for that slot.
         if not wx and not args.no_weather and HAS_REQUESTS:
-            lat, lon = mlb_info.get("venue_lat"), mlb_info.get("venue_lon")
+            lat = mlb_info.get("venue_lat")
+            lon = mlb_info.get("venue_lon")
+            azimuth = mlb_info.get("venue_azimuth")
+            elev    = mlb_info.get("venue_elevation")
+            # The schedule's inline venue hydrate is the cheap path, but it does not
+            # always carry location. Fall back to the dedicated venue endpoint (cached
+            # per venue, so at most one call per park per season) before giving up.
+            if not coords_are_sane(lat, lon, venue_id) and venue_id:
+                geo = venue_geo(venue_id, data_dir)
+                if geo:
+                    lat, lon = geo["lat"], geo["lon"]
+                    azimuth = azimuth if azimuth is not None else geo.get("azimuth")
+                    elev    = elev    if elev    is not None else geo.get("elevation_ft")
             if coords_are_sane(lat, lon, venue_id):
                 wx = get_weather(
                     lat, lon, target_date,
                     first_pitch_utc=mlb_info.get("game_date", ""),
-                    azimuth=mlb_info.get("venue_azimuth"),
+                    azimuth=azimuth,
                     venue_name=mlb_info.get("venue", ""),
                     roof=roof_kind(venue_id),
-                    elevation_ft=mlb_info.get("venue_elevation"),
+                    elevation_ft=elev,
                 )
             else:
                 # No trustworthy coordinates. Show nothing rather than the home team's
