@@ -533,6 +533,17 @@ The key is now `odds-${CACHE_DATE}-${github.run_id}` with `restore-keys` falling
 through `odds-${CACHE_DATE}-` then `odds-`. Every run saves; every run restores the
 newest. **Do not collapse it back to a date-only key.**
 
+**Push runs now refresh Handigraphs data themselves.** `Download data` and `Download
+tomorrow's data` run on every event; on a `push` they pass `--no-odds`, which fetches
+every Handigraphs endpoint and never touches the Odds API. Handigraphs is a flat
+subscription so this is free, while the Odds API is metered per market — odds continue
+to come from the restored cache and are only re-fetched on `schedule`/`workflow_dispatch`.
+That is what stops a push from clobbering good pages with stat-less ones.
+
+The AI and picks steps (`Clear stale suggestions`, `Generate AI suggestions`,
+`Save AI picks`) stay gated on `schedule`/`workflow_dispatch`. **Do not un-gate them** —
+a push must never mint new picks, or the immutability guarantee goes with it.
+
 Belt and braces: the `Generate tomorrow HTML` step checks for
 `data/starters_last3g_tomorrow_${TOMORROW_DATE}.json` first and, if it is missing,
 curls the live page into `_site/tomorrow/index.html` rather than rebuilding it empty.

@@ -314,9 +314,13 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
 
 
 def download_all(target_date: date, data_dir: Path, slot: str = "today",
-                 starters_only: bool = False, force_odds: bool = False) -> bool:
+                 starters_only: bool = False, force_odds: bool = False,
+                 no_odds: bool = False) -> bool:
     """Fetch Handigraphs endpoints and (unless starters_only) odds/props.
     force_odds=True bypasses throttle and fetches props for all games (including started).
+    no_odds=True fetches every Handigraphs endpoint but never calls the Odds API — the
+    way to repair a page whose stats are missing without spending credits, since
+    Handigraphs is a flat subscription and the Odds API is metered per market.
     Returns True if all attempted downloads succeeded."""
     date_str = target_date.strftime("%Y-%m-%d")
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -402,7 +406,9 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today",
         count = len(rows) if rows else "?"
         print(f"  ✓  {fname}  ({count} rows)")
 
-    if not starters_only and in_season:
+    if no_odds:
+        print("  [odds] --no-odds — skipping the Odds API entirely (no credits spent)")
+    if not starters_only and in_season and not no_odds:
         print("  Fetching odds...")
         download_odds(data_dir, date_str, max_age_minutes=0 if force_odds else 300)
 
@@ -465,6 +471,11 @@ if __name__ == "__main__":
         help="Only refresh the starters file (skip odds/props — no API credit cost)",
     )
     ap.add_argument(
+        "--no-odds",
+        action="store_true",
+        help="Fetch all Handigraphs data but never call the Odds API (spends no credits)",
+    )
+    ap.add_argument(
         "--force-odds",
         action="store_true",
         help="Bypass throttle and re-fetch odds + props for ALL games (including started/finished)",
@@ -487,7 +498,8 @@ if __name__ == "__main__":
     else:
         success = download_all(target, data_dir, slot,
                                starters_only=args.starters_only,
-                               force_odds=args.force_odds)
+                               force_odds=args.force_odds,
+                               no_odds=args.no_odds)
         if success and not args.starters_only:
             print("\nRun with --inspect to see field names for handicap.py mapping.")
         sys.exit(0 if success else 1)

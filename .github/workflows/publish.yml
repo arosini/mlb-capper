@@ -73,21 +73,33 @@ jobs:
           HANDIGRAPHS_PASSWORD: ${{ secrets.HANDIGRAPHS_PASSWORD }}
         run: python3 download.py --starters-only
 
+      # Runs on EVERY event, including push. A push re-renders and deploys every page,
+      # so without fresh Handigraphs data it publishes stat-less cards over good ones —
+      # which is exactly how /tomorrow/ ended up as 15 empty cards. Handigraphs is a flat
+      # subscription so refreshing it costs nothing; --no-odds keeps the metered Odds API
+      # out of push runs entirely, leaving odds to come from the restored cache.
       - name: Download data
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        env:
-          HANDIGRAPHS_EMAIL: ${{ secrets.HANDIGRAPHS_EMAIL }}
-          HANDIGRAPHS_PASSWORD: ${{ secrets.HANDIGRAPHS_PASSWORD }}
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: python3 download.py
-
-      - name: Download tomorrow's data
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           HANDIGRAPHS_EMAIL: ${{ secrets.HANDIGRAPHS_EMAIL }}
           HANDIGRAPHS_PASSWORD: ${{ secrets.HANDIGRAPHS_PASSWORD }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            python3 download.py --no-odds
+          else
+            python3 download.py
+          fi
+
+      - name: Download tomorrow's data
+        env:
+          HANDIGRAPHS_EMAIL: ${{ secrets.HANDIGRAPHS_EMAIL }}
+          HANDIGRAPHS_PASSWORD: ${{ secrets.HANDIGRAPHS_PASSWORD }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            python3 download.py --date tomorrow --no-odds
+            exit 0
+          fi
           # 6:30 PM ET run forces a fresh odds/props fetch — earlier runs may land
           # before Handigraphs/the Odds API have posted tomorrow's slate at all, so
           # the normal 5h throttle would otherwise lock in an empty/stale fetch for
