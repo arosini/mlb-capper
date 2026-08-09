@@ -1170,7 +1170,7 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
         f'{toggle_html}</header>\n'
         f'<main>{body_html}\n</main>'
         f'<footer style="text-align:center;padding:1.5rem 1rem;font-size:.75rem;color:#9ca3af">'
-        f'Powered by <a href="https://handigraphs.com" target="_blank" rel="noopener" style="color:#9ca3af">Handigraphs</a>'
+        f'Powered by <a href="https://handigraphs.com" target="_blank" rel="noopener" style="color:#9ca3af">Handigraphs</a> · <a href="/budget/" style="color:#c9ccd1;font-size:.68rem" title="API usage and remaining budget">budget</a>'
         f'</footer>'
         f'{_SWIPE_SCRIPT}{_SPLIT_SCRIPT}\n</body>\n</html>'
     )

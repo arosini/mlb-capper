@@ -271,7 +271,7 @@ def render_results_page(picks_dir: Path, today: date, generated_at: str = "") ->
         f'</main>'
         f'<footer style="text-align:center;padding:1.5rem 1rem;font-size:.75rem;color:#9ca3af">'
         f'Powered by <a href="https://handigraphs.com" target="_blank" rel="noopener" '
-        f'style="color:#9ca3af">Handigraphs</a>'
+        f'style="color:#9ca3af">Handigraphs</a> · <a href="/budget/" style="color:#c9ccd1;font-size:.68rem" title="API usage and remaining budget">budget</a>'
         f'</footer>{_SWIPE_SCRIPT}\n</body>\n</html>'
     )
 

@@ -30,6 +30,7 @@ The codebase is split into focused modules. Import order (no circular deps):
 ```
 season.py         — ET clock, MLB game types, in-season detection; NO project deps
 venues.py         — venue registry, neutral-site detection, roof kind; imports season
+usage.py          — paid-API usage ledger (usage/{YYYY-MM}.json); imports season
 teams.py          — team code maps, logo helpers; no project deps
   ↓
 odds.py           — Odds API parsing + format helpers; imports teams
@@ -58,6 +59,10 @@ handicap.py       — slim entry point, main() only; imports everything
 **`season.py`**: `ET`, `GAME_TYPES`, `today_et()`, `game_count()`, `has_games()`, `season_start()`
 
 **`venues.py`**: `home_venue_ids()`, `venue_geo()`, `coords_are_sane()`, `roof_kind()`, `ROOFED`
+
+**`usage.py`**: `record_claude()`, `record_odds()`, `load_days()`, `cost_usd()`, `PRICING`, `monthly_budget_usd()`
+
+**`budget.py`**: `collect()`, `render_budget_page()`
 
 **`teams.py`**: `_STATS_MAP`, `_MLB_MAP`, `ODDS_TEAM`, `MLB_NAME_TO_CODE`, `to_stats()`, `to_mlb()`, `logo_img()`, `_LOGO`
 
@@ -193,7 +198,7 @@ Two ordering rules in `publish.yml` protect the invariant:
 - **Hosting**: Cloudflare Pages — project `mlb-capper`, custom domain `mlbautocap.com`
 - **Workflow**: `.github/workflows/publish.yml` — cron `0 */3 * * *` (every 3 hours), also `workflow_dispatch` and push-to-main
 - **Deploy step**: `cloudflare/wrangler-action@v3` with `pages deploy _site --project-name=mlb-capper --commit-dirty=true`
-- **Pages built per run**: `_site/index.html` (today), `_site/tomorrow/index.html`, `_site/results/index.html`
+- **Pages built per run**: `_site/index.html` (today), `_site/tomorrow/index.html`, `_site/results/index.html`, `_site/budget/index.html`
 - **`git add` in the commit step goes through `_stage()`**, which `mkdir -p`s `history picks rejections` first. `rejections/` only exists on days a pick is rejected, and `git add <missing-dir>/` is fatal (exit 128) under `bash -e`. The mkdir must be inside `_stage()`, not run once up front: the retry path's `git clean -f rejections/` deletes the empty directory before the second add.
 - **No-cache headers**: written inline in workflow (`printf '/*\n  Cache-Control: no-cache...' > _site/_headers`) — not a repo file
 - **Secrets needed**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHROPIC_API_KEY`
@@ -462,6 +467,51 @@ nowhere near any rate limit — spend is the only constraint, and it is not urge
 The AI call is skipped when no game on the slate has odds posted (early opening day, or a
 failed odds fetch) — the prompt cannot produce a bet without a price, so that call was
 guaranteed to return an empty picks array at full cost.
+
+## Budget Page (`/budget/`)
+
+Rendered by `budget.py --html` to `_site/budget/index.html`, reached by a small link in
+the footer of every page rather than the nav strip (the nav's three tabs and
+`_SWIPE_SCRIPT`'s `ORDER` array stay in sync at three). Marked `noindex`.
+
+**The two APIs are reported differently because only one has a readable balance.**
+
+| | Odds API | Anthropic |
+|---|---|---|
+| Source | `x-requests-remaining` header — measured | `response.usage` × published rates — self-metered |
+| "Remaining" means | real quota | spend against `CLAUDE_MONTHLY_BUDGET_USD`, an operator-chosen ceiling |
+| Sees other usage on the key? | yes | **no** — this project's calls only |
+
+Anthropic's Usage & Cost API would give org-wide truth, but it requires an **Admin API
+key** (`sk-ant-admin…`) or an `org:admin` OAuth token — not the `ANTHROPIC_API_KEY` this
+project uses — and is **unavailable to individual accounts**. Self-metering avoids a
+second credential and is exact for our own calls. Rates live in `usage.PRICING`; keep
+them in step with the model `suggestions.py` actually calls.
+
+`usage/{YYYY-MM}.json` is **git-tracked**, for the same reason `history/` and `picks/`
+are: `data/` is wiped between runs, so a ledger there would be forgotten at the next
+checkout. `_stage()` and `_restore()` in `publish.yml` both cover `usage/`.
+
+Odds credits consumed per day are computed as **first reading − low-water mark**, not
+from the `used` counter, so a mid-month billing reset shows up as a new baseline instead
+of one enormous negative day.
+
+## Secrets — where they can leak
+
+The repo is private and no secret value appears in any commit or tracked file (checked
+by searching git history for each literal `.env` value). The deployed pages are clean.
+Two things to keep that way:
+
+- **`download.py` builds the Odds API URL with `?apiKey=…` in the query string**, and
+  `requests` quotes the full URL in connection errors — so printing a bare exception put
+  a live key in the run log. Every such print goes through `_redact()` now. GitHub masks
+  registered secrets, but masking only matches the literal value: it does not survive
+  URL-encoding or truncation and does nothing when the script runs locally. **Any new
+  print of an Odds API exception or response body must use `_redact()`.**
+- **`_site/` is deployed publicly.** The budget page deliberately contains no credential
+  — but it does disclose operational figures (quota remaining, monthly spend). That is a
+  judgement call, not an accident; if that should not be public, gate `/budget/` behind
+  Cloudflare Access rather than removing the numbers.
 
 ## Early-Season Robustness
 

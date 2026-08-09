@@ -9,6 +9,7 @@ from typing import Optional
 
 from analysis import flt
 from odds import fmt_k_line, fmt_outs_line
+from usage import record_claude
 
 from season import ET as _ET
 
@@ -472,6 +473,7 @@ def _verify_pick(client, pick: dict, game_block: str) -> tuple[bool, str]:
             tools=[_VERIFY_TOOL],
             messages=[{"role": "user", "content": user_msg}],
         )
+        record_claude("claude-opus-4-8", getattr(resp, "usage", None))
         block = next((b for b in resp.content if getattr(b, "type", "") == "tool_use"), None)
         if not block:
             # No structured verdict — fail open rather than discard a possibly-good pick.
@@ -924,6 +926,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
         response = client.messages.create(
             tool_choice={"type": "auto"}, messages=messages, **_common
         )
+        record_claude(_common["model"], getattr(response, "usage", None))
         tool_block = next((b for b in response.content if getattr(b, "type", "") == "tool_use"), None)
         if not tool_block:
             print("[suggestions] No tool_use block — retrying with forced tool", file=sys.stderr)
@@ -935,6 +938,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                 tool_choice={"type": "tool", "name": "report_betting_suggestions"},
                 messages=messages, **_common,
             )
+            record_claude(_common["model"], getattr(response, "usage", None))
             tool_block = next((b for b in response.content if getattr(b, "type", "") == "tool_use"), None)
         if not tool_block:
             print("[suggestions] No tool_use block in response", file=sys.stderr)

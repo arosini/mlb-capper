@@ -11,10 +11,12 @@ Or call download_all() from handicap.py via --refresh.
 """
 
 import json
+import re
 import sys
 from datetime import date, timedelta, datetime, timezone
 
 from season import ET as _ET, has_games
+from usage import record_odds
 from pathlib import Path
 
 try:
@@ -144,6 +146,22 @@ def _odds_age_minutes(data_dir: Path, date_str: str) -> float:
     return _meta_age_minutes(data_dir / f"odds_meta_{date_str}.json")
 
 
+def _redact(text) -> str:
+    """Strip the Odds API key from anything we are about to print.
+
+    The key rides in the query string, and requests' connection errors quote the full
+    URL — so `print(f"[odds] Failed: {e}")` puts a live credential in the run log.
+    GitHub masks registered secrets, but masking is a backstop that only matches the
+    literal value: it does not survive URL-encoding or truncation, and it does nothing
+    at all when the script is run locally. Redact at the source instead.
+    """
+    s = str(text)
+    key = config.ODDS_API_KEY
+    if key:
+        s = s.replace(key, "<redacted>")
+    return re.sub(r"(apiKey=)[^&\s'\"]+", r"\1<redacted>", s)
+
+
 def _record_quota(meta: dict, response) -> dict:
     """Fold The Odds API's quota headers into a meta dict.
 
@@ -189,7 +207,7 @@ def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 300) -> 
         r = requests.get(url, timeout=15)
         remaining = r.headers.get("x-requests-remaining", "?")
         if not r.ok:
-            print(f"  [odds] API error {r.status_code}: {r.text[:200]}")
+            print(f"  [odds] API error {r.status_code}: {_redact(r.text[:200])}")
             return
         new_data = r.json()
         # Merge: API drops started games, so preserve their odds from the old file
@@ -208,9 +226,10 @@ def download_odds(data_dir: Path, date_str: str, max_age_minutes: int = 300) -> 
         odds_path.write_text(json.dumps(data, indent=2))
         meta = _record_quota({"fetched_at": now.isoformat()}, r)
         (data_dir / f"odds_meta_{date_str}.json").write_text(json.dumps(meta))
+        record_odds(meta.get("quota_remaining"), meta.get("quota_used"))
         print(f"  ✓  odds_{date_str}.json  ({len(new_data)} upcoming + {len(started)} started, {remaining} API calls remaining)")
     except Exception as e:
-        print(f"  [odds] Failed: {e}")
+        print(f"  [odds] Failed: {_redact(e)}")
 
 
 def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int = 300,
@@ -278,17 +297,18 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
                 print(f"  [props] Auth error {r.status_code} — pitcher props may require Starter plan")
                 return
             if not r.ok:
-                print(f"  [props] {away}@{home}: API error {r.status_code}: {r.text[:120]}")
+                print(f"  [props] {away}@{home}: API error {r.status_code}: {_redact(r.text[:120])}")
                 continue
             all_props[event_id] = r.json()
             print(f"  [props] {away}@{home}: OK ({remaining} remaining)")
         except Exception as e:
-            print(f"  [props] {away}@{home}: {e}")
+            print(f"  [props] {away}@{home}: {_redact(e)}")
 
     props_path.write_text(json.dumps(all_props, indent=2))
     props_meta = {"fetched_at": datetime.now(timezone.utc).isoformat()}
     if last_response is not None:
         _record_quota(props_meta, last_response)
+        record_odds(props_meta.get("quota_remaining"), props_meta.get("quota_used"))
     props_meta_path.write_text(json.dumps(props_meta))
     print(f"  ✓  props_{date_str}.json ({len(all_props)} games)")
 
