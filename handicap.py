@@ -32,6 +32,7 @@ from mlb_api import (
     get_recent_starts, get_team_schedule, get_weather,
 )
 from analysis import analyze_game, build_games, validate_pitchers, ou_trends
+from venues import home_venue_ids, coords_are_sane, roof_kind
 import render_terminal
 from render_html import render_html_page
 from suggestions import generate_suggestions
@@ -108,7 +109,9 @@ def main():
     # (starters not yet announced) or include yesterday's starters as stale data.
     mlb_schedule: dict = {}
     bp_stress:   dict = {}
+    home_venues: dict = {}
     if not args.no_mlb and HAS_REQUESTS:
+        home_venues = home_venue_ids(data_dir, target_date.year)
         _log("Fetching MLB schedule...")
         mlb_schedule = get_mlb_schedule(target_date)
         _log(f"  {len(mlb_schedule)} games found")
@@ -226,10 +229,38 @@ def main():
         t1_raw = p1.get("Team", "")
         t2_raw = p2.get("Team", "")
         wx = ballpark_wx.get((frozenset([t1_raw, t2_raw]), gn), {})
-        # Fallback to Open-Meteo if Handigraphs weather file wasn't downloaded
+
+        # Is this game at the home club's own park? A mismatch between the game's
+        # venue and the club's registered home venue IS a neutral site — Field of
+        # Dreams, Williamsport, Mexico City, Tokyo, or a season-long relocation.
+        # Anything keyed on the team code (park factor, the old weather lookup) is
+        # describing a different ballpark on those days.
+        venue_id  = mlb_info.get("venue_id")
+        home_mlb  = mlb_info.get("home_mlb_id")
+        expected  = home_venues.get(home_mlb) if home_venues else None
+        neutral   = bool(venue_id and expected and venue_id != expected)
+        mlb_info["neutral_site"] = neutral
+
+        # Fallback to Open-Meteo when the Handigraphs file is absent — which is the
+        # normal case for the tomorrow page, since ballpark_weather is not date-aware
+        # upstream and is skipped for that slot.
         if not wx and not args.no_weather and HAS_REQUESTS:
-            home_t = mlb_info.get("home", t2_raw)
-            wx = get_weather(home_t, target_date)
+            lat, lon = mlb_info.get("venue_lat"), mlb_info.get("venue_lon")
+            if coords_are_sane(lat, lon, venue_id):
+                wx = get_weather(
+                    lat, lon, target_date,
+                    first_pitch_utc=mlb_info.get("game_date", ""),
+                    azimuth=mlb_info.get("venue_azimuth"),
+                    venue_name=mlb_info.get("venue", ""),
+                    roof=roof_kind(venue_id),
+                    elevation_ft=mlb_info.get("venue_elevation"),
+                )
+            else:
+                # No trustworthy coordinates. Show nothing rather than the home team's
+                # usual park — MLB's records are null for Mexico City and ~350 miles
+                # off for Bristol, and a confidently wrong forecast is worse than none.
+                _log(f"  No usable coordinates for venue {venue_id} "
+                     f"({mlb_info.get('venue','?')}) — skipping weather")
 
         if args.html or args.suggestions_only:
             g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx, target_date)

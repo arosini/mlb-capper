@@ -29,6 +29,7 @@ The codebase is split into focused modules. Import order (no circular deps):
 
 ```
 season.py         — ET clock, MLB game types, in-season detection; NO project deps
+venues.py         — venue registry, neutral-site detection, roof kind; imports season
 teams.py          — team code maps, logo helpers; no project deps
   ↓
 odds.py           — Odds API parsing + format helpers; imports teams
@@ -56,13 +57,15 @@ handicap.py       — slim entry point, main() only; imports everything
 
 **`season.py`**: `ET`, `GAME_TYPES`, `today_et()`, `game_count()`, `has_games()`, `season_start()`
 
+**`venues.py`**: `home_venue_ids()`, `venue_geo()`, `coords_are_sane()`, `roof_kind()`, `ROOFED`
+
 **`teams.py`**: `_STATS_MAP`, `_MLB_MAP`, `ODDS_TEAM`, `MLB_NAME_TO_CODE`, `to_stats()`, `to_mlb()`, `logo_img()`, `_LOGO`
 
 **`odds.py`**: `load_odds()`, `get_game_odds()`, `fmt_ml()`, `fmt_spread()`, `fmt_total()`, `fmt_k_line()`, `fmt_outs_line()`
 
 **`loaders.py`**: `load_starters()`, `load_team_stats()`, `load_bullpen()`, `load_ballpark_weather()`, `load_odds_meta()`, `load_pitcher_props()`
 
-**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()`, `stress_label_cls()`, `STADIUMS`, `HAS_REQUESTS`
+**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()` (takes lat/lon, not a team code), `wind_effect()`, `compass_point()`, `stress_label_cls()`, `STADIUMS` (legacy fallback only), `HAS_REQUESTS`
 
 **`analysis.py`**: `analyze_game()`, `build_games()`, `validate_pitchers()`, `flt()`, `fp1()`, `fp3()`, `wrc_label()`, `xera_label()`, `pitcher_csv_flags()`, `bullpen_flags()`, `weather_flags()`, `pitcher_history_flags()`, `extract_outings()`
 
@@ -91,6 +94,8 @@ Run locally: `python3 handicap.py` (terminal) or `python3 handicap.py --html > o
 - `bullpen_stress_{date}.json` — cached bullpen IP for past 2 calendar days (written once/day)
 - `suggestions_{date}.json` / `suggestions_meta_{date}.json` — AI picks cache (post-verification)
 - `season_{date}.json` — cached count of qualifying MLB games (off-season gate; see Season Window)
+- `home_venues_{year}.json` — each club's registered home venue id (neutral-site detection)
+- `venue_{id}.json` — cached venue geo (coords, azimuth, elevation)
 
 Outside `data/`: `picks/{date}.json` (git-tracked pick log) and `rejections/{date}.json`
 (git-tracked log of picks the verification pass threw out, for prompt tuning).
@@ -308,6 +313,70 @@ opened Mar 20).
 
 Empty pages now distinguish three cases: off-season, tomorrow's slate not yet posted, and
 no games today.
+
+## Venue Truth and Weather
+
+**The home team is not the ballpark.** MLB plays a handful of neutral-site games a year
+(Field of Dreams, the Little League Classic, Mexico City, Tokyo/London, Bristol), and a
+club occasionally spends a whole season elsewhere — Tampa Bay played all of 2025 at the
+Yankees' spring park. Scanning 2025+2026 finds **96 such games**. Upcoming: **MIN at
+Field of Dreams 2026-08-13** and **MIL at Williamsport 2026-08-23**.
+
+**Detection is exact, not heuristic.** Every game carries a `venue.id`; every club has a
+registered home `venue.id` from `/api/v1/teams`. A mismatch *is* a neutral site.
+`venues.home_venue_ids()` caches the map per season; `handicap.py` sets
+`mlb_info["neutral_site"]`, which flows into the game dict, a flag, the AI card header,
+and a `· NEUTRAL SITE` mark on the card. It self-corrects on relocations, because MLB
+re-registers the club's home venue (the Athletics at Sutter Health Park read as normal).
+
+`get_mlb_schedule()` hydrates `venue(location)`, so coordinates, azimuth, and elevation
+arrive with the schedule at no extra call.
+
+**On a neutral site the park factor is suppressed** (`weather_flags(..., neutral_site=True)`).
+APF is keyed to the home club's usual park, so at Dyersville it describes Target Field —
+and §9 of the prompt uses APF as a totals tiebreaker. A park factor for the wrong park is
+worse than none.
+
+**Do not trust MLB's venue coordinates blindly.** They are good for the 30 regular parks
+(Coors: 39.756, −104.994, elev 5190) but degrade at exactly the one-off venues that
+matter: Estadio Alfredo Harp Helú returns `latitude: null`, and Bristol Motor Speedway
+returns a latitude 5° off (31.5156 vs 36.5156 — ~350 miles into Georgia, while `state`
+correctly reads Tennessee). `venues.coords_are_sane()` gates them, and a venue that fails
+gets **no weather at all** rather than the home team's usual park.
+
+### Why the weather was "way off"
+
+`get_weather()` read the **daily aggregate** — `temperature_2m_max`,
+`precipitation_probability_max`, `windspeed_10m_max` — and reported it as conditions for
+a 7 PM first pitch. Measured at Coors on 2026-08-09:
+
+| | Reported | Actual at game time | Error |
+|---|---|---|---|
+| Temperature | 98.4°F | 81.2°F | **+17.2°F** |
+| Wind | 19.5 mph | 6.2 mph | **+13.3 mph** |
+
+Three separate bugs, all fixed:
+
+1. **Daily max → hourly at game time.** The function now takes `first_pitch_utc` and
+   averages the 4 hours the game occupies. A 4 AM rain band no longer sets
+   `precip_risk_during_game` for a dry evening game — which matters because that trips
+   the prompt's disqualifier on pitcher overs.
+2. **Wind direction was never consulted.** The old rule was literally
+   `"Out" if wind > 15 else ""` — so any windy day read as "blowing out," backwards
+   about half the time, feeding straight into totals reasoning. `wind_effect()` now
+   compares the meteorological wind direction against the park's azimuth (home plate →
+   center field); wind blowing out originates at `azimuth + 180`. Validated against the
+   best-known case in baseball: Wrigley's azimuth is 37, so a SW wind (217) reads "Out",
+   which is exactly the wind that famously blows out there. Distribution over uniform
+   random input is 25% Out / 25% In / 50% Cross, matching the cone geometry.
+3. **Roof was hardcoded `"Open Air"`.** Domes reported wind and rain. `venues.roof_kind()`
+   knows the fixed roof (Tropicana) and the seven retractables; fixed roofs report
+   `Indoor` with no wind/precip, and retractables carry an explicit
+   "conditions apply only if open" caveat, since the fallback path cannot know the state.
+
+`get_weather()` now takes **coordinates**, not a team code. `STADIUMS` survives only as a
+last-resort map and must not be reintroduced on the primary path — it is team-keyed and
+therefore wrong for exactly the games this section is about.
 
 ## Data Volume — what grows, and what is bounded
 

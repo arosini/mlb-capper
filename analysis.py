@@ -154,8 +154,14 @@ def bullpen_flags(row: dict) -> list[str]:
     return flags
 
 
-def weather_flags(wx: dict) -> list[str]:
-    """Generate flags from Handigraphs ballpark-weather data."""
+def weather_flags(wx: dict, neutral_site: bool = False) -> list[str]:
+    """Generate flags from Handigraphs ballpark-weather data.
+
+    neutral_site suppresses the park-factor flag: APF is keyed to the home club's
+    usual park, so at Field of Dreams or Mexico City it describes a stadium the game
+    is not being played in. A park factor for the wrong park is worse than none —
+    the prompt uses APF as a tiebreaker on totals.
+    """
     flags = []
     if not wx:
         return flags
@@ -171,6 +177,12 @@ def weather_flags(wx: dict) -> list[str]:
     if not is_outdoor:
         return flags
 
+    # Handigraphs reports the actual state ("Roof Closed"), but the Open-Meteo fallback
+    # only knows the park HAS a retractable roof — which is the normal case on the
+    # tomorrow page. Say so rather than presenting the forecast as settled conditions.
+    roof_caveat = (" (retractable roof — conditions apply only if open)"
+                   if roof.strip().lower() == "retractable" else "")
+
     precip_risk = wx.get("precip_risk_during_game", False)
     precip_prob = wx.get("precip_probability")
     wind_lbl    = wx.get("wind_effect_label", "")
@@ -179,15 +191,25 @@ def weather_flags(wx: dict) -> list[str]:
 
     if precip_risk:
         prob_s = f" {precip_prob:.0f}%" if precip_prob is not None else ""
-        flags.append(f"rain risk{prob_s} — game delay or conditions may affect performance")
+        flags.append(f"rain risk{prob_s}{roof_caveat} — game delay or conditions may affect performance")
     elif precip_prob is not None and precip_prob >= 30:
-        flags.append(f"rain chance {precip_prob:.0f}% — monitor for delays")
+        flags.append(f"rain chance {precip_prob:.0f}%{roof_caveat} — monitor for delays")
 
     if wind_lbl and wind_lbl not in ("Calm", "Indoor", ""):
         speed_s = f" {wind_speed:.0f} mph" if wind_speed is not None else ""
-        flags.append(f"wind: {wind_lbl}{speed_s} — factor into total and HR expectations")
+        dir_s   = wx.get("wind_direction_label") or ""
+        from_s  = f" from the {dir_s}" if dir_s else ""
+        # Direction is now real (measured against the park's azimuth), so say what it
+        # means rather than the old catch-all. The previous code labelled any wind
+        # over 15 mph as "Out" without consulting direction at all.
+        phrase, meaning = {
+            "Out":   ("blowing OUT",  "supports the over and HR props"),
+            "In":    ("blowing IN",   "suppresses the over and HR props"),
+            "Cross": ("across the field", "little effect on carry either way"),
+        }.get(wind_lbl, (wind_lbl, "factor into total and HR expectations"))
+        flags.append(f"wind {phrase}{speed_s}{from_s}{roof_caveat} — {meaning}")
 
-    if apf is not None:
+    if apf is not None and not neutral_site:
         if apf >= 108:
             flags.append(f"hitter-friendly park (APF {apf:.0f}) — park boosts offense, favor the over and HR props")
         elif apf <= 92:
@@ -733,13 +755,29 @@ def analyze_game(
         hand = (p.get("Throws") or "?")[0]
         for f in pitcher_history_flags(hist_cur_map[team], hand, rhp, lhp, today):
             flags.append(f"{team} — {p.get('Name', '?')}: {f}")
-    for f in weather_flags(wx):
+    for f in weather_flags(wx, neutral_site=bool(mlb_info.get("neutral_site"))):
         flags.append(f"WEATHER: {f}")
+
+    # A neutral site invalidates anything derived from the home club's usual park —
+    # most importantly the park factor, which the prompt uses as a total tiebreaker.
+    # Say so explicitly rather than letting the model read Target Field's APF for a
+    # game in Dyersville.
+    if mlb_info.get("neutral_site"):
+        where = mlb_info.get("venue", "") or "a neutral site"
+        city  = mlb_info.get("venue_city", "")
+        flags.append(
+            f"NEUTRAL SITE: played at {where}"
+            + (f" ({city})" if city else "")
+            + f" — not {home_team}'s home park. Park factor and any home-park "
+              "assumption do not apply here."
+        )
 
     return {
         "away":          away_team,
         "home":          home_team,
         "venue":         mlb_info.get("venue", ""),
+        "venue_city":    mlb_info.get("venue_city", ""),
+        "neutral_site":  bool(mlb_info.get("neutral_site")),
         "game_date":     mlb_info.get("game_date", ""),
         "game_number":   mlb_info.get("game_number") or 1,
         "away_sp":       away_sp,

@@ -723,7 +723,16 @@ def _serialize_game_for_ai(g: dict) -> str:
             parts.append(f"at {venue_label}: no data")
         return f"  {name}: " + " | ".join(parts)
 
-    lines = [f"=== {away} @ {home}{time_s} | {venue} ({venue_tag}) ==="]
+    neutral_tag = " | NEUTRAL SITE" if g.get("neutral_site") else ""
+    lines = [f"=== {away} @ {home}{time_s} | {venue} ({venue_tag}){neutral_tag} ==="]
+    if g.get("neutral_site"):
+        city = g.get("venue_city", "")
+        lines.append(
+            f"NEUTRAL SITE: this game is played at {venue}"
+            + (f" in {city}" if city else "")
+            + f", not at {home}'s home park. Ignore any home-park assumption; the "
+              "park factor shown does not describe this venue."
+        )
     lines.append(f"Weather: {wx_s}")
     lines.append("STARTING PITCHERS — all rate stats are LAST 3 STARTS:")
     lines.append(_sp_line(sp_a, outs_a))

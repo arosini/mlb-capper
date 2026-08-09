@@ -64,7 +64,9 @@ def get_mlb_schedule(target_date: date) -> dict:
             params={
                 "sportId": 1,
                 "date": target_date.isoformat(),
-                "hydrate": "probablePitcher,venue,team",
+                # venue(location) returns coordinates/azimuth inline, so the venue a
+                # game is actually played at costs no extra call — see venues.py.
+                "hydrate": "probablePitcher,venue(location),team",
                 "gameType": GAME_TYPES,
             },
             timeout=10,
@@ -85,11 +87,21 @@ def get_mlb_schedule(target_date: date) -> dict:
             hp    = home.get("probablePitcher", {})
             ap    = away.get("probablePitcher", {})
             gn    = g.get("gameNumber") or 1
+            ven   = g.get("venue", {}) or {}
+            vloc  = ven.get("location") or {}
+            vc    = vloc.get("defaultCoordinates") or {}
             games[(frozenset([ha, aa]), gn)] = {
                 "home": ha, "away": aa,
                 "home_mlb_id": home.get("team", {}).get("id"),
                 "away_mlb_id": away.get("team", {}).get("id"),
-                "venue":       g.get("venue", {}).get("name", ""),
+                "venue":       ven.get("name", ""),
+                "venue_id":    ven.get("id"),
+                "venue_lat":   vc.get("latitude"),
+                "venue_lon":   vc.get("longitude"),
+                "venue_azimuth":   vloc.get("azimuthAngle"),
+                "venue_elevation": vloc.get("elevation"),
+                "venue_city":      vloc.get("city", ""),
+                "venue_country":   vloc.get("country", ""),
                 "home_pid":    hp.get("id"),   "home_pname": hp.get("fullName", ""),
                 "away_pid":    ap.get("id"),   "away_pname": ap.get("fullName", ""),
                 "game_date":   g.get("gameDate", ""),
@@ -282,41 +294,135 @@ STADIUMS: dict[str, tuple] = {
 }
 
 
-def get_weather(home_team: str, target_date: date) -> dict:
-    """Fetch weather from Open-Meteo for the home team's stadium."""
+_COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+
+
+def compass_point(deg) -> str:
+    if deg is None:
+        return ""
+    return _COMPASS[int((float(deg) + 11.25) % 360 // 22.5)]
+
+
+def wind_effect(wind_from_deg, azimuth_deg, speed_mph) -> tuple:
+    """Classify wind as blowing Out / In / Cross relative to the park's orientation.
+
+    `azimuth_deg` is the bearing from home plate to center field; `wind_from_deg` is the
+    meteorological convention (the direction the wind blows FROM). Wind blowing out to
+    center therefore originates behind home plate, at azimuth + 180.
+
+    Sanity-checked against the best-known case in baseball: Wrigley's azimuth is 37, so
+    this returns "Out" for a wind from 217 (SW) — which is exactly the south/southwest
+    wind that famously blows out at Wrigley.
+
+    The previous implementation labelled *any* wind over 15 mph as "Out" without ever
+    looking at direction, which was backwards roughly half the time and fed straight
+    into the model's totals reasoning.
+    """
+    if speed_mph is None or speed_mph < 5:
+        return "Calm", None
+    if wind_from_deg is None or azimuth_deg is None:
+        return "", None
+    out_dir = (float(azimuth_deg) + 180.0) % 360.0
+    diff = ((float(wind_from_deg) - out_dir + 180.0) % 360.0) - 180.0
+    if abs(diff) <= 45:
+        return "Out", diff
+    if abs(diff) >= 135:
+        return "In", diff
+    return "Cross", diff
+
+
+def get_weather(lat: float, lon: float, target_date: date,
+                first_pitch_utc: str = "", azimuth=None,
+                venue_name: str = "", roof: str = "open",
+                elevation_ft=None) -> dict:
+    """Game-time weather from Open-Meteo for an explicit set of coordinates.
+
+    Takes coordinates rather than a team code so neutral-site games get the park they
+    are actually played in. Samples the HOURLY forecast across the hours the game
+    occupies instead of the daily aggregate.
+
+    That distinction is the whole point. The previous version read
+    `temperature_2m_max`, `precipitation_probability_max` and `windspeed_10m_max` —
+    the day's high, the 24-hour peak rain chance, and the day's strongest gust — and
+    reported them as conditions for a 7 PM first pitch. Measured against Coors on
+    2026-08-09 that was 98.4F vs 81.2F actual (+17.2F) and 19.5 mph vs 6.2 mph actual
+    (+13.3 mph), and because the wind number cleared the old `> 15` rule the model was
+    told the wind was blowing out during what was really a 5 mph breeze. It also let a
+    4 AM rain band set `precip_risk_during_game` for a dry evening game, which trips
+    the prompt's disqualifier on pitcher overs.
+    """
     if not HAS_REQUESTS:
         return {}
-    s = STADIUMS.get(home_team)
-    if not s:
-        return {}
-    lat, lon, city, tz = s
     try:
         r = requests.get(
             "https://api.open-meteo.com/v1/forecast",
             params={
                 "latitude": lat, "longitude": lon,
-                "daily":    "precipitation_probability_max,temperature_2m_max,windspeed_10m_max",
-                "timezone": tz,
-                "start_date": target_date.isoformat(),
-                "end_date":   target_date.isoformat(),
-                "wind_speed_unit":   "mph",
-                "temperature_unit":  "fahrenheit",
+                "hourly": ("temperature_2m,precipitation_probability,"
+                           "wind_speed_10m,wind_direction_10m,weather_code,"
+                           "relative_humidity_2m"),
+                "timezone": "UTC",
+                "start_date": (target_date - timedelta(days=1)).isoformat(),
+                "end_date":   (target_date + timedelta(days=1)).isoformat(),
+                "wind_speed_unit":  "mph",
+                "temperature_unit": "fahrenheit",
             },
             timeout=10,
         )
         r.raise_for_status()
-        daily  = r.json().get("daily", {})
-        precip = (daily.get("precipitation_probability_max") or [None])[0]
-        temp   = (daily.get("temperature_2m_max") or [None])[0]
-        wind   = (daily.get("windspeed_10m_max") or [None])[0]
-        return {
-            "venue_name":              city,
-            "roof_status":             "Open Air",
-            "temperature":             temp,
-            "precip_probability":      precip,
-            "precip_risk_during_game": precip is not None and precip >= 50,
-            "wind_speed":              wind,
-            "wind_effect_label":       ("Out" if wind and wind > 15 else ""),
-        }
+        h = r.json().get("hourly", {})
+        times = h.get("time") or []
+        if not times:
+            return {}
     except Exception:
         return {}
+
+    # Window: first pitch through roughly the end of a 3-hour game. Without a start
+    # time, fall back to a 7-10 PM local evening slot, which is when most games run.
+    start = None
+    if first_pitch_utc:
+        try:
+            start = datetime.fromisoformat(first_pitch_utc.replace("Z", "+00:00")) \
+                            .astimezone(timezone.utc).replace(tzinfo=None)
+        except Exception:
+            start = None
+    if start is None:
+        start = datetime.combine(target_date, datetime.min.time()) + timedelta(hours=23)
+
+    want = [(start + timedelta(hours=k)).strftime("%Y-%m-%dT%H:00") for k in range(4)]
+    idx = [times.index(w) for w in want if w in times]
+    if not idx:
+        return {}
+
+    def _pick(key, fn):
+        vals = [h.get(key, [])[i] for i in idx
+                if i < len(h.get(key, [])) and h.get(key, [])[i] is not None]
+        return fn(vals) if vals else None
+
+    temp   = _pick("temperature_2m", lambda v: sum(v) / len(v))
+    precip = _pick("precipitation_probability", max)
+    wind   = _pick("wind_speed_10m", lambda v: sum(v) / len(v))
+    wdir   = _pick("wind_direction_10m", lambda v: v[0])
+    hum    = _pick("relative_humidity_2m", lambda v: sum(v) / len(v))
+
+    indoor = roof == "fixed"
+    label, _diff = ("Indoor", None) if indoor else wind_effect(wdir, azimuth, wind)
+
+    return {
+        "venue_name":              venue_name,
+        "roof_status":             {"fixed": "Dome", "retractable": "Retractable",
+                                    "open": "Open Air"}[roof],
+        "temperature":             round(temp, 1) if temp is not None else None,
+        "humidity":                round(hum) if hum is not None else None,
+        "elevation_ft":            elevation_ft,
+        # Indoors nothing outside matters; reporting a rain chance under a fixed roof
+        # is how a dry dome game ends up disqualifying its own pitcher overs.
+        "precip_probability":      None if indoor else precip,
+        "precip_risk_during_game": (not indoor) and precip is not None and precip >= 50,
+        "wind_speed":              None if indoor else (round(wind, 1) if wind is not None else None),
+        "wind_direction":          None if indoor else wdir,
+        "wind_direction_label":    "" if indoor else compass_point(wdir),
+        "wind_effect_label":       label,
+        "forecast_source":         "open-meteo hourly",
+    }

@@ -585,7 +585,10 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         indoor_label = roof
     is_open_air = indoor_label is None
     roof_paren = f" ({indoor_label})" if indoor_label else ""
-    venue_str = (g["venue"] or "") + roof_paren
+    # Mark neutral sites in the summary line. Without it the card reads "Field of
+    # Dreams" under a MIN home game and looks like an ordinary night at Target Field.
+    neutral_mark = " · NEUTRAL SITE" if g.get("neutral_site") else ""
+    venue_str = (g["venue"] or "") + roof_paren + neutral_mark
 
     time_str = ""
     if g.get("game_date"):
