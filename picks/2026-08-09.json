@@ -125,9 +125,9 @@
     "alt_suggestion": null,
     "found_at": "2026-08-09T08:12:16.670023+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 2,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-10T08:19:27.814092+00:00"
   },
   {
     "date": "2026-08-09",
@@ -254,9 +254,9 @@
     "line_warning": false,
     "alt_suggestion": null,
     "found_at": "2026-08-09T23:03:02.268539+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-10T08:19:27.814092+00:00"
   }
 ]
