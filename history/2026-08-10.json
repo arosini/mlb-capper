@@ -354,7 +354,7 @@
       }
     ],
     "odds_recorded_at": "2026-08-10T20:35:52.176737+00:00",
-    "odds_final": false,
+    "odds_final": true,
     "away_score": null,
     "home_score": null,
     "total_runs": null,
