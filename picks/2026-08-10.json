@@ -206,5 +206,31 @@
     "away_score_final": null,
     "home_score_final": null,
     "annotated_at": null
+  },
+  {
+    "date": "2026-08-10",
+    "game": "NYM @ ATL",
+    "away": "New York Mets",
+    "away_code": "NYM",
+    "home": "Atlanta Braves",
+    "home_code": "ATL",
+    "game_time_utc": "2026-08-10T23:15:00Z",
+    "bet_type": "ML",
+    "bet": "NYM ML",
+    "team_side": "away",
+    "line": null,
+    "period": "full_game",
+    "odds": "+130",
+    "odds_num": 130,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Scott brings a 2.55 xERA and 30.3 K% over his last 3 into a matchup with an ATL lineup at just 92 wRC+ vs RHP over its last 12. Elder's shiny 1.50 ERA over his last 3 is unearned \u2014 his 3.83 xERA, 44.9 HH%, and 12.5 BB% say the runs are coming, and the Mets' bullpen (2.79 xERA, 2.20 ERA over the last 12) is far better than Atlanta's. The market is pricing Elder's ERA rather than his peripherals, leaving the better arm and better pen as a plus-money underdog.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "found_at": "2026-08-10T20:40:47.491601+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
   }
 ]
