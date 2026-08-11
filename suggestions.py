@@ -111,7 +111,32 @@ not exist in this data. What the gap between them means:
 TIER 1 — these three decide the game. Lead every analysis with them:
   • Starter xERA over his last 3 starts
   • Opposing lineup's wRC+ over its last 12 games vs that starter's hand
-  • That starter's history vs today's opponent (up to last 3 meetings)
+  • That starter's history vs today's opponent, and at this park (up to last 3 meetings)
+
+HEAD-TO-HEAD IS A FIRST-CLASS SIGNAL, NOT A FOOTNOTE. Lineups carry real, persistent
+platoon-and-look advantages against specific arms — familiarity with a delivery, a pitch
+mix a particular roster handles well, a park that suits or ruins his profile. When a
+club has CONSISTENTLY hit or CONSISTENTLY failed against this pitcher, that is among the
+strongest evidence on the card and can carry a bet on its own.
+
+  • Weight it by CONSISTENCY, not by the best or worst single line. Three meetings all
+    pointing the same way is a genuine read and outranks a mild edge in xERA or wRC+.
+    Two meetings agreeing is solid support. ONE meeting is an anecdote — note it if you
+    like, but never build a bet on it.
+  • A head-to-head record that CONTRADICTS the rate stats is a real conflict, not noise
+    to be waved away. A starter with a strong xERA who this specific lineup has squared
+    up repeatedly is a fade candidate, and the market is usually pricing the xERA.
+  • The at-park split works the same way and stacks with it: a pitcher who has been
+    repeatedly hit in this ballpark, or who owns it, is telling you something the
+    rate stats computed across all venues cannot.
+  • The individual meetings are printed under the averaged line, oldest → newest. Read
+    them, not just the average: three steady starts and one blowup plus two gems produce
+    the same ERA and mean opposite things. The per-start lines are what tell you whether
+    a pattern is real.
+  • Say how many meetings you are using. "3.10 ERA across 3 starts vs them" is usable;
+    "he owns this lineup" is not.
+  • When the vs-opponent split reads "no data," say nothing about it and lean on the
+    rest of Tier 1. Absence is not evidence either way.
 
 TIER 2 — real, but supporting evidence only:
   • Starter ERA (Tier 1's xERA outranks it; the gap between them is the useful part)
@@ -237,14 +262,27 @@ things and should be expressed differently.
 8. PITCHER PROPS
 ═══════════════════════════════════════════════════════════════════
 
-STRIKEOUTS. Use exactly four inputs, then the price:
-  1. TODAY'S OPPONENT'S K% (last 12 vs his hand) — the STRONGEST signal here. A lineup
+A strikeout total is RATE × LENGTH. Both halves have to clear the number — an elite K
+rate over four innings beats nothing. Handle them separately, then combine.
+
+STRIKEOUTS. Use exactly five inputs, then the price:
+  1. TODAY'S OPPONENT'S K% (last 12 vs his hand) — the STRONGEST rate signal. A lineup
      that does not strike out will not strike out today, no matter who is pitching.
-  2. The pitcher's K% (last 3 starts)
-  3. The K totals in his recent box scores, and who they came against
-  4. Any flag about recent opponents being unusually high-K or low-K — if his recent K
-     totals were built against strikeout-prone lineups and today's opponent makes more
-     contact, discount them; if the reverse, his recent numbers understate today
+  2. HIS POSTED OUTS LINE, when the card shows one — this is the LENGTH half, and it is
+     the market's own estimate of how long he goes. Read it as innings: 15 outs is 5,
+     18 outs is 6. Convert the K line into what it demands per inning and ask whether
+     that is plausible over the outing the outs line describes. A 6.5 K line against an
+     outs line of 15.5 is asking for better than a strikeout per inning; against 18.5 it
+     is an ordinary ask. When there is no outs line, fall back to IP/gs over his last 3.
+  3. The pitcher's K% (last 3 starts)
+  4. His K/gs and IP/gs VS THIS OPPONENT (up to last 3 meetings) — how many he has
+     actually gotten against these hitters, over how long an outing. A consistent
+     head-to-head pattern outweighs input 3, and where it conflicts with his overall K%
+     it is usually the better guide (see Section 2).
+  5. The K totals in his recent box scores and who they came against, plus any flag about
+     recent opponents being unusually high-K or low-K — if his recent K totals were built
+     against strikeout-prone lineups and today's opponent makes more contact, discount
+     them; if the reverse, his recent numbers understate today
 
   THE TWO SIGNALS MUST AGREE. Only take a K prop when the lineup's K% and the pitcher's
   K rate point the same way:
@@ -260,14 +298,29 @@ STRIKEOUTS. Use exactly four inputs, then the price:
   The reverse is one of the best spots available: an UNDER on a modest-K pitcher facing a
   lineup that puts the ball in play is often the cleanest K bet on the board.
 
-  Then check the line and the price. Also sanity-check his outs line: a low K line
-  alongside a normal outs line is the green light; a low K line with a low outs line means
-  the market expects a short outing and the Ks will not be there.
+  LENGTH GATES THE OVER. Before taking any K over, confirm the outs line gives him the
+  innings to get there:
+    • Normal outs line (17.5-18.5) + the rate signals agreeing → the over is live.
+    • SHORT outs line (roughly 15.5 or below) KILLS a K over almost regardless of rate.
+      The market is telling you it expects a short outing, and the Ks will not be there.
+      Taking it anyway requires saying in the reason why he goes longer than the number.
+    • A short outs line is the reverse for the UNDER: a low K line sitting alongside a low
+      outs line is the market already agreeing, so check that the price still pays. A
+      NORMAL outs line under a low K line is the cleaner under — the innings are there and
+      he still is not expected to miss bats.
+  Length only supports the over; it never creates one. A deep outs line with contact-heavy
+  opposition is still a pass.
+
+  Then check the line and the price.
 
 OUTS. Use exactly these:
   1. How deep he normally goes (IP/gs, last 3)
-  2. How deep he went LAST time, and how recently that was
-  3. Bullpen stress on his own team
+  2. His IP/gs VS THIS OPPONENT and AT THIS PARK (up to last 3 meetings) — a lineup that
+     runs his pitch count up has done it repeatedly, and it shows here before it shows
+     anywhere else. Where a consistent head-to-head depth differs from his overall
+     IP/gs, trust the head-to-head.
+  3. How deep he went LAST time, and how recently that was
+  4. Bullpen stress on his own team
   Key thresholds: 15 outs (5 full innings) and 18 outs (6 innings) are what starters aim
   for — lines near those numbers are where the real decisions are. If the line sits right
   at his normal depth, the under is often the play depending on price. A 100+ pitch last
@@ -419,6 +472,12 @@ REJECT if ANY of the following is true
    A prop where both signals align, or where one is middling and the rationale accounts
    for it, is fine — do not reject those.
 
+8. K OVER WITH NO INNINGS TO GET THERE. A strikeout total is rate × length. If the card
+   posts an outs line of roughly 15.5 or below and the pick is a K OVER, the rationale
+   must say why he pitches deeper than the market expects. REJECT if it never engages
+   with the short outing at all. Do not apply this where the card posts no outs line, and
+   do not reject a K UNDER on these grounds — a short outs line supports an under.
+
 ═══════════════════════════════════════════════════════════════════
 ACCEPT otherwise
 ═══════════════════════════════════════════════════════════════════
@@ -429,6 +488,14 @@ you are NOT judging whether you would have made it. A defensible pick you person
 disagree with is an ACCEPT. Reserve REJECT for genuine breakage.
 
 Do not reject for style, brevity, or missing detail that does not change the conclusion.
+
+A pick built primarily on a starter's history VS THIS OPPONENT or AT THIS PARK is a
+legitimate read, not thin reasoning — that split is a top-weighted input, and a rationale
+resting on a consistent multi-meeting pattern is an ACCEPT even where it cuts against the
+starter's overall xERA or the lineup's wRC+. Two conditions still apply: the meeting count
+must be stated and must match the card, and a case built on a SINGLE meeting is not a
+consistent pattern — reject that one under check 2 as a number doing more work than it can
+carry.
 
 When rejecting, state the specific flaw in one or two sentences — quote the offending
 phrase from the rationale so the prompt can be fixed later. On ACCEPT, no reason needed.
@@ -593,6 +660,25 @@ def _serialize_game_for_ai(g: dict) -> str:
         avg_k  = f"{sum(k_vals) / len(k_vals):.1f}" if k_vals else None
         return era_s, avg_k
 
+    def _outing_str(o):
+        """One outing, in the format the recent-starts block uses. Shared so the
+        head-to-head outings read identically to the last-3 lines above them."""
+        date_s = o.get("date") or "?"
+        ha     = "@" if o.get("ha") == "@" else "vs "
+        opp_s  = f"{ha}{o['opp']}" if o.get("opp") and o["opp"] != "?" else "?"
+        seg = [f"{o['ip']}IP"]
+        for key, lbl in (("h", "H"), ("bb", "BB"), ("k", "K")):
+            if o.get(key) is not None:
+                seg.append(f"{o[key]}{lbl}")
+        er, r = o.get("er"), o.get("r")
+        if er is not None:
+            # R shown only when unearned runs scored — signals defense, and means
+            # the ER-based numbers are flattering relative to actual damage.
+            seg.append(f"{er}ER" + (f" ({r}R)" if r is not None and r != er else ""))
+        if o.get("pc"):
+            seg.append(f"{o['pc']}pc")
+        return f"{date_s} {opp_s}: " + " ".join(seg)
+
     def _sp_line(sp, outings, team, side):
         # The team is printed because the card is the only place it appears. Without it
         # the pitcher's club had to be inferred from list order, and a recently traded
@@ -615,23 +701,7 @@ def _serialize_game_for_ai(g: dict) -> str:
         base = f"  {name} ({hand}): " + ", ".join(parts)
         recent = _recent_3(outings)
         if recent:
-            outing_strs = []
-            for o in recent:
-                date_s = o.get("date") or "?"
-                ha     = "@" if o.get("ha") == "@" else "vs "
-                opp_s  = f"{ha}{o['opp']}" if o.get("opp") and o["opp"] != "?" else "?"
-                seg = [f"{o['ip']}IP"]
-                for key, lbl in (("h", "H"), ("bb", "BB"), ("k", "K")):
-                    if o.get(key) is not None:
-                        seg.append(f"{o[key]}{lbl}")
-                er, r = o.get("er"), o.get("r")
-                if er is not None:
-                    # R shown only when unearned runs scored — signals defense, and means
-                    # the ER-based numbers are flattering relative to actual damage.
-                    seg.append(f"{er}ER" + (f" ({r}R)" if r is not None and r != er else ""))
-                if o.get("pc"):
-                    seg.append(f"{o['pc']}pc")
-                outing_strs.append(f"      {date_s} {opp_s}: " + " ".join(seg))
+            outing_strs = [f"      {_outing_str(o)}" for o in recent]
             recent_era, avg_k = _recent_stats(outings)
             k_context = f", avg {avg_k} K/start" if avg_k else ""
             base += (
@@ -737,7 +807,27 @@ def _serialize_game_for_ai(g: dict) -> str:
             )
         else:
             parts.append(f"at {venue_label}: no data")
-        return f"  {name}: " + " | ".join(parts)
+        base = f"  {name}: " + " | ".join(parts)
+
+        # The individual meetings, not just their average. Head-to-head is weighted on
+        # CONSISTENCY across starts, and an average is exactly the thing that hides it —
+        # one blowup and two gems average out to the same line as three mediocre starts.
+        vs_ot = list(reversed(spl.get("vs_outings") or []))
+        at_ot = list(reversed(spl.get("at_outings") or []))
+        vs_dates = {o["date"] for o in vs_ot}
+        extra_at = [o for o in at_ot if o["date"] not in vs_dates]
+        blocks = []
+        if vs_ot:
+            blocks.append(
+                f"    vs {vs_label} — each meeting (oldest → newest):\n"
+                + "\n".join(f"      {_outing_str(o)}" for o in vs_ot)
+            )
+        if extra_at:
+            blocks.append(
+                f"    at {venue_label} — further starts there (oldest → newest):\n"
+                + "\n".join(f"      {_outing_str(o)}" for o in extra_at)
+            )
+        return base + ("\n" + "\n".join(blocks) if blocks else "")
 
     neutral_tag = " | NEUTRAL SITE" if g.get("neutral_site") else ""
     lines = [f"=== {away} @ {home}{time_s} | {venue} ({venue_tag}){neutral_tag} ==="]

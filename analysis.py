@@ -342,13 +342,29 @@ def pitcher_history_flags(
 
 # ── Situational splits ────────────────────────────────────────────────────────
 
-def _situational_avg(entries: list[dict]) -> Optional[dict]:
-    """Average pitching stats (starts only) over a list of game log splits."""
-    starts = [
+def _qualifying_starts(entries: list[dict]) -> list[dict]:
+    """Game-log entries that count as a start with usable innings, in input order."""
+    return [
         s for s in entries
         if int(s.get("stat", {}).get("gamesStarted", 0)) > 0
         and flt(s.get("stat", {}).get("inningsPitched")) is not None
     ]
+
+
+def _situational_split(entries: list[dict], n: int = 3) -> tuple[Optional[dict], list[dict]]:
+    """The averaged line for a situational split, plus the outings behind it.
+
+    Both halves come off the same n-game slice, so the "(n)" printed on the average is
+    always the number of outing rows rendered under it. Returns (avg, outings) with the
+    outings newest-first, matching extract_outings().
+    """
+    starts = _qualifying_starts(entries[-n:])
+    return _situational_avg(starts), extract_outings(starts, n)
+
+
+def _situational_avg(entries: list[dict]) -> Optional[dict]:
+    """Average pitching stats (starts only) over a list of game log splits."""
+    starts = _qualifying_starts(entries)
     if not starts:
         return None
     n        = len(starts)
@@ -687,23 +703,28 @@ def analyze_game(
     away_hist_cur = [s for s in away_hist if s.get("date", "").startswith(cur_year)]
     home_hist_cur = [s for s in home_hist if s.get("date", "").startswith(cur_year)]
 
+    away_vs_avg, away_vs_ot = _situational_split(
+        [s for s in away_hist if (s.get("opponent") or {}).get("name", "") == home_full]
+    )
+    away_at_avg, away_at_ot = _situational_split(
+        [s for s in away_hist
+         if s.get("isHome") is False
+         and (s.get("opponent") or {}).get("name", "") == home_full]
+    )
     away_sp_splits = {
-        "vs": _situational_avg(
-            [s for s in away_hist if (s.get("opponent") or {}).get("name", "") == home_full][-3:]
-        ),
-        "at": _situational_avg(
-            [s for s in away_hist
-             if s.get("isHome") is False
-             and (s.get("opponent") or {}).get("name", "") == home_full][-3:]
-        ),
+        "vs": away_vs_avg, "vs_outings": away_vs_ot,
+        "at": away_at_avg, "at_outings": away_at_ot,
     }
+
+    home_vs_avg, home_vs_ot = _situational_split(
+        [s for s in home_hist if (s.get("opponent") or {}).get("name", "") == away_full]
+    )
+    home_at_avg, home_at_ot = _situational_split(
+        [s for s in home_hist if s.get("isHome") is True]
+    )
     home_sp_splits = {
-        "vs": _situational_avg(
-            [s for s in home_hist if (s.get("opponent") or {}).get("name", "") == away_full][-3:]
-        ),
-        "at": _situational_avg(
-            [s for s in home_hist if s.get("isHome") is True][-3:]
-        ),
+        "vs": home_vs_avg, "vs_outings": home_vs_ot,
+        "at": home_at_avg, "at_outings": home_at_ot,
     }
 
     today_s     = today.isoformat() if today else ""

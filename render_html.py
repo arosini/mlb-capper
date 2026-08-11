@@ -69,8 +69,11 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .sec-sum{display:flex;align-items:center;padding:.38rem .55rem;cursor:pointer;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;list-style:none;user-select:none}
 .sec-sum::-webkit-details-marker{display:none}
 .sec-sum::after{content:'▾';margin-left:auto;font-size:.6rem;opacity:.7}
-.sec:not([open])>.sec-sum::after{content:'▸'}
+.sec:not([open])>.sec-sum:not(.sec-sum-static)::after{content:'▸'}
 .sec-sum-static{cursor:default}
+/* Static rows are plain divs inside a .sec, so they match :not([open]) too --
+   the exclusion above is what keeps the collapsed chevron off them. That rule
+   is (0,3,1) and would otherwise outrank this one. */
 .sec-sum-static::after{content:none}
 .sec-nested{border:none;border-top:1px solid rgba(0,0,0,.09);border-radius:0;margin-top:.3rem}
 .sec-nested>.sec-sum{padding:.3rem 0 .15rem;font-size:.62rem}
@@ -149,9 +152,12 @@ header{background:#030712}
 .spl-n{text-align:center;color:#9ca3af;font-size:.65rem}
 .spl-sp-hd{font-size:.72rem;font-weight:700;color:#374151;padding:.32rem 0 .08rem;border-top:1px solid rgba(0,0,0,.07)}
 .spl-sp-hd:first-child{border-top:none;padding-top:0}
+.spl-ot{margin:.05rem 0 .4rem .55rem;padding-left:.5rem;border-left:2px solid rgba(0,0,0,.08)}
+.spl-ot-note{font-size:.66rem;color:#9ca3af;margin:.05rem 0 .4rem .55rem;padding-left:.5rem;border-left:2px solid rgba(0,0,0,.08)}
 @media(prefers-color-scheme:dark){
 .spl-hd span{color:#6b7280}
 .spl-sp-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
+.spl-ot,.spl-ot-note{border-left-color:rgba(255,255,255,.12)}
 }
 .ai-picks{background:white;margin:.5rem 0 .75rem;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
 .ai-picks-hd{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;padding:.45rem .875rem .3rem;cursor:pointer;list-style:none}
@@ -943,14 +949,30 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             '</div>'
         )
 
+    def _spl_ot(outings) -> str:
+        return f'<div class="spl-ot">{_outing_table(outings)}</div>' if outings else ""
+
     def _spl_block(sp_name: str, spl: dict, vs_lbl: str, at_lbl: str) -> str:
         if not spl.get("vs") and not spl.get("at"):
             return ""
+        vs_ot = spl.get("vs_outings") or []
+        at_ot = spl.get("at_outings") or []
+        # The "at" starts are frequently a subset of the "vs" starts — an away starter's
+        # meetings at this park are by definition meetings with this club — so rendering
+        # both tables would repeat the same rows verbatim. Print the second only when it
+        # contributes an outing the first did not already show.
+        vs_dates = {o["date"] for o in vs_ot}
+        if at_ot and all(o["date"] in vs_dates for o in at_ot):
+            at_block = '<div class="spl-ot-note">same starts as above</div>'
+        else:
+            at_block = _spl_ot(at_ot)
         return (
             f'<div class="spl-sp-hd">{_h(sp_name)}</div>'
             + _spl_hdr()
             + _spl_row(vs_lbl, spl.get("vs"))
+            + _spl_ot(vs_ot)
             + _spl_row(at_lbl, spl.get("at"))
+            + at_block
         )
 
     away_spl = g.get("away_sp_splits", {})
