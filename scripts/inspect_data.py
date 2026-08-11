@@ -3,16 +3,16 @@
 Read-only inspection CLI for ad hoc checks — no writes, no paid API calls.
 
 Usage:
-  python3 scripts/inspect.py schedule [DATE]
-  python3 scripts/inspect.py starters TEAM [DATE]
-  python3 scripts/inspect.py team-stats TEAM [DATE]
-  python3 scripts/inspect.py bullpen TEAM [DATE]
-  python3 scripts/inspect.py weather TEAM1 TEAM2 [DATE]
-  python3 scripts/inspect.py odds AWAY HOME [DATE]
-  python3 scripts/inspect.py props AWAY HOME [DATE]
-  python3 scripts/inspect.py picks [DATE]
-  python3 scripts/inspect.py history [DATE]
-  python3 scripts/inspect.py suggestions [DATE]
+  python3 scripts/inspect_data.py schedule [DATE]
+  python3 scripts/inspect_data.py starters TEAM [DATE]
+  python3 scripts/inspect_data.py team-stats TEAM [DATE]
+  python3 scripts/inspect_data.py bullpen TEAM [DATE]
+  python3 scripts/inspect_data.py weather TEAM1 TEAM2 [DATE]
+  python3 scripts/inspect_data.py odds AWAY HOME [DATE]
+  python3 scripts/inspect_data.py props AWAY HOME [DATE]
+  python3 scripts/inspect_data.py picks [DATE]
+  python3 scripts/inspect_data.py history [DATE]
+  python3 scripts/inspect_data.py suggestions [DATE]
 
 DATE is "today" (default), "tomorrow", or YYYY-MM-DD.
 """

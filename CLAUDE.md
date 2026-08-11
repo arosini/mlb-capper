@@ -235,6 +235,23 @@ The auditor's top check is backwards baseball logic — backing a team while cit
 team's *own* pitcher's bad xERA/ERA. Each team bats against the OPPOSING pitcher; this
 was the most common failure in the pre-rewrite prompt.
 
+**The card must name each starter's club, because nothing else does.** `_sp_line()` used
+to print `  Dean Kremer (R): xERA …` with no team — the offense, bullpen and trend lines
+were all team-labelled, but the pitcher block was positional only, so which club a starter
+threw for had to be inferred from list order (away first, home second). That inference
+loses to the model's own prior the moment a starter is traded mid-season. On 2026-08-10,
+Kremer had moved BAL → MIN; the data was correct end to end (`team: MIN`, `opponent: BAL`,
+`analyze_game` put him on the home side) and the published rationale still had him facing
+Minnesota — the matchup inverted, with a strikeout rate attributed to the wrong lineup.
+Lines now read `MIN (home) — Dean Kremer (R): …`, the props line carries the team too, and
+both prompts say the card's club is authoritative over prior knowledge. The auditor rejects
+a rationale that has a starter facing the lineup he is actually pitching for.
+
+Note the failure was invisible to the audit pass for the same reason it was invisible to
+generation: the verifier is re-sent the *same card*, so an unlabelled pitcher block gave it
+no way to catch the swap either. Anything the model must not get wrong has to be **on the
+card** — a second opinion over identical data does not add a fact.
+
 **Rationales are public-facing copy, not a reasoning transcript.** Section 10 of
 `_AI_SYSTEM_PROMPT` (and the `reason` / `pass_reasons` tool-schema descriptions) forbid
 leaking the prompt's own rules into the output: no "Tier 1"/"per the rules", no reminders
@@ -285,6 +302,26 @@ and is included by both `render_html_page()` and `results.py`. Keep the nav orde
 
 Guards: ignores multi-touch, swipes under 60px, swipes with |dy| > 80, gestures where the
 vertical axis wins, and anything starting inside a horizontally scrollable child.
+
+## `scripts/` — never name a file after a stdlib module
+
+Python puts a script's own directory first on `sys.path`, so any module in `scripts/`
+whose name collides with the standard library shadows it for **every** later import,
+including ones made deep inside third-party packages. `scripts/inspect.py` did exactly
+that: `Weekly Prompt Review` ran `python3 scripts/review_rejections.py`, whose
+`import anthropic` reached `typing_extensions`, whose `import inspect` resolved to the
+ad-hoc CLI, and the job died on `module 'inspect' has no attribute 'signature'`. It had
+been broken since the file landed (commit `3a874af`) and only surfaced on the Monday cron.
+
+The CLI is `scripts/inspect_data.py` now, and `review_rejections.py` strips its own
+directory from `sys.path` before importing anything else — neither script imports a
+sibling by name, so the repo root it inserts is the only path either needs.
+
+`review_rejections.py` also **streams**: `max_tokens=32000` is deliberate (the tool
+returns a whole rewritten prompt) and the SDK refuses a non-streaming request it estimates
+could run past ~10 minutes. `get_final_message()` returns the same Message `create()`
+would have. The client runs with `max_retries=6` because a single `overloaded_error` fails
+a job that only gets one shot a week.
 
 ## Adding New Data Fields
 1. Check what's available: `python3 download.py --inspect`

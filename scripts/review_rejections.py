@@ -15,6 +15,18 @@ Exit codes:
   1  error
   2  nothing to do (no rejections in window, or no change recommended)
 """
+import sys as _sys, pathlib as _pathlib
+
+# Drop scripts/ from sys.path before importing anything else. Python puts the script's
+# own directory first, so any module in here whose name matches a stdlib one shadows it
+# for every later import — including imports made deep inside third-party packages.
+# `scripts/inspect.py` did exactly that: anthropic → typing_extensions → `import inspect`
+# resolved to this directory and the weekly review died on `inspect.signature`. Nothing
+# here imports a sibling by name; the repo root below is the only path we need.
+_HERE = str(_pathlib.Path(__file__).resolve().parent)
+_sys.path[:] = [p for p in _sys.path if p not in ("", ".", _HERE)]
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent.parent))
+
 import argparse
 import json
 import os
@@ -23,8 +35,6 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-import sys as _sys, pathlib as _pathlib
-_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent.parent))
 from season import ET as _ET
 
 # The prompt lives as a module-level triple-quoted string. We swap only the body
@@ -222,9 +232,16 @@ def main() -> int:
         f"{'=' * 70}\n\nAnalyze and call report_prompt_review."
     )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    # This runs once a week from cron with no retry above it, and a single
+    # `overloaded_error` fails the whole run — three in a row were observed while
+    # fixing this job. The SDK's own backoff is the cheapest place to absorb that.
+    client = anthropic.Anthropic(api_key=api_key, max_retries=6)
+    # Both calls stream. max_tokens=32000 is deliberate — the tool returns a full
+    # rewritten prompt — and the SDK refuses a non-streaming request it estimates
+    # may run past ~10 minutes, which is what killed this job. get_final_message()
+    # gives back the same Message object create() would have returned.
     try:
-        resp = client.messages.create(
+        with client.messages.stream(
             model="claude-opus-4-8",
             max_tokens=32000,
             thinking={"type": "adaptive"},
@@ -232,12 +249,13 @@ def main() -> int:
             system=_REVIEW_SYSTEM,
             tools=[_REVIEW_TOOL],
             messages=[{"role": "user", "content": user_msg}],
-        )
+        ) as stream:
+            resp = stream.get_final_message()
         block = next((b for b in resp.content if getattr(b, "type", "") == "tool_use"), None)
         if not block:
             # Same auto/forced pattern as generation: thinking is suppressed by a forced
             # tool_choice, so ask freely first and only force the structuring turn.
-            resp = client.messages.create(
+            with client.messages.stream(
                 model="claude-opus-4-8", max_tokens=32000,
                 thinking={"type": "adaptive"}, output_config={"effort": "high"},
                 system=_REVIEW_SYSTEM, tools=[_REVIEW_TOOL],
@@ -247,7 +265,8 @@ def main() -> int:
                     {"role": "assistant", "content": resp.content},
                     {"role": "user", "content": "Now submit that via report_prompt_review."},
                 ],
-            )
+            ) as stream:
+                resp = stream.get_final_message()
             block = next((b for b in resp.content if getattr(b, "type", "") == "tool_use"), None)
         if not block:
             print("[review] no structured verdict returned", file=sys.stderr)

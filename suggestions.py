@@ -145,6 +145,12 @@ evaluate per side of the ball:
 Never write "Team A has the better pitcher so they should score more." That is not how
 baseball works and it is the single most common way this analysis goes wrong.
 
+Read each starter's club off the card, never from memory. The STARTING PITCHERS block
+names the team he is throwing for today, and that is current for this slate — players
+are traded mid-season and your prior about where someone plays may be out of date. A
+starter's opponent is the OTHER club on the card, so putting him on the wrong team
+inverts every matchup you then reason about.
+
 ═══════════════════════════════════════════════════════════════════
 4. HARD LIMITS — these are absolute, not preferences
 ═══════════════════════════════════════════════════════════════════
@@ -377,6 +383,11 @@ REJECT if ANY of the following is true
        starters being good.
      • REJECT: any claim that pairs a lineup's wRC+ against its OWN starter rather than
        against the opposing starter.
+     • REJECT: a rationale that puts a starter on the wrong club. The STARTING PITCHERS
+       block names the team each one is throwing for today; check the pick's pitcher
+       against it rather than against what you know about his career. If the rationale
+       has him facing the lineup he is actually pitching for, the whole matchup is
+       inverted — REJECT even if every number quoted is otherwise real.
 
 2. THE NUMBERS DO NOT MATCH THE CARD. Any stat quoted in the rationale that contradicts
    the data card, or that does not appear in it at all. The analyst may only use the
@@ -582,8 +593,11 @@ def _serialize_game_for_ai(g: dict) -> str:
         avg_k  = f"{sum(k_vals) / len(k_vals):.1f}" if k_vals else None
         return era_s, avg_k
 
-    def _sp_line(sp, outings):
-        name = sp["name"]
+    def _sp_line(sp, outings, team, side):
+        # The team is printed because the card is the only place it appears. Without it
+        # the pitcher's club had to be inferred from list order, and a recently traded
+        # starter reads as still being on his old team.
+        name = f"{team} ({side}) — {sp['name']}"
         hand = (sp.get("hand") or "?")[0]
         if not sp.get("has_stats"):
             return f"  {name} ({hand}): NO STATS (first start this season)"
@@ -698,9 +712,9 @@ def _serialize_game_for_ai(g: dict) -> str:
     ou_h = fmt_outs_line(od.get("home_outs"))
     prop_parts = []
     if k_a or ou_a:
-        prop_parts.append(f"{sp_a['name']}: {', '.join(p for p in [k_a, ou_a] if p)}")
+        prop_parts.append(f"{sp_a['name']} ({away}): {', '.join(p for p in [k_a, ou_a] if p)}")
     if k_h or ou_h:
-        prop_parts.append(f"{sp_h['name']}: {', '.join(p for p in [k_h, ou_h] if p)}")
+        prop_parts.append(f"{sp_h['name']} ({home}): {', '.join(p for p in [k_h, ou_h] if p)}")
     if prop_parts:
         odds_lines.append("  Props: " + " | ".join(prop_parts))
 
@@ -736,9 +750,13 @@ def _serialize_game_for_ai(g: dict) -> str:
               "park factor shown does not describe this venue."
         )
     lines.append(f"Weather: {wx_s}")
-    lines.append("STARTING PITCHERS — all rate stats are LAST 3 STARTS:")
-    lines.append(_sp_line(sp_a, outs_a))
-    lines.append(_sp_line(sp_h, outs_h))
+    lines.append(
+        "STARTING PITCHERS — all rate stats are LAST 3 STARTS. The club shown is the one "
+        "he is pitching FOR today; it is current as of this slate and overrides anything "
+        "you believe about where he plays:"
+    )
+    lines.append(_sp_line(sp_a, outs_a, away, "away"))
+    lines.append(_sp_line(sp_h, outs_h, home, "home"))
     lines.append("OFFENSE — LAST 12 GAMES vs the opposing starter's hand:")
     lines.append(_off_line(away, of_a, hand_h))
     lines.append(_off_line(home, of_h, hand_a))
