@@ -152,12 +152,11 @@ header{background:#030712}
 .spl-n{text-align:center;color:#9ca3af;font-size:.65rem}
 .spl-sp-hd{font-size:.72rem;font-weight:700;color:#374151;padding:.32rem 0 .08rem;border-top:1px solid rgba(0,0,0,.07)}
 .spl-sp-hd:first-child{border-top:none;padding-top:0}
-.spl-ot{margin:.05rem 0 .4rem .55rem;padding-left:.5rem;border-left:2px solid rgba(0,0,0,.08)}
-.spl-ot-note{font-size:.66rem;color:#9ca3af;margin:.05rem 0 .4rem .55rem;padding-left:.5rem;border-left:2px solid rgba(0,0,0,.08)}
+.spl-ot{margin:.22rem 0 .45rem .55rem;padding-left:.5rem;border-left:2px solid rgba(0,0,0,.08)}
 @media(prefers-color-scheme:dark){
 .spl-hd span{color:#6b7280}
 .spl-sp-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
-.spl-ot,.spl-ot-note{border-left-color:rgba(255,255,255,.12)}
+.spl-ot{border-left-color:rgba(255,255,255,.12)}
 }
 .ai-picks{background:white;margin:.5rem 0 .75rem;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
 .ai-picks-hd{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;padding:.45rem .875rem .3rem;cursor:pointer;list-style:none}
@@ -952,33 +951,34 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
     def _spl_ot(outings) -> str:
         return f'<div class="spl-ot">{_outing_table(outings)}</div>' if outings else ""
 
-    def _spl_block(sp_name: str, spl: dict, vs_lbl: str, at_lbl: str) -> str:
+    def _spl_block(sp_name: str, spl: dict, vs_lbl: str, at_lbl: str,
+                   merge: bool = False) -> str:
+        """Situational splits for one starter, with the outings behind them.
+
+        `merge` collapses both rows onto a single deduped table. That is right for the
+        AWAY starter, whose at-park starts are by definition a subset of his meetings
+        with this club — two tables there would repeat the same rows. The HOME starter's
+        splits are genuinely different populations (this club anywhere vs every club at
+        home), so each row keeps its own table and any overlap between them is real.
+        """
         if not spl.get("vs") and not spl.get("at"):
             return ""
-        vs_ot = spl.get("vs_outings") or []
-        at_ot = spl.get("at_outings") or []
-        # The "at" starts are frequently a subset of the "vs" starts — an away starter's
-        # meetings at this park are by definition meetings with this club — so rendering
-        # both tables would repeat the same rows verbatim. Print the second only when it
-        # contributes an outing the first did not already show.
-        vs_dates = {o["date"] for o in vs_ot}
-        if at_ot and all(o["date"] in vs_dates for o in at_ot):
-            at_block = '<div class="spl-ot-note">same starts as above</div>'
-        else:
-            at_block = _spl_ot(at_ot)
-        return (
-            f'<div class="spl-sp-hd">{_h(sp_name)}</div>'
-            + _spl_hdr()
-            + _spl_row(vs_lbl, spl.get("vs"))
-            + _spl_ot(vs_ot)
-            + _spl_row(at_lbl, spl.get("at"))
-            + at_block
-        )
+        head = f'<div class="spl-sp-hd">{_h(sp_name)}</div>' + _spl_hdr()
+        if merge:
+            return (head
+                    + _spl_row(vs_lbl, spl.get("vs"))
+                    + _spl_row(at_lbl, spl.get("at"))
+                    + _spl_ot(spl.get("outings") or []))
+        return (head
+                + _spl_row(vs_lbl, spl.get("vs"))
+                + _spl_ot(spl.get("vs_outings") or [])
+                + _spl_row(at_lbl, spl.get("at"))
+                + _spl_ot(spl.get("at_outings") or []))
 
     away_spl = g.get("away_sp_splits", {})
     home_spl = g.get("home_sp_splits", {})
     splits_inner = (
-        _spl_block(sp_a["name"], away_spl, f"vs {home}", f"at {home}")
+        _spl_block(sp_a["name"], away_spl, f"vs {home}", f"at {home}", merge=True)
         + _spl_block(sp_h["name"], home_spl, f"vs {away}", "home starts")
     )
     splits_html = (

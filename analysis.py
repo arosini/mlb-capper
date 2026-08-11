@@ -351,6 +351,25 @@ def _qualifying_starts(entries: list[dict]) -> list[dict]:
     ]
 
 
+def _merge_outings(*lists: list[dict]) -> list[dict]:
+    """Union of situational outing lists — one row per game, newest first.
+
+    The vs-opponent and at-park sets overlap heavily (an away starter's meetings at this
+    park are by definition meetings with this club), so they are merged on the game date
+    rather than rendered as two tables that repeat each other.
+    """
+    seen: set = set()
+    merged: list[dict] = []
+    for o in sorted((o for lst in lists for o in lst),
+                    key=lambda o: o.get("date_iso") or "", reverse=True):
+        key = o.get("date_iso") or o.get("date")
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(o)
+    return merged
+
+
 def _situational_split(entries: list[dict], n: int = 3) -> tuple[Optional[dict], list[dict]]:
     """The averaged line for a situational split, plus the outings behind it.
 
@@ -536,6 +555,9 @@ def extract_outings(history: list[dict], n: int = 5) -> list[dict]:
 
         result.append({
             "date":      date_s,
+            # Kept alongside the display string because that one is "%b %-d" with no
+            # year — unsortable across the two seasons these splits reach back over.
+            "date_iso":  raw_date[:10],
             "ha":        "H" if is_home else ("@" if is_home is False else "?"),
             "opp":       opp_code,
             "result":    result_s,
@@ -714,6 +736,7 @@ def analyze_game(
     away_sp_splits = {
         "vs": away_vs_avg, "vs_outings": away_vs_ot,
         "at": away_at_avg, "at_outings": away_at_ot,
+        "outings": _merge_outings(away_vs_ot, away_at_ot),
     }
 
     home_vs_avg, home_vs_ot = _situational_split(
@@ -725,6 +748,7 @@ def analyze_game(
     home_sp_splits = {
         "vs": home_vs_avg, "vs_outings": home_vs_ot,
         "at": home_at_avg, "at_outings": home_at_ot,
+        "outings": _merge_outings(home_vs_ot, home_at_ot),
     }
 
     today_s     = today.isoformat() if today else ""
