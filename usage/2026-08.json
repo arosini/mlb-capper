@@ -88,21 +88,21 @@
       "claude": {
         "cache_read_tokens": 0,
         "cache_write_tokens": 0,
-        "calls": 6,
-        "cost_usd": 0.88624,
-        "input_tokens": 85608,
+        "calls": 12,
+        "cost_usd": 1.814385,
+        "input_tokens": 177787,
         "models": {
-          "claude-opus-4-8": 6
+          "claude-opus-4-8": 12
         },
-        "output_tokens": 18328
+        "output_tokens": 37018
       },
       "odds": {
-        "observed_at": "2026-08-13T08:49:51.506712+00:00",
+        "observed_at": "2026-08-13T14:48:51.265735+00:00",
         "remaining_first": 12171,
-        "remaining_last": 12109,
-        "remaining_min": 12109,
+        "remaining_last": 12043,
+        "remaining_min": 12043,
         "used_first": 7829,
-        "used_last": 7891
+        "used_last": 7957
       }
     }
   },
