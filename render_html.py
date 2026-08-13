@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from teams import _LOGO, logo_img
-from analysis import flt, xera_label
+from analysis import flt, wrc_label, xera_label
 from odds import fmt_k_line, fmt_outs_line
 from suggestions import (
     _pick_dom_id, _pick_summary_title, _render_suggestions_html,
@@ -292,6 +292,22 @@ def _hh_bat_cls(v):
     if v >= 35: return "wrc-avg"
     if v >= 30: return "wrc-below"
     return "wrc-poor"
+
+
+def _whiff_bat_cls(v):
+    """High lineup Whiff% = more swing-and-miss = bad for offense.
+
+    Team Whiff% is derived as 100 − contact%, so it sits well below a pitcher's
+    per-swing whiff rate. Cut points are set off the observed spread across all 30
+    clubs × both hands (min 15.5, median 22.6, p90 29.7) rather than a pitcher scale,
+    which would have painted nearly every lineup "elite".
+    """
+    if v is None: return ""
+    if v >= 28: return "wrc-poor"
+    if v >= 25: return "wrc-below"
+    if v >= 21: return "wrc-avg"
+    if v >= 18: return "wrc-above"
+    return "wrc-elite"
 
 
 def _hh_bat_lbl(v):
@@ -649,7 +665,7 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         # Headline three stay visible; the peripherals live behind "More Stats".
         ec = _era_cls(sp["label"])
         rows  = _row("xERA",    sp["xera_s"], ec,             sp["label"])
-        rows += _row("ERA",     sp["era_s"])
+        rows += _row("ERA",     sp["era_s"], _era_cls(xera_label(sp.get("era"))))
         k_v   = flt(sp["k"])
         rows += _row("K%",      sp["k"],      _k_sp_cls(k_v),  _k_sp_lbl(k_v))
 
@@ -681,14 +697,17 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         if off:
             wc = _wrc_cls(off["label"])
             rows  = _row("wRC+", off["wrc_s"], wc, off["label"])
-            rows += (f'<span class="mu-lbl">wRC+ L12</span>'
-                     f'<span class="dim">{_h(off.get("wrc_ctx_s", "N/A"))}</span>')
+            # "12+" rather than "wRC+ L12": the label column is `auto`, so the widest
+            # label sets the width for every row on the card and the long form pushed
+            # all the values across.
+            rows += _row("12+", off.get("wrc_ctx_s", "N/A"),
+                         _wrc_cls(wrc_label(off.get("wrc_ctx"))))
             k_v   = flt(off["k"])
             rows += _row("K%",  off["k"],   _k_bat_cls(k_v),  _k_bat_lbl(k_v))
             hh_v  = flt(off["hard"])
             rows += _row("HH%", off["hard"], _hh_bat_cls(hh_v), _hh_bat_lbl(hh_v))
             if off.get("whiff") and off["whiff"] != "?":
-                rows += f'<span class="mu-lbl">Whiff%</span><span class="dim">{_h(off["whiff"])}</span>'
+                rows += _row("Whiff%", off["whiff"], _whiff_bat_cls(flt(off["whiff"])))
             vs = f'vs {off["vs_hand"]} · last 6'
         else:
             rows = f'<span class="dim" style="grid-column:1/-1;font-size:.8rem">No data</span>'
