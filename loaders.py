@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
+import config
 from teams import to_stats
 
 from season import ET as _ET, season_start
@@ -179,25 +180,45 @@ def load_starters(data_dir: Path, target_date: date) -> list[dict]:
     return []
 
 
-def load_team_stats(data_dir: Path, target_date: date) -> tuple[dict, dict]:
-    """Returns (rhp_stats, lhp_stats) dicts keyed by team code."""
-    rj = _find_file(data_dir, "team_stats_L12RHP", target_date, "json")
-    lj = _find_file(data_dir, "team_stats_L12LHP", target_date, "json")
+def _load_team_split_pair(data_dir: Path, target_date: date, window: str) -> tuple[dict, dict]:
+    """Load one team-offense window (e.g. 'L6' or 'L12') as (rhp_stats, lhp_stats)."""
+    rj = _find_file(data_dir, f"team_stats_{window}RHP", target_date, "json")
+    lj = _find_file(data_dir, f"team_stats_{window}LHP", target_date, "json")
     if rj and lj:
         return _load_team_stats_json(rj), _load_team_stats_json(lj)
-    rp = _find_file(data_dir, "team_stats_L12RHP", target_date, "csv")
-    lp = _find_file(data_dir, "team_stats_L12LHP", target_date, "csv")
+    rp = _find_file(data_dir, f"team_stats_{window}RHP", target_date, "csv")
+    lp = _find_file(data_dir, f"team_stats_{window}LHP", target_date, "csv")
     if rp and lp:
         return (
             {r["Team"]: r for r in _load_csv(rp)},
             {r["Team"]: r for r in _load_csv(lp)},
         )
-    print(
-        f"WARNING: Missing team stats data in {data_dir} for {target_date} — "
-        "cards will show no offense stats",
-        file=sys.stderr,
-    )
     return {}, {}
+
+
+def load_team_stats(data_dir: Path, target_date: date) -> tuple[dict, dict, dict, dict]:
+    """Returns (rhp6, lhp6, rhp12, lhp12) dicts keyed by team code.
+
+    The first pair is the PRIMARY window every offense number on the card comes from;
+    the second is the longer window kept purely so wRC+ can be compared across the two.
+    Either pair degrades independently to {} — a missing L12 file costs the context
+    column, not the card.
+    """
+    rhp6, lhp6   = _load_team_split_pair(data_dir, target_date, config.TEAM_SPLIT_PRIMARY)
+    rhp12, lhp12 = _load_team_split_pair(data_dir, target_date, config.TEAM_SPLIT_CONTEXT)
+    if not rhp6 and not lhp6:
+        print(
+            f"WARNING: Missing {config.TEAM_SPLIT_PRIMARY} team stats data in {data_dir} "
+            f"for {target_date} — cards will show no offense stats",
+            file=sys.stderr,
+        )
+    elif not rhp12 and not lhp12:
+        print(
+            f"WARNING: Missing {config.TEAM_SPLIT_CONTEXT} team stats data in {data_dir} "
+            f"for {target_date} — cards will show no comparison wRC+",
+            file=sys.stderr,
+        )
+    return rhp6, lhp6, rhp12, lhp12
 
 
 def load_bullpen(data_dir: Path, target_date: date) -> dict:

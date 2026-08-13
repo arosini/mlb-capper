@@ -30,10 +30,22 @@ ANTHROPIC_API_KEY    = os.environ.get("ANTHROPIC_API_KEY", "")
 HANDIGRAPHS_BASE_URL  = "https://www.handigraphs.com"
 HANDIGRAPHS_LOGIN_URL = f"{HANDIGRAPHS_BASE_URL}/api/auth/login"
 
+# Team-offense split windows. The API validates the split token — an unknown value is a
+# 400, not a silently ignored parameter — so these two are the only thing to change if
+# Handigraphs ever renames the windows.
+#
+# Verified live 2026-08-13: L6RHP/L6LHP and L12RHP/L12LHP all return 30 rows with an
+# identical schema, and the L6 numbers differ materially from the L12 ones (they are a
+# genuinely shorter window, not the same data under another name).
+TEAM_SPLIT_PRIMARY = "L6"    # every offense number on the card comes from this window
+TEAM_SPLIT_CONTEXT = "L12"   # wRC+ only, carried alongside L6 for comparison
+
 API_URLS = {
     "starters":         f"{HANDIGRAPHS_BASE_URL}/api/starters?split=last3g&day={{slot}}&include_season_stats=true",
-    "team_rhp":         f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split=L12RHP&include_season_stats=true",
-    "team_lhp":         f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split=L12LHP&include_season_stats=true",
+    "team_rhp":         f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_PRIMARY}RHP&include_season_stats=true",
+    "team_lhp":         f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_PRIMARY}LHP&include_season_stats=true",
+    "team_rhp_ctx":     f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_CONTEXT}RHP&include_season_stats=true",
+    "team_lhp_ctx":     f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_CONTEXT}LHP&include_season_stats=true",
     "bullpen":          f"{HANDIGRAPHS_BASE_URL}/api/bullpen-stats/team?split=last12g&include_season_stats=true",
     "ballpark_weather": f"{HANDIGRAPHS_BASE_URL}/api/ballpark-weather",
 }

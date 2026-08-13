@@ -152,11 +152,10 @@ header{background:#030712}
 .spl-n{text-align:center;color:#9ca3af;font-size:.65rem}
 .spl-sp-hd{font-size:.72rem;font-weight:700;color:#374151;padding:.32rem 0 .08rem;border-top:1px solid rgba(0,0,0,.07)}
 .spl-sp-hd:first-child{border-top:none;padding-top:0}
-.spl-ot{margin:.22rem 0 .45rem .55rem;padding-left:.5rem;border-left:2px solid rgba(0,0,0,.08)}
+.spl-ot{margin:.22rem 0 .45rem .55rem;padding-left:.5rem}
 @media(prefers-color-scheme:dark){
 .spl-hd span{color:#6b7280}
 .spl-sp-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
-.spl-ot{border-left-color:rgba(255,255,255,.12)}
 }
 .ai-picks{background:white;margin:.5rem 0 .75rem;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
 .ai-picks-hd{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;padding:.45rem .875rem .3rem;cursor:pointer;list-style:none}
@@ -675,16 +674,21 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
                 f'<div class="mu-2c">{rows}</div>{more_html}</div>')
 
     def _bat_card(team, off):
+        # Every number here is the last-6 window vs the opposing starter's hand. The one
+        # exception is the L12 wRC+ row, which exists purely so the two windows can be
+        # read against each other — hence both rows spell their window out.
         if off:
             wc = _wrc_cls(off["label"])
-            rows  = _row("wRC+", off["wrc_s"], wc, off["label"])
+            rows  = _row("wRC+ L6", off["wrc_s"], wc, off["label"])
+            rows += (f'<span class="mu-lbl">wRC+ L12</span>'
+                     f'<span class="dim">{_h(off.get("wrc_ctx_s", "N/A"))}</span>')
             k_v   = flt(off["k"])
-            rows += _row("K%",  off["k"],   _k_bat_cls(k_v),  _k_bat_lbl(k_v))
+            rows += _row("K% L6",  off["k"],   _k_bat_cls(k_v),  _k_bat_lbl(k_v))
             hh_v  = flt(off["hard"])
-            rows += _row("HH%", off["hard"], _hh_bat_cls(hh_v), _hh_bat_lbl(hh_v))
+            rows += _row("HH% L6", off["hard"], _hh_bat_cls(hh_v), _hh_bat_lbl(hh_v))
             if off.get("whiff") and off["whiff"] != "?":
-                rows += f'<span class="mu-lbl">Whiff%</span><span class="dim">{_h(off["whiff"])}</span>'
-            vs = f'vs {off["vs_hand"]}'
+                rows += f'<span class="mu-lbl">Whiff% L6</span><span class="dim">{_h(off["whiff"])}</span>'
+            vs = f'vs {off["vs_hand"]} · last 6'
         else:
             rows = f'<span class="dim" style="grid-column:1/-1;font-size:.8rem">No data</span>'
             vs = ""
@@ -893,7 +897,7 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
 
     matchup_html = (
         f'<details class="sec" id="{g_id}-matchup" open>'
-        f'<summary class="sec-sum">Matchup · SP Last 3 / Team Last 12</summary>'
+        f'<summary class="sec-sum">Matchup · SP Last 3 / Team Last 6</summary>'
         f'<div class="sec-body">'
         f'<div class="mu-outer">'
         f'<div class="mu-col">{_sp_card(sp_a, pc_avg=away_pc, sec_id=f"{g_id}-more-away")}{_bat_card(home, of_h)}</div>'
