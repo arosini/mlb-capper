@@ -100,7 +100,8 @@ def main():
 
     # Load data
     starters   = load_starters(data_dir, target_date)
-    rhp, lhp   = load_team_stats(data_dir, target_date)
+    # Primary offense window (last 6 vs hand) plus the longer comparison window.
+    rhp, lhp, rhp_ctx, lhp_ctx = load_team_stats(data_dir, target_date)
     bp         = load_bullpen(data_dir, target_date)
     ballpark_wx = {} if args.no_weather else load_ballpark_weather(data_dir, target_date)
 
@@ -275,7 +276,8 @@ def main():
                      f"({mlb_info.get('venue','?')}) — skipping weather")
 
         if args.html or args.suggestions_only:
-            g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx, target_date)
+            g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx, target_date,
+                             rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx)
             # MLB's scheduled start time disambiguates doubleheader legs when matching
             # against the Odds API, which has no game-number field of its own.
             time_hint = mlb_info.get("game_date", "")
@@ -294,7 +296,8 @@ def main():
             g["home_ou"] = ou_trends(hist_games, g["home"], g["home_sp_id"], True,  today_s)
             game_data.append(g)
         else:
-            render_terminal.print_game(p1, p2, rhp, lhp, bp, mlb_info, wx)
+            render_terminal.print_game(p1, p2, rhp, lhp, bp, mlb_info, wx,
+                                       rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx)
 
     if args.suggestions_only:
         generate_suggestions(game_data, data_dir, target_date)

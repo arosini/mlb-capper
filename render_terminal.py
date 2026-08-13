@@ -27,8 +27,11 @@ def print_game(
     bullpen: dict,
     mlb_info: dict,
     wx: dict,
+    rhp_ctx: dict | None = None,
+    lhp_ctx: dict | None = None,
 ) -> None:
-    g       = analyze_game(p1, p2, rhp, lhp, bullpen, mlb_info, wx)
+    g       = analyze_game(p1, p2, rhp, lhp, bullpen, mlb_info, wx,
+                           rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx)
     away    = g["away"]
     home    = g["home"]
     away_sp = g["away_sp"]
@@ -71,11 +74,12 @@ def print_game(
             return f"  {team:<5} vs ???: no data"
         lbl = f"({off['label']:<10})" if off["label"] else ""
         return (
-            f"  {team:<5} vs {off['vs_hand']}: wRC+ {off['wrc_s']} {lbl:<12}  "
+            f"  {team:<5} vs {off['vs_hand']}: wRC+ L6 {off['wrc_s']} {lbl:<12}  "
+            f"wRC+ L12 {off.get('wrc_ctx_s', 'N/A')}  "
             f"wOBA {off['woba']}  K% {off['k']}  Hard% {off['hard']}"
         )
 
-    print(cyan("\nOFFENSE vs STARTER HAND"))
+    print(cyan("\nOFFENSE vs STARTER HAND  (last 6g; L12 wRC+ for comparison)"))
     print(_off_line(away, away_off))
     print(_off_line(home, home_off))
     wrc_a = away_off["wrc"] if away_off else None

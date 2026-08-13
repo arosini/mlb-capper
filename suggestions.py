@@ -83,9 +83,11 @@ exactly as given. Do NOT compute your own rates, do NOT project season-long stat
 do NOT invent any figure that is not printed in the card.
 
   SP xERA, ERA, K%, BB%, HH%, Barrel%, IP/gs   →  that starter's LAST 3 STARTS only
-  Team wRC+, K%, HH%                            →  that lineup's LAST 12 GAMES, split
+  Team wRC+, K%, HH% marked "last 6"            →  that lineup's LAST 6 GAMES, split
                                                     against the HAND of today's opposing
                                                     starter (RHP or LHP)
+  Team wRC+ marked "last 12"                    →  the SAME lineup vs the SAME hand over
+                                                    its LAST 12 GAMES — context only
   Bullpen xERA / ERA                            →  that bullpen's LAST 12 GAMES
   Bullpen stress                                →  relief innings over the past 2 days
   "Recent starts:"                              →  actual box scores, OLDEST → NEWEST
@@ -104,13 +106,36 @@ not exist in this data. What the gap between them means:
                      ERA. Possible value AGAINST him — fade his side, look at overs.
   Gap under ~0.75 →  noise. Say nothing about it.
 
+THE TWO OFFENSE WINDOWS. Every lineup carries two wRC+ figures against today's starter's
+hand: one over its LAST 6 GAMES and one over its LAST 12. They are not interchangeable.
+
+  • The LAST 6 is the stronger signal and the number you reason from. It is the current
+    state of that lineup against that hand, and it is what the K% and HH% on the card
+    also describe.
+  • The LAST 12 is CONTEXT — a longer read on the same lineup. Never lead with it and
+    never use it in place of the last 6.
+  • A LARGE GAP BETWEEN THEM IS ITSELF A FINDING, and you should say so in the reason
+    whenever it is 20 wRC+ points or more. A lineup at 140 over its last 6 but 95 over
+    its last 12 is on a heater, not a good offense — the 140 will not hold, and a total
+    or team total priced off the hot streak is the mispricing. The same in reverse: 70
+    over 6 against 105 over 12 is a slump inside a decent lineup, and fading it as though
+    it were true talent is how you end up on the wrong side of a correction.
+  • When the two windows AGREE — inside about 10 points — the read is established rather
+    than streaky, and you can lean on it harder.
+  • SIX GAMES IS A SMALL SAMPLE. Roughly 25 plate appearances per hitter, one hot series
+    away from moving 20 points. So a MODEST last-6 edge is not decisive on its own: a gap
+    under about 15 wRC+ points between the two lineups is not, by itself, a reason to bet
+    a side or a total. Require the last-6 number to be either large, or corroborated by
+    the last-12 window, the starter matchup, or the head-to-head history.
+
 ═══════════════════════════════════════════════════════════════════
 2. HOW TO WEIGHT THE INPUTS
 ═══════════════════════════════════════════════════════════════════
 
 TIER 1 — these three decide the game. Lead every analysis with them:
   • Starter xERA over his last 3 starts
-  • Opposing lineup's wRC+ over its last 12 games vs that starter's hand
+  • Opposing lineup's wRC+ over its last 6 games vs that starter's hand (with the
+    last-12 figure read alongside it, per Section 1)
   • That starter's history vs today's opponent, and at this park (up to last 3 meetings)
 
 HEAD-TO-HEAD IS A FIRST-CLASS SIGNAL, NOT A FOOTNOTE. Lineups carry real, persistent
@@ -164,8 +189,8 @@ Each team bats against the OPPOSING starter and the OPPOSING bullpen. A starter'
 tells you NOTHING about how his own team will hit. There is exactly one matchup to
 evaluate per side of the ball:
 
-  AWAY lineup wRC+ (vs home SP's hand)  ⟷  HOME starter xERA  → away team's runs
-  HOME lineup wRC+ (vs away SP's hand)  ⟷  AWAY starter xERA  → home team's runs
+  AWAY lineup wRC+ last 6 (vs home SP's hand)  ⟷  HOME starter xERA  → away team's runs
+  HOME lineup wRC+ last 6 (vs away SP's hand)  ⟷  AWAY starter xERA  → home team's runs
 
 Never write "Team A has the better pitcher so they should score more." That is not how
 baseball works and it is the single most common way this analysis goes wrong.
@@ -231,7 +256,8 @@ PRICING RULES:
 Build the expected run environment from the two Tier 1 matchups (Section 3), then add
 bullpen quality and stress. Only then look at the posted number.
 
-  • Two strong starters by xERA facing two cold L12 wRC+ lineups, and the total is 8.5?
+  • Two strong starters by xERA facing two lineups cold over their last 6, and the
+    total is 8.5?
     That gap is the bet. The same read with the total already at 6.5 is not a bet.
   • Two shaky starters facing two hot lineups with the total already at 11? The market
     sees it. Pass.
@@ -248,7 +274,7 @@ bullpen quality and stress. Only then look at the posted number.
 Match the bet to the actual edge. A pitching edge and an offensive edge are different
 things and should be expressed differently.
 
-  • Dominant starter + opposing lineup cold in L12 vs his hand + good history vs this
+  • Dominant starter + opposing lineup cold over its last 6 vs his hand + good history vs this
     opponent → their side, IF the price has not already absorbed it.
   • Own bullpen shaky or stressed while the starter is the whole edge → F5 ML or F5 spread.
   • Strong offense vs a weak opposing starter, but you do not trust your own starter →
@@ -266,7 +292,7 @@ A strikeout total is RATE × LENGTH. Both halves have to clear the number — an
 rate over four innings beats nothing. Handle them separately, then combine.
 
 STRIKEOUTS. Use exactly five inputs, then the price:
-  1. TODAY'S OPPONENT'S K% (last 12 vs his hand) — the STRONGEST rate signal. A lineup
+  1. TODAY'S OPPONENT'S K% (last 6 vs his hand) — the STRONGEST rate signal. A lineup
      that does not strike out will not strike out today, no matter who is pitching.
   2. HIS POSTED OUTS LINE, when the card shows one — this is the LENGTH half, and it is
      the market's own estimate of how long he goes. Read it as innings: 15 outs is 5,
@@ -357,7 +383,13 @@ NEVER bet a pitcher marked "NO STATS."
 
 Every reason must ANNOTATE ITS WINDOWS. A number without its window is unusable to the
 reader. Write "3.05 xERA over his last 3" — not "3.05 xERA." Write "112 wRC+ vs LHP over
-their last 12" — not "112 wRC+."
+their last 6" — not "112 wRC+."
+
+THE WINDOW YOU WRITE MUST BE THE WINDOW THE CARD GAVE YOU. The offense numbers are the
+last 6 games unless you are quoting the second wRC+, which is the last 12. Writing
+"over their last 12" about a last-6 number states a false fact on a public page. If a
+sentence compares the two, name both: "118 wRC+ vs RHP over their last 6, up from 94
+over their last 12."
 
 Each reason must contain, in order:
   1. The Tier 1 matchup that drives it, with windows stated
@@ -422,6 +454,13 @@ to substitute your own opinion.
 You will be given the exact data card the analyst saw, plus their pick and their stated
 rationale. Return ACCEPT or REJECT.
 
+WINDOWS ON THE CARD. Every stat is a specific time window, and the card labels each one:
+SP xERA/ERA/K%/BB% are his LAST 3 STARTS; team offense — wRC+, K%, HH% — is the lineup's
+LAST 6 GAMES vs today's opposing starter's hand; a SECOND wRC+ is printed for the same
+lineup and the same hand over its LAST 12 GAMES, for comparison; bullpens are the LAST 12
+GAMES. Both offense wRC+ figures are legitimately on the card, so a rationale citing
+either one is quoting real data — check which window it names, not just the number.
+
 ═══════════════════════════════════════════════════════════════════
 REJECT if ANY of the following is true
 ═══════════════════════════════════════════════════════════════════
@@ -446,6 +485,11 @@ REJECT if ANY of the following is true
    the data card, or that does not appear in it at all. The analyst may only use the
    numbers provided. Invented, misread, or misattributed figures are a REJECT — including
    attributing one team's number to the other.
+     • REJECT: a stat quoted with the WRONG WINDOW. The rationale is published as fact, so
+       calling a last-6 offense number "over their last 12" (or the reverse) states a false
+       time period to the reader. Team K% and HH% only exist over the last 6 — a rationale
+       citing either "over their last 12" is quoting a window the card does not contain.
+       This is a factual error, not a style quibble.
 
 3. THE RATIONALE DOES NOT SUPPORT THE SIDE ACTUALLY BET. The reasoning argues for one
    outcome and the bet is on a different one — an under rationale attached to an over, a
@@ -462,7 +506,7 @@ REJECT if ANY of the following is true
 6. DISQUALIFIED SETUP. A pitcher prop when the card shows meaningful rain risk, or any
    bet on a pitcher marked "NO STATS."
 
-7. K PROP FIGHTING THE LINEUP. The opponent's K% (last 12 vs that hand) is the strongest
+7. K PROP FIGHTING THE LINEUP. The opponent's K% (last 6 vs that hand) is the strongest
    input on a strikeout prop, and the two signals must agree.
      • REJECT: a K OVER into a lineup that does not strike out, unless the rationale
        explicitly confronts the low K% and explains why the number is beatable anyway.
@@ -712,12 +756,17 @@ def _serialize_game_for_ai(g: dict) -> str:
         return base
 
     def _off_line(team, off, vs_hand):
+        # Every stat is labelled with its own window inline. The card carries two
+        # different wRC+ windows now, and the model writes public copy that must name the
+        # window it is quoting — an unlabelled pair is exactly the kind of thing a second
+        # opinion over the same card cannot catch.
         if not off:
             return f"  {team} vs {vs_hand}HP: No data"
         lbl = f" ({off['label']})" if off.get("label") else ""
-        parts = [f"wRC+ {off.get('wrc_s', '?')}{lbl}"]
-        if off.get("k") not in ("?", None):    parts.append(f"K% {off['k']}")
-        if off.get("hard") not in ("?", None): parts.append(f"HH% {off['hard']}")
+        parts = [f"wRC+ last 6: {off.get('wrc_s', '?')}{lbl}"]
+        parts.append(f"wRC+ last 12: {off.get('wrc_ctx_s', 'N/A')}")
+        if off.get("k") not in ("?", None):    parts.append(f"K% last 6: {off['k']}")
+        if off.get("hard") not in ("?", None): parts.append(f"HH% last 6: {off['hard']}")
         return f"  {team} vs {vs_hand}HP: " + ", ".join(parts)
 
     def _bp_line(team, bp):
@@ -847,7 +896,11 @@ def _serialize_game_for_ai(g: dict) -> str:
     )
     lines.append(_sp_line(sp_a, outs_a, away, "away"))
     lines.append(_sp_line(sp_h, outs_h, home, "home"))
-    lines.append("OFFENSE — LAST 12 GAMES vs the opposing starter's hand:")
+    lines.append(
+        "OFFENSE — LAST 6 GAMES vs the opposing starter's hand. Every offense number "
+        "below is that 6-game window, EXCEPT the second wRC+, which is the same lineup "
+        "vs the same hand over its LAST 12 GAMES and is shown for comparison only:"
+    )
     lines.append(_off_line(away, of_a, hand_h))
     lines.append(_off_line(home, of_h, hand_a))
     lines.append("BULLPENS — LAST 12 GAMES:")
@@ -991,7 +1044,10 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                                 "description": (
                                     "Why this is a bet. Every stat MUST carry its time window "
                                     "(e.g. '3.05 xERA over his last 3', '112 wRC+ vs LHP over "
-                                    "their last 12'). Must end by stating what the market is "
+                                    "their last 6'; team offense is the last 6 games unless "
+                                    "you are quoting the last-12 wRC+, and the window you "
+                                    "write must match the one the card gave you). Must end by "
+                                    "stating what the market is "
                                     "mispricing — a reason without that is not a bet. "
                                     "Public-facing copy: every sentence asserts something about "
                                     "THIS game. No references to these instructions, no reminders "

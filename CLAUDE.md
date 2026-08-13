@@ -18,7 +18,7 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHR
 
 | Source | Auth | What it provides |
 |--------|------|-----------------|
-| Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L12RHP/LHP), bullpen stats (last 12), ballpark weather |
+| Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L6RHP/LHP primary + L12RHP/LHP for the comparison wRC+), bullpen stats (last 12), ballpark weather |
 | MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs |
 | The Odds API | API key (query param) | Full-game ML/spread/total + F5 ML/spread/total + team totals + pitcher K/outs props for DK, FanDuel, Fanatics. Paid plan (~20K credits/month); billed per market × region, **not** per call — see API Budget |
 | Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Opus 4.8 for AI Picks — one generation call per odds refresh plus one audit call per pick, cached to `data/suggestions_{date}.json` |
@@ -90,7 +90,8 @@ Run locally: `python3 handicap.py` (terminal) or `python3 handicap.py --html > o
 
 ## Data Files (in `data/`)
 - `starters_last3g_{slot}_{date}.json`
-- `team_stats_L12RHP_{date}.json` / `team_stats_L12LHP_{date}.json`
+- `team_stats_L6RHP_{date}.json` / `team_stats_L6LHP_{date}.json` — **primary** team offense window
+- `team_stats_L12RHP_{date}.json` / `team_stats_L12LHP_{date}.json` — longer window; only its wRC+ is used
 - `bullpen_stats_last12g_{date}.json`
 - `ballpark_weather_{date}.json`
 - `odds_{date}.json` — bulk game odds (merged with started-game odds from prior fetch)
@@ -121,7 +122,7 @@ _MLB_MAP   = {**_STATS_MAP, "ARI": "AZ"}  # MLB API uses AZ; ATH stays as-is
 Each card renders collapsed `<details>` sections except Matchup (open by default):
 1. **Summary** (always visible): `[logo] AWAY @ [logo] HOME` + `time · venue (roof status)` subtitle + weather/APF badge
 2. **Betting Odds** — Full Game: 4×3 grid (ML / Spread / Total for away/home); First 5 Innings: same grid if available; Pitcher Props: K O/U and Outs O/U per starter (requires Odds API Starter plan+)
-3. **Matchup · SP Last 3 / Team Last 12** (open) — SP card: xERA, K%, HH%, Barrel%, ERA, IP/gs, H/gs, PC/gs, BB%; Offense card: wRC+, K%, HH% vs starter hand; outing table per SP
+3. **Matchup · SP Last 3 / Team Last 6** (open) — SP card: xERA, K%, HH%, Barrel%, ERA, IP/gs, H/gs, PC/gs, BB%; Offense card: wRC+ L6, wRC+ L12, K% L6, HH% L6 vs starter hand; outing table per SP
 4. **Bullpens · last 12** — xERA, ERA, and **2d stress** (Fresh/Normal/Elevated/Stressed based on avg relief IP per game over past 2 calendar days via MLB boxscores) (collapsed)
 5. **Weather** — venue, roof, conditions, APF with color coding (collapsed)
 6. **Flags** — auto-generated warnings (regression risk, small samples, weather, etc.) (collapsed)
@@ -261,10 +262,21 @@ stats the model chose not to use. The auditor does **not** reject on this — st
 worth dropping an otherwise sound pick — so it is enforced only at generation time.
 
 **Stat windows are temporal and the prompt depends on it.** SP xERA/ERA/K%/BB% are the
-last 3 starts (`starters_last3g_*`), team wRC+/K% are the last 12 games split by opposing
-starter hand, bullpens are the last 12. xERA and ERA cover the *same* 3-start window —
-they are not "season vs recent". The prompt requires every stat in a rationale to carry
-its window in the output text.
+last 3 starts (`starters_last3g_*`), team wRC+/K%/HH% are the **last 6** games split by
+opposing starter hand (`team_stats_L6{RHP,LHP}_*`), bullpens are the last 12. xERA and
+ERA cover the *same* 3-start window — they are not "season vs recent". The prompt
+requires every stat in a rationale to carry its window in the output text.
+
+**Team offense carries two wRC+ windows and only two.** The last-6 split drives every
+offense number on the card and the offense edge; the last-12 split contributes exactly
+one figure, a comparison wRC+ printed beside it (`team_stats_L12{RHP,LHP}_*`). Nothing
+else comes from the 12-game file. The two are labelled by window everywhere they appear
+— HTML card, terminal, AI data card — because a published rationale naming the wrong
+window states a false time period as fact; §1 and §10 of `_AI_SYSTEM_PROMPT` and check 2
+of the verification prompt all enforce that. The split tokens live in one place,
+`config.TEAM_SPLIT_PRIMARY` / `config.TEAM_SPLIT_CONTEXT`, and the API 400s on an
+unknown split rather than silently ignoring it. **Bullpens are a genuinely separate
+last-12 dataset** (`bullpen_stats_last12g`) and are not part of this.
 
 `extract_outings()` returns outings **newest-first**. `render_html.py` slices `[:n]`;
 `suggestions.py` takes `[:3]` then reverses for chronological display. Do not `[-3:]`.

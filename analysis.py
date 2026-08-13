@@ -584,8 +584,16 @@ def analyze_game(
     mlb_info: dict,
     wx: dict,
     today: Optional[date] = None,
+    rhp_ctx: Optional[dict] = None,
+    lhp_ctx: Optional[dict] = None,
 ) -> dict:
-    """Return structured analysis dict — used by both terminal and HTML renderers."""
+    """Return structured analysis dict — used by both terminal and HTML renderers.
+
+    `rhp`/`lhp` are the PRIMARY team-offense pools (last 6 games vs that hand) and drive
+    every offense number and the offense edge. `rhp_ctx`/`lhp_ctx` are the longer window
+    (last 12) and contribute exactly one thing: a comparison wRC+ alongside the primary
+    one. They are optional so a caller with only the primary window still works.
+    """
     today = today or date.today()
     t1, t2    = p1.get("Team", "?"), p2.get("Team", "?")
     home_abbr = mlb_info.get("home", "")
@@ -642,15 +650,25 @@ def analyze_game(
         if not s:
             return None
         wrc = flt(s.get("wRC+"))
+        # Comparison window. Absent data (no L12 file, a club with no qualifying row, or
+        # a null wRC+) degrades to N/A exactly the way the primary number does — the
+        # column disappears rather than the card breaking.
+        ctx_pool = (rhp_ctx if hand == "R" else lhp_ctx) or {}
+        ctx_row  = ctx_pool.get(to_stats(batting), {})
+        wrc_ctx  = flt(ctx_row.get("wRC+")) if ctx_row else None
         return {
-            "wrc":     wrc,
-            "wrc_s":   f"{wrc:.0f}" if wrc is not None else "N/A",
-            "label":   wrc_label(wrc) if wrc is not None else "",
-            "woba":    fp3(s.get("wOBA")),
-            "k":       fp1(s.get("K%")),
-            "hard":    fp1(s.get("HardHit%")),
-            "whiff":   fp1(s.get("Whiff%")),
-            "vs_hand": "RHP" if hand == "R" else "LHP",
+            "wrc":       wrc,
+            "wrc_s":     f"{wrc:.0f}" if wrc is not None else "N/A",
+            "label":     wrc_label(wrc) if wrc is not None else "",
+            "wrc_ctx":   wrc_ctx,
+            "wrc_ctx_s": f"{wrc_ctx:.0f}" if wrc_ctx is not None else "N/A",
+            # Signed L6 − L12: positive means the lineup is hotter than its longer form.
+            "wrc_gap":   (wrc - wrc_ctx) if (wrc is not None and wrc_ctx is not None) else None,
+            "woba":      fp3(s.get("wOBA")),
+            "k":         fp1(s.get("K%")),
+            "hard":      fp1(s.get("HardHit%")),
+            "whiff":     fp1(s.get("Whiff%")),
+            "vs_hand":   "RHP" if hand == "R" else "LHP",
         }
 
     def _bp(team: str) -> dict:
@@ -687,8 +705,12 @@ def analyze_game(
     home_off = _off(home_team, p_away)
     wrc_a    = away_off["wrc"] if away_off else None
     wrc_h    = home_off["wrc"] if home_off else None
+    # 15, not 10: the offense pools are a 6-game window now, and six games of wRC+ is a
+    # noisier estimate than twelve. Keeping the old gap would call an "edge" on what is
+    # often sampling noise — and would disagree with the prompt, which tells the model a
+    # modest last-6 gap is not by itself decisive.
     off_edge = (
-        None if wrc_a is None or wrc_h is None or abs(wrc_a - wrc_h) < 10
+        None if wrc_a is None or wrc_h is None or abs(wrc_a - wrc_h) < 15
         else (away_team if wrc_a > wrc_h else home_team)
     )
 
