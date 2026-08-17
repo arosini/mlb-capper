@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-08-17",
+    "game": "BAL @ TBR",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Shane McClanahan Under 4.5 Ks",
+    "odds": "+101",
+    "confidence": "medium",
+    "reason": "McClanahan has struck out exactly 3 in each of his last 3 starts (16.4 K% over that span) and threw only 49 pitches last time out, with an outs line of 12.5 signaling the market expects barely four innings after 18 days off. He simply will not be on the mound long enough to reach 5 punchouts, and getting plus money on the under is value the market is leaving on the table.",
+    "reject_reason": "This is a K UNDER against a strikeout-prone lineup \u2014 BAL's K% vs LHP (last 6) is 26.1%, elevated \u2014 yet the rationale never mentions the opposing lineup's K% and rests only on pitcher K% and outing length, failing to confront the signal that argues for the over (check 7).",
+    "rejected_at": "2026-08-17T14:20:37.322148+00:00"
+  }
+]
