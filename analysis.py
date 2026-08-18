@@ -3,7 +3,7 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
-from teams import to_stats, to_mlb, ODDS_TEAM, MLB_NAME_TO_CODE
+from teams import to_stats, to_mlb, ODDS_TEAM, MLB_NAME_TO_CODE, division
 
 from season import ET as _ET
 
@@ -127,17 +127,8 @@ def pitcher_csv_flags(row: dict) -> list[str]:
     if ip is not None and ip < 9:
         flags.append(f"small sample ({ip:.1f} IP over 3 starts) — stats may not reflect true ability")
 
-    hh     = flt(row.get("Hard-Hit%", ""))
-    barrel = flt(row.get("Barrel%", ""))
-    bb     = flt(row.get("BB%"))
     ogs    = flt(row.get("Outs/GS"))
 
-    if hh     is not None and hh > 44:
-        flags.append(f"HH% {hh:.0f}% — batters are squaring up the ball at an elevated rate")
-    if barrel is not None and barrel > 12:
-        flags.append(f"Barrel% {barrel:.0f}% — high hard contact rate, elevated home run risk")
-    if bb     is not None and bb > 12:
-        flags.append(f"BB% {bb:.0f}% — command concerns, elevated walk rate")
     if ogs    is not None and (ogs / 3) < 4.0:
         flags.append(f"avg {ogs/3:.1f} IP/gs — short outings, bullpen likely needed early")
 
@@ -151,6 +142,66 @@ def bullpen_flags(row: dict) -> list[str]:
         flags.append(
             f"bullpen xERA {xera:.2f} — bullpen performing well below average by expected ERA"
         )
+    return flags
+
+
+def team_situational_flags(
+    team_record: list[dict],
+    opp_abbr_today: str,
+    series_game_number: Optional[int],
+    games_in_series: Optional[int],
+    today_s: str,
+) -> list[str]:
+    """Bounce-back / letdown flags derived from a team's completed game log.
+
+    `team_record` entries come from mlb_api.get_team_schedule() (oldest-first, one dict
+    per completed game with won/runs_scored/runs_allowed/opp_abbr). `opp_abbr_today` is
+    today's opponent in MLB-API abbreviation form (i.e. to_mlb() of the other club), used
+    to tell whether an in-progress series streak is against the team on today's card.
+    """
+    flags: list[str] = []
+    completed = [g for g in team_record if g["date"] != today_s]
+    if not completed:
+        return flags
+
+    last = completed[-1]
+    if not last["won"] and last["runs_scored"] == 0:
+        if last["runs_allowed"] == 1:
+            flags.append(
+                "lost the last game 1-0 — decided by a single run; a shutout loss this "
+                "close says little about the offense, don't treat it as a slump"
+            )
+        else:
+            flags.append(
+                f"was shut out {last['runs_allowed']}-0 last time out — due for some "
+                "offensive regression"
+            )
+
+    # Trailing run of consecutive completed games against one opponent, ending at `last`.
+    # This is the current (or just-finished) series, series length not being a field the
+    # schedule reliably reports for completed games.
+    block: list[dict] = []
+    for g in reversed(completed):
+        if block and g.get("opp_abbr") != block[-1].get("opp_abbr"):
+            break
+        block.append(g)
+    block.reverse()
+    opp = block[0].get("opp_abbr") if block else ""
+    all_losses = bool(block) and all(not g["won"] for g in block)
+
+    if opp and all_losses and len(block) >= 2:
+        flags.append(f"just got swept by {opp} ({len(block)} games) — classic bounce-back spot")
+    elif (
+        opp and all_losses and opp == opp_abbr_today
+        and series_game_number and games_in_series
+        and series_game_number == games_in_series
+        and len(block) == series_game_number - 1
+    ):
+        flags.append(
+            f"already dropped all {len(block)} game(s) of this series vs {opp} — a loss "
+            "today completes the sweep, extra motivation to avoid it"
+        )
+
     return flags
 
 
@@ -680,6 +731,7 @@ def analyze_game(
         return {
             "xera":         xera,
             "xera_s":       f"{xera:.2f}" if xera is not None else "N/A",
+            "era":          era,
             "era_s":        f"{era:.2f}" if era is not None else "N/A",
             "label":        xera_label(xera) if xera is not None else "",
             "k":            fp1(b.get("K%") or b.get("k_pct") or b.get("k_perc")),
@@ -824,6 +876,23 @@ def analyze_game(
             flags.append(f"{team} — {p.get('Name', '?')}: {f}")
     for f in weather_flags(wx, neutral_site=bool(mlb_info.get("neutral_site"))):
         flags.append(f"WEATHER: {f}")
+
+    sgn  = mlb_info.get("series_game_number")
+    gis  = mlb_info.get("games_in_series")
+    for team, rec, opp_today in [
+        (away_team, away_rec, to_mlb(home_team)),
+        (home_team, home_rec, to_mlb(away_team)),
+    ]:
+        for f in team_situational_flags(rec, opp_today, sgn, gis, today_s):
+            flags.append(f"TREND: {team} — {f}")
+
+    away_div, home_div = division(away_team), division(home_team)
+    if away_div and away_div == home_div:
+        flags.append(
+            f"TREND: DIVISIONAL GAME ({away_div}) — familiarity between rivals tends to "
+            "narrow the talent gap; the underdog can carry a bit more value than the "
+            "price suggests"
+        )
 
     # A neutral site invalidates anything derived from the home club's usual park —
     # most importantly the park factor, which the prompt uses as a total tiebreaker.

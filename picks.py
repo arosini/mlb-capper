@@ -486,6 +486,19 @@ def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
         hf5 = game_rec.get("home_f5_score")
         if af5 is None or hf5 is None:
             return None
+        if bt == "teamtotal":
+            # F5 team totals arrive as bet_type "Team_Total" + period "f5" — there is
+            # no F5_Team_Total in the tool schema. Without this case they fell through
+            # every branch below (side is "home_over", never a bare "home") and graded
+            # as None forever: all three ever picked before 2026-08-18 sat ungraded.
+            score = af5 if side.startswith("away") else hf5
+            if line is None:
+                return None
+            raw = _ou(score, line)   # "won" = over
+            if side.endswith("under"):
+                if raw == "won":   return "lost"
+                if raw == "lost":  return "won"
+            return raw
         if bt in ("f5total", "total"):
             if line is None:
                 return None

@@ -26,6 +26,10 @@ def _pick_dom_id(pick: dict) -> str:
     return re.sub(r'[^a-z0-9]+', '-', raw.lower()).strip('-')[:64]
 
 
+# "F5" or a spelled-out "first 5 innings" already present in a bet string
+_F5_TEXT = re.compile(r"\bF5\b|first\s*5", re.I)
+
+
 def _pick_summary_title(pick: dict) -> str:
     """Return 'Bet (Odds)' for use as a collapsed pick row title."""
     bet_type  = (pick.get("bet_type") or "").lower()
@@ -34,8 +38,19 @@ def _pick_summary_title(pick: dict) -> str:
     odds      = pick.get("odds", "")
     team_side = (pick.get("team_side") or "")
     line      = pick.get("line")
+    period    = (pick.get("period") or "").lower()
 
-    is_f5 = bet_type.startswith("f5")
+    # `period` is authoritative, not bet_type. The model files an F5 team total as
+    # bet_type "Team_Total" + period "f5" (there is no F5_Team_Total in the tool
+    # schema), and the total branch below rebuilds the title from game/team_side/line
+    # rather than the bet text — so keying off bet_type silently dropped the F5 mark
+    # and published a first-5 bet that read as a full-game one. Conversely a full-game
+    # bet can name F5 in prose ("F5 context: ..."), so the bet text is not a safe
+    # signal either. Fall back to bet_type/text only for records predating `period`.
+    if period:
+        is_f5 = period == "f5"
+    else:
+        is_f5 = bet_type.startswith("f5") or _F5_TEXT.search(bet) is not None
     f5_tag = "F5 " if is_f5 else ""
 
     if "total" in bet_type and game and line is not None and team_side:
@@ -57,7 +72,7 @@ def _pick_summary_title(pick: dict) -> str:
         bet_text = bet.replace("Over ", "o").replace("Under ", "u")
         if game and "total" in bet_type:
             bet_text = bet_text.replace("Game Total", game)
-        if is_f5 and "F5" not in bet_text.upper():
+        if is_f5 and not _F5_TEXT.search(bet_text):
             first, _, rest = bet_text.partition(" ")
             bet_text = f"{first} F5 {rest}" if rest else f"F5 {bet_text}"
 
@@ -168,7 +183,8 @@ TIER 2 — real, but supporting evidence only:
   • The recent-start box scores: run trend, hits/walks trend, ER vs R gap
   • Bullpen xERA and bullpen stress
   • Team trends (record on this side, record behind this starter, run support)
-  • Flags
+  • Flags and situational trends (see Section 11 — a 1-0 loss is the one exception,
+    weighted closer to Tier 1)
 
 TIER 3 — tiebreakers and disqualifiers only, never the reason for a bet:
   • Weather and park factor
@@ -431,6 +447,32 @@ rather than about the game, delete it.
          Ks came regardless."
   GOOD: "He struck out 7, 9, and 7 over his last 3 starts, including the outing where he
          allowed 5 ER in 3.2 IP."
+
+═══════════════════════════════════════════════════════════════════
+11. SITUATIONAL TRENDS
+═══════════════════════════════════════════════════════════════════
+
+A game's card may carry a SITUATIONAL TRENDS block, printed separately from FLAGS at the
+end of the card. These are short-term situational spots the rate stats do not capture —
+weigh them as TIER 2 evidence: real, but never the sole reason for a bet, and never
+enough to override what Tier 1 already tells you.
+
+  • JUST GOT SWEPT — a team that just lost every game of its last series is a classic
+    bounce-back spot. A mild lean toward that team's side, stronger when Tier 1 does not
+    already argue against them.
+  • ALREADY DOWN 0-N IN THE CURRENT SERIES AND TODAY IS THE LAST GAME — a team facing a
+    sweep has extra motivation to avoid one. Same direction and weight as above.
+  • WAS SHUT OUT LAST TIME OUT — an offense held to zero is likely to see some
+    regression toward its real level. A mild lean toward that team scoring more — their
+    side or team total over — unless Tier 1 argues otherwise.
+  • LOST THE LAST GAME 1-0 — THIS ONE IS UNUSUALLY STRONG, not a minor nudge. A 1-0 loss
+    means the offense was one bloop hit or one bounce from a completely different
+    result. Do not read it as evidence the team or its bats are struggling — weight it
+    close to a Tier 1 signal when it lines up with the rest of the card, and say so
+    plainly in the reason if it factors into a pick.
+  • DIVISIONAL GAME — familiarity between division rivals tends to narrow the talent
+    gap slightly. A mild reason an underdog in a divisional game may carry a bit more
+    value than the price suggests — never enough on its own to justify a bet.
 
 ═══════════════════════════════════════════════════════════════════
 
@@ -914,9 +956,14 @@ def _serialize_game_for_ai(g: dict) -> str:
     lines.append("TEAM TRENDS (in this starter's recent starts):")
     lines.append(_trend_line(away, tr_a))
     lines.append(_trend_line(home, tr_h))
-    if flags:
+    situational = [f[len("TREND: "):] for f in flags if f.startswith("TREND: ")]
+    other_flags = [f for f in flags if not f.startswith("TREND: ")]
+    if other_flags:
         lines.append("FLAGS:")
-        lines.extend(f"  {f}" for f in flags)
+        lines.extend(f"  {f}" for f in other_flags)
+    if situational:
+        lines.append("SITUATIONAL TRENDS (see section 11 — weigh these, do not bury them):")
+        lines.extend(f"  {f}" for f in situational)
     return "\n".join(lines)
 
 

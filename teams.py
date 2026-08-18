@@ -39,6 +39,21 @@ MLB_NAME_TO_CODE.update({
     "Oakland Athletics": "ATH",  # pre-relocation name still in some MLB API responses
 })
 
+# Divisions, keyed by Handigraphs team code — used to flag divisional games.
+DIVISIONS = {
+    "BAL": "AL East", "BOS": "AL East", "NYY": "AL East", "TBR": "AL East", "TOR": "AL East",
+    "CHW": "AL Central", "CLE": "AL Central", "DET": "AL Central", "KCR": "AL Central", "MIN": "AL Central",
+    "ATH": "AL West", "HOU": "AL West", "LAA": "AL West", "SEA": "AL West", "TEX": "AL West",
+    "ATL": "NL East", "MIA": "NL East", "NYM": "NL East", "PHI": "NL East", "WSN": "NL East",
+    "CHC": "NL Central", "CIN": "NL Central", "MIL": "NL Central", "PIT": "NL Central", "STL": "NL Central",
+    "ARI": "NL West", "COL": "NL West", "LAD": "NL West", "SDP": "NL West", "SFG": "NL West",
+}
+
+
+def division(team: str) -> str:
+    """Division name for a Handigraphs team code, or '' if unknown."""
+    return DIVISIONS.get(team, "")
+
 
 def to_stats(t: str) -> str:
     """Normalize Handigraphs code to team_stats/bullpen key."""
