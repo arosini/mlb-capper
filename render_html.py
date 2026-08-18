@@ -4,6 +4,7 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote_plus
 
 from teams import _LOGO, logo_img
 from analysis import flt, wrc_label, xera_label
@@ -31,6 +32,28 @@ def in_season(target_date) -> bool:
 
 def _h(text) -> str:
     return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _news_link(pitcher_name: str) -> str:
+    """Google News search for a pitcher, injury-biased. No API/data source needed."""
+    q = quote_plus(f"{pitcher_name} injury")
+    return (f'<a class="news-link" href="https://news.google.com/search?q={q}&hl=en-US&gl=US&ceid=US:en" '
+            f'target="_blank" rel="noopener" title="Search news for {_h(pitcher_name)}">news ↗</a>')
+
+
+# Flags on a specific pitcher that are worth a one-click news check — a long rest gap
+# (possible IL return) or a short/early-hook outing. Matches the "{team} — {name}: …"
+# prefix every pitcher_history_flags()/pitcher_csv_flags() entry gets in analyze_game().
+_INJURY_FLAG_RE = re.compile(
+    r"^\S+ — (?P<name>[^:]+): .*(?:days since last start|possible injury concern)"
+)
+
+
+def _flag_li(f: str) -> str:
+    m = _INJURY_FLAG_RE.match(f)
+    if not m:
+        return f'<li>{_h(f)}</li>'
+    return f'<li>{_h(f)} {_news_link(m.group("name").strip())}</li>'
 
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
@@ -81,9 +104,10 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .sec-body{padding:.3rem .5rem .5rem}
 .mu-card{background:rgba(0,0,0,.028);border-radius:.35rem;padding:.35rem .5rem}
 .mu-card-hd{font-size:.75rem;font-weight:700;margin-bottom:.25rem}
-.mu-2c{display:grid;grid-template-columns:auto 1fr;gap:.13rem .5rem;font-size:.82rem;align-items:baseline}
+.mu-2c{display:grid;grid-template-columns:auto 1fr;gap:.13rem .4rem;font-size:.82rem;align-items:baseline}
 .mu-lbl{color:#9ca3af;font-size:.75rem;white-space:nowrap}
 .mu-v{font-weight:600;font-variant-numeric:tabular-nums}
+.mu-q{color:#9ca3af;font-size:.655rem;font-weight:500;white-space:nowrap}
 .ot-wrap{font-size:.74rem}
 .ot-row{display:grid;grid-template-columns:3rem 3.2rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .18rem;align-items:center;padding:.04rem 0}
 .ot-hd span{font-size:.62rem;font-weight:700;color:#9ca3af;text-align:center}
@@ -108,6 +132,8 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 @media(prefers-color-scheme:dark){.section-hd{color:#9ca3af;border-top-color:#374151}}
 .flags{list-style:none}
 .flags li{font-size:.78rem;color:#92400e;background:#fffbeb;border-left:3px solid #f59e0b;padding:.18rem .45rem;margin-top:.2rem;border-radius:0 4px 4px 0}
+.news-link{display:inline-block;font-size:.7rem;font-weight:700;color:#92400e;text-decoration:none;border-bottom:1px dotted currentColor;white-space:nowrap}
+.news-link:hover{opacity:.7}
 .trends{list-style:none;display:flex;flex-direction:column;gap:.15rem}
 .trends li{font-size:.79rem;padding:.12rem 0}
 .trends-hd{margin-top:.4rem;padding-top:.35rem;border-top:1px solid rgba(0,0,0,.09);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af}
@@ -137,6 +163,7 @@ header{background:#030712}
 .stats b{color:#d1d5db}
 .hb{background:#374151;color:#d1d5db}
 .flags li{background:#1c1400;border-left-color:#b45309;color:#fbbf24}
+.news-link{color:#fbbf24}
 .trend-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
 .wx-badge{background:#0c2a3a;color:#7dd3fc}
 .wx-badge.wx-warn{background:#2d1a00;color:#fbbf24}
@@ -149,6 +176,7 @@ header{background:#030712}
 .spl-hd span:first-child{text-align:left}
 .spl-ctx{font-weight:600;font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .spl-val{text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+.spl-q{display:block;font-size:.58rem;font-weight:600;line-height:1.05;opacity:.8}
 .spl-n{text-align:center;color:#9ca3af;font-size:.65rem}
 .spl-sp-hd{font-size:.72rem;font-weight:700;color:#374151;padding:.32rem 0 .08rem;border-top:1px solid rgba(0,0,0,.07)}
 .spl-sp-hd:first-child{border-top:none;padding-top:0}
@@ -310,6 +338,16 @@ def _whiff_bat_cls(v):
     return "wrc-elite"
 
 
+def _whiff_bat_lbl(v):
+    """Mirror of _whiff_bat_cls — same cut points, see its docstring for why."""
+    if v is None: return ""
+    if v >= 28: return "poor"
+    if v >= 25: return "below avg"
+    if v >= 21: return "avg"
+    if v >= 18: return "above avg"
+    return "elite"
+
+
 def _hh_bat_lbl(v):
     if v is None: return ""
     if v >= 45: return "elite"
@@ -336,6 +374,18 @@ def _barrel_sp_lbl(v):
     if v <= 11: return "avg"
     if v <= 15: return "below avg"
     return "poor"
+
+
+def _short_lbl(lbl: str) -> str:
+    """Compact a qualitative label for the two-up matchup cards.
+
+    The cards sit two to a row, so the value column is ~90px on a 375px phone and
+    ~84px on a 360px one. "(below avg)" measures 91.5px beside a 3-digit value and
+    wrapped every such row onto a second line. Only the card display is shortened —
+    wrc_label()/xera_label() keep the full wording for the AI data card and the
+    terminal, which both have the room for it.
+    """
+    return {"above avg": "above", "below avg": "below"}.get(lbl, lbl)
 
 
 def _apf_cls_lbl(v):
@@ -653,7 +703,7 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
     def _row(lbl, val_s, cls="", lbl_txt=""):
         if val_s == "?":
             return f'<span class="mu-lbl">{_h(lbl)}</span><span class="dim">?</span>'
-        lbl_part = f' <span class="dim">({_h(lbl_txt)})</span>' if lbl_txt else ""
+        lbl_part = f' <span class="mu-q">({_h(_short_lbl(lbl_txt))})</span>' if lbl_txt else ""
         cls_attr = f' class="mu-v {cls}"' if cls else ' class="mu-v"'
         return f'<span class="mu-lbl">{_h(lbl)}</span><span{cls_attr}>{_h(val_s)}{lbl_part}</span>'
 
@@ -665,7 +715,8 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         # Headline three stay visible; the peripherals live behind "More Stats".
         ec = _era_cls(sp["label"])
         rows  = _row("xERA",    sp["xera_s"], ec,             sp["label"])
-        rows += _row("ERA",     sp["era_s"], _era_cls(xera_label(sp.get("era"))))
+        era_lbl = xera_label(sp.get("era"))
+        rows += _row("ERA",     sp["era_s"], _era_cls(era_lbl), era_lbl)
         k_v   = flt(sp["k"])
         rows += _row("K%",      sp["k"],      _k_sp_cls(k_v),  _k_sp_lbl(k_v))
 
@@ -700,14 +751,16 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             # "12+" rather than "wRC+ L12": the label column is `auto`, so the widest
             # label sets the width for every row on the card and the long form pushed
             # all the values across.
+            ctx_lbl = wrc_label(off.get("wrc_ctx"))
             rows += _row("12+", off.get("wrc_ctx_s", "N/A"),
-                         _wrc_cls(wrc_label(off.get("wrc_ctx"))))
+                         _wrc_cls(ctx_lbl), ctx_lbl)
             k_v   = flt(off["k"])
             rows += _row("K%",  off["k"],   _k_bat_cls(k_v),  _k_bat_lbl(k_v))
             hh_v  = flt(off["hard"])
             rows += _row("HH%", off["hard"], _hh_bat_cls(hh_v), _hh_bat_lbl(hh_v))
             if off.get("whiff") and off["whiff"] != "?":
-                rows += _row("Whiff%", off["whiff"], _whiff_bat_cls(flt(off["whiff"])))
+                wf_v = flt(off["whiff"])
+                rows += _row("Whiff%", off["whiff"], _whiff_bat_cls(wf_v), _whiff_bat_lbl(wf_v))
             vs = f'vs {off["vs_hand"]} · last 6'
         else:
             rows = f'<span class="dim" style="grid-column:1/-1;font-size:.8rem">No data</span>'
@@ -749,7 +802,14 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
 
     def _bp_row(team, bp):
         ec = _era_cls(bp["label"])
-        lbl = f' <span class="dim">({_h(bp["label"])})</span>' if bp["label"] else ""
+        lbl = f' <span class="dim">({_h(_short_lbl(bp["label"]))})</span>' if bp["label"] else ""
+        # ERA on the same scale as the xERA beside it, matching how _sp_card treats a
+        # starter's two ERA figures. Unscored, it was the one number on the card whose
+        # colour said nothing — and the pair only reads as a regression signal if both
+        # halves are graded the same way.
+        era_lbl = xera_label(bp.get("era")) if bp.get("era") is not None else ""
+        era_cls = _era_cls(era_lbl) if era_lbl else ""
+        era_q = f' <span class="dim">({_h(_short_lbl(era_lbl))})</span>' if era_lbl else ""
         stress_html = ""
         if bp.get("stress_label") and bp["stress_label"] != "No recent games":
             sc = bp["stress_css"]
@@ -765,7 +825,7 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
                 f'<span class="tm">{_h(team)}</span>'
                 f'<div class="bp-body stats">'
                 f'<span class="xr {ec}"><b>xERA</b> {_h(bp["xera_s"])}{lbl}</span>'
-                f'<span><b>ERA</b> {_h(bp["era_s"])}</span>'
+                f'<span class="{era_cls}"><b>ERA</b> {_h(bp["era_s"])}{era_q}</span>'
                 f'{stress_html}'
                 f'</div></div>')
 
@@ -823,7 +883,7 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
     flags_html = ""
     if g["flags"]:
         n = len(g["flags"])
-        items = "".join(f'<li>{_h(f)}</li>' for f in g["flags"])
+        items = "".join(_flag_li(f) for f in g["flags"])
         flags_html = (
             f'<details class="sec" id="{g_id}-flags">'
             f'<summary class="sec-sum">Flags · {n}</summary>'
@@ -951,12 +1011,17 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
                     f'<span class="dim" style="grid-column:2/-1">—</span>'
                     f'</div>')
         era_f = stats.get("era_f")
-        ec = _era_cls(xera_label(era_f)) if era_f is not None else "era-na"
+        era_lbl = xera_label(era_f) if era_f is not None else ""
+        ec = _era_cls(era_lbl) if era_f is not None else "era-na"
+        # This is a 7-column grid already at the width of a 375px screen, so the
+        # descriptor stacks under the number instead of sitting beside it. It inherits
+        # the row's era- colour, which is the point — it names the colour it is in.
+        era_q = f'<span class="spl-q">{_h(_short_lbl(era_lbl))}</span>' if era_lbl else ""
         return (
             f'<div class="spl-row">'
             f'<span class="spl-ctx">{_h(ctx)}</span>'
             f'<span class="spl-val">{_h(stats["ip"])}</span>'
-            f'<span class="spl-val {ec}">{_h(stats["era"])}</span>'
+            f'<span class="spl-val {ec}">{_h(stats["era"])}{era_q}</span>'
             f'<span class="spl-val">{_h(stats["k"])}</span>'
             f'<span class="spl-val">{_h(stats["h"])}</span>'
             f'<span class="spl-val">{_h(stats["bb"])}</span>'

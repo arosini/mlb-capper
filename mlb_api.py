@@ -106,6 +106,8 @@ def get_mlb_schedule(target_date: date) -> dict:
                 "away_pid":    ap.get("id"),   "away_pname": ap.get("fullName", ""),
                 "game_date":   g.get("gameDate", ""),
                 "game_number": gn,
+                "series_game_number": g.get("seriesGameNumber"),
+                "games_in_series":    g.get("gamesInSeries"),
             }
     return games
 
@@ -166,6 +168,7 @@ def get_team_schedule(team_id: int, season: int) -> list[dict]:
                 "won":          bool(my.get("isWinner")),
                 "runs_scored":  int(my.get("score") or 0),
                 "runs_allowed": int(opp.get("score") or 0),
+                "opp_abbr":     opp.get("team", {}).get("abbreviation", ""),
             })
     return results
 
