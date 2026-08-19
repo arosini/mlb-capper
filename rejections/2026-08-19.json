@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-08-19",
+    "game": "SDP @ NYM",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Michael King Under 4.5 Ks",
+    "odds": "+128",
+    "confidence": "medium",
+    "reason": "King has managed just 3.0 K/gs across his last 2 starts vs the Mets while getting knocked out early (4.5 IP/gs against them), and his own bullpen is flagged fresh, pointing to a short leash today. With New York squaring him up and cutting his outing short, the under at plus money offers value the market isn't pricing.",
+    "reject_reason": "This is a K UNDER against a high-K lineup \u2014 NYM strikes out at 24.4% (last 6 vs RHP), which pushes toward the OVER, yet the rationale (\"New York squaring him up\") never confronts that K% and explains why the under beats it (check 7).",
+    "rejected_at": "2026-08-19T08:06:55.650365+00:00"
+  }
+]
