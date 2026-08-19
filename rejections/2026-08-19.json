@@ -9,5 +9,16 @@
     "reason": "King has managed just 3.0 K/gs across his last 2 starts vs the Mets while getting knocked out early (4.5 IP/gs against them), and his own bullpen is flagged fresh, pointing to a short leash today. With New York squaring him up and cutting his outing short, the under at plus money offers value the market isn't pricing.",
     "reject_reason": "This is a K UNDER against a high-K lineup \u2014 NYM strikes out at 24.4% (last 6 vs RHP), which pushes toward the OVER, yet the rationale (\"New York squaring him up\") never confronts that K% and explains why the under beats it (check 7).",
     "rejected_at": "2026-08-19T08:06:55.650365+00:00"
+  },
+  {
+    "date": "2026-08-19",
+    "game": "STL @ CIN",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Chase Burns Over 6.5 Ks",
+    "odds": "+114",
+    "confidence": "high",
+    "reason": "Burns has struck out 9, 6, and 8 over his last 3 starts, running a 32.4 K% with an 18.5 outs line giving him the length to get there. STL strikes out at a 22.1 K% vs RHP over its last 6, plenty of whiffs to work with. At plus money the market is underpricing a strikeout arm averaging 7.7 per start into a lineup that misses this often.",
+    "reject_reason": "Misquotes the outs line: rationale cites \"an 18.5 outs line,\" but the card posts Burns Outs O/U at 17.5 \u2014 a number that does not appear on the card.",
+    "rejected_at": "2026-08-19T14:26:18.427605+00:00"
   }
 ]
