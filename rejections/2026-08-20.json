@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-08-20",
+    "game": "NYY @ BAL",
+    "bet_type": "Total",
+    "bet": "Game Total Under 7.5",
+    "odds": "+100",
+    "confidence": "medium",
+    "reason": "Cole has been dominant at a 3.37 xERA over his last 3 while the Yankee bats are frozen at a 56 wRC+ vs RHP over their last 6 (68 over their last 12) and just 1.4 runs per road game over their last 5 SP starts. Bradish sits at a 4.22 xERA over his last 3 against a BAL lineup that is only a 109 wRC+ vs RHP over its last 6, and NYY's bullpen has been suffocating at a 1.80 ERA. Getting plus money on the under with the away offense this dead is value the market is not reflecting.",
+    "reject_reason": "Backwards baseball: \"Bradish sits at a 4.22 xERA... against a BAL lineup that is only a 109 wRC+ vs RHP\" pairs BAL's own starter against BAL's own lineup. Bradish pitches FOR Baltimore and faces the NYY lineup; the BAL 109 wRC+ (vs RHP) is Baltimore's offense facing Cole, not Bradish.",
+    "rejected_at": "2026-08-20T08:09:46.132716+00:00"
+  }
+]
