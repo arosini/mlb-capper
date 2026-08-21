@@ -1,0 +1,24 @@
+[
+  {
+    "date": "2026-08-21",
+    "game": "DET @ KCR",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Noah Cameron Over 5.5 Ks",
+    "odds": "+110",
+    "confidence": "high",
+    "reason": "Cameron carries a 31.7 Whiff% over his last 3 starts, ahead of his 23.5 K%, and averages 7.6 IP/gs so the length is there \u2014 he struck out 9 and 9 in two of those three. Detroit is at a 50 wRC+ with a 31.3 K% over its last 6 vs LHP (down from an 86 wRC+, 25.8 K% over the last 12), a cratering, whiff-heavy lineup that makes this plus-money line underpriced.",
+    "reject_reason": "\"he struck out 9 and 9 in two of those three\" is false \u2014 the card shows 9K (Aug 5) and 8K (Aug 16), not two nine-strikeout games, so a number is misquoted (Section 2).",
+    "rejected_at": "2026-08-21T20:23:53.905187+00:00"
+  },
+  {
+    "date": "2026-08-21",
+    "game": "MIN @ SDP",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Connor Prielipp Over 5.5 Ks",
+    "odds": "+115",
+    "confidence": "medium",
+    "reason": "Prielipp has fanned 5, 7 and 6 over his last 3 on a 28.3 Whiff%, and San Diego is at a 33.9 K% with a 29.5 Whiff% over its last 6 vs LHP (up from 27.2 K% over the last 12). A lineup whiffing that heavily against a bat-missing lefty makes this plus-money line attractive.",
+    "reject_reason": "Section 8: the card posts an Outs O/U of 15.5 (~5 innings) and this is a K OVER 5.5, but the rationale never engages with the short outing or why he pitches deep enough to get there \u2014 it only cites rate stats (\"28.3 Whiff%,\" \"33.9 K%\").",
+    "rejected_at": "2026-08-21T20:24:19.414181+00:00"
+  }
+]
