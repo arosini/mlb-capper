@@ -18,7 +18,7 @@ from season import ET as _ET, GAME_TYPES
 
 MLB_API = "https://statsapi.mlb.com/api/v1"
 
-from teams import MLB_NAME_TO_CODE as _NAME_TO_CODE, _MLB_MAP as _TO_MLB_ABBR
+from teams import MLB_NAME_TO_CODE as _NAME_TO_CODE, _MLB_MAP as _TO_MLB_ABBR, normalize_name
 from odds import _best_price, _best_spread, _best_total
 
 
@@ -105,12 +105,12 @@ def _build_pitcher_props(bookmakers: list, existing_by_name: dict) -> list:
     pitchers = []
     seen = set()
     for name in _pitcher_names_in_props(bookmakers):
-        seen.add(name.lower())
+        seen.add(normalize_name(name))
         k_line,    k_over_pr  = _prop_best(bookmakers, "pitcher_strikeouts", "Over",  name)
         _,         k_under_pr = _prop_best(bookmakers, "pitcher_strikeouts", "Under", name)
         outs_line, outs_ov_pr = _prop_best(bookmakers, "pitcher_outs",       "Over",  name)
         _,         outs_un_pr = _prop_best(bookmakers, "pitcher_outs",       "Under", name)
-        existing = existing_by_name.get(name.lower(), {})
+        existing = existing_by_name.get(normalize_name(name), {})
         pitchers.append({
             "name":            name,
             "k_line":          k_line,
@@ -272,7 +272,7 @@ def save_odds_history(data_dir: Path, history_dir: Path, target_date: date) -> i
 
         # Pitcher props — preserve any existing annotation results
         existing_pitchers_by_name = {
-            p["name"].lower(): p for p in existing_rec.get("pitchers", [])
+            normalize_name(p["name"]): p for p in existing_rec.get("pitchers", [])
         }
         pitchers = _build_pitcher_props(pbks, existing_pitchers_by_name)
 
@@ -595,12 +595,17 @@ def annotate_results(history_dir: Path, target_date: date) -> int:
         # line; picks.py grades those against the line stored on the pick itself.
         # Starters only: relievers are never the subject of a prop pick, and adding
         # them risks a last-name collision in picks.py's substring match.
-        known = {(p.get("name") or "").lower() for p in pitchers}
+        # Boxscore names carry diacritics ("Ureña"); Odds API prop names don't
+        # ("Urena"). Compare on normalize_name() everywhere here, or the same
+        # pitcher gets added twice — once with the line, once with the stats —
+        # and the pick tied to the line-bearing copy can never grade.
+        known = {normalize_name(p.get("name") or "") for p in pitchers}
         known_last = {n.split()[-1] for n in known if n}
         for pname, stats in pitcher_stats.items():
             if not stats.get("started"):
                 continue
-            if pname in known or (pname.split() and pname.split()[-1] in known_last):
+            npname = normalize_name(pname)
+            if npname in known or (npname.split() and npname.split()[-1] in known_last):
                 continue
             pitchers.append({
                 "name": stats.get("name") or pname,
@@ -611,13 +616,14 @@ def annotate_results(history_dir: Path, target_date: date) -> int:
             })
         rec["pitchers"] = pitchers
 
+        norm_pitcher_stats = {normalize_name(k): v for k, v in pitcher_stats.items()}
         for p in pitchers:
             pname = p.get("name", "")
-            stats = pitcher_stats.get(pname.lower())
+            stats = norm_pitcher_stats.get(normalize_name(pname))
             if stats is None:
                 # Fallback: match on last name
-                last = pname.split()[-1].lower() if pname else ""
-                for k, v in pitcher_stats.items():
+                last = normalize_name(pname).split()[-1] if pname else ""
+                for k, v in norm_pitcher_stats.items():
                     if last and k.split()[-1] == last:
                         stats = v
                         break

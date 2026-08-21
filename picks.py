@@ -15,7 +15,7 @@ from pathlib import Path
 
 from season import ET as _ET
 
-from teams import ODDS_TEAM as _CODE_TO_FULL, MLB_NAME_TO_CODE as _NAME_TO_CODE
+from teams import ODDS_TEAM as _CODE_TO_FULL, MLB_NAME_TO_CODE as _NAME_TO_CODE, normalize_name
 
 
 def _read_json(path: Path):
@@ -450,7 +450,7 @@ def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
     period = pick.get("period", "full_game")
     side   = (pick.get("team_side") or "").lower()
     line   = pick.get("line")
-    bet    = (pick.get("bet") or "").lower()
+    bet    = normalize_name(pick.get("bet") or "")
 
     away = game_rec.get("away_score")
     home = game_rec.get("home_score")
@@ -517,24 +517,34 @@ def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
         pitchers = game_rec.get("pitchers", [])
         is_ks   = bt == "pitcherks"
         is_over = "over" in bet
+        actual  = None
+        p_line  = None
         for p in pitchers:
-            last = (p.get("name") or "").split()[-1].lower()
+            name_parts = normalize_name(p.get("name") or "").split()
+            last = name_parts[-1] if name_parts else ""
             if not last or last not in bet:
                 continue
-            actual = p.get("actual_ks")   if is_ks else p.get("actual_outs")
-            p_line = p.get("k_line")      if is_ks else p.get("outs_line")
-            # Grade against the line the pick was actually taken at. The history entry's
-            # line is whatever the books last showed and can be missing entirely once
-            # they pull the prop, but `line` on the pick is fixed at pick time.
+            # Older records can carry the same pitcher twice — a line-only entry
+            # from the props feed and a stats-only entry from the boxscore, from
+            # before normalize_name() unified accented and unaccented spellings
+            # of the same name. Merge across every matching entry instead of
+            # stopping at the first, so one half-populated copy doesn't shadow
+            # the other.
+            if actual is None:
+                actual = p.get("actual_ks") if is_ks else p.get("actual_outs")
             if p_line is None:
-                p_line = line
-            if actual is None or p_line is None:
-                return None
-            raw = _ou(actual, p_line)  # "won"=over hit
-            return raw if is_over else (
-                "won" if raw == "lost" else "lost" if raw == "won" else "push"
-            )
-        return None
+                p_line = p.get("k_line") if is_ks else p.get("outs_line")
+        # Grade against the line the pick was actually taken at. The history entry's
+        # line is whatever the books last showed and can be missing entirely once
+        # they pull the prop, but `line` on the pick is fixed at pick time.
+        if p_line is None:
+            p_line = line
+        if actual is None or p_line is None:
+            return None
+        raw = _ou(actual, p_line)  # "won"=over hit
+        return raw if is_over else (
+            "won" if raw == "lost" else "lost" if raw == "won" else "push"
+        )
 
     return None
 

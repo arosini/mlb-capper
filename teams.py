@@ -1,5 +1,22 @@
 """Team code normalization, logo helpers, and name mappings."""
 
+import unicodedata
+
+
+def normalize_name(name: str) -> str:
+    """Lowercase a person's name and strip diacritics for comparison/keying.
+
+    The Odds API returns pitcher names without diacritics ("Walbert Urena")
+    while the MLB boxscore keeps them ("Walbert Ureña"). Comparing raw
+    `.lower()` strings treats the same pitcher as two different people, so
+    every place that matches pitcher names across those two sources must key
+    off this instead.
+    """
+    if not name:
+        return ""
+    decomposed = unicodedata.normalize("NFKD", name)
+    return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
+
 # Handigraphs starters use codes that differ from team_stats CSVs and MLB API
 _STATS_MAP = {"CHW": "CWS", "KCR": "KC", "SDP": "SD", "SFG": "SF", "TBR": "TB", "WSN": "WSH"}
 _MLB_MAP = {**_STATS_MAP, "ARI": "AZ"}  # MLB API uses "AZ" for Diamondbacks; ATH stays as-is
