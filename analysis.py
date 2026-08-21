@@ -110,6 +110,73 @@ def validate_pitchers(p1: dict, p2: dict, mlb_info: dict) -> tuple[dict, dict]:
 
 # ── Flag generators ───────────────────────────────────────────────────────────
 
+def _pct_tier(v: Optional[float], cuts: tuple) -> Optional[int]:
+    """Bucket a percentage into 5 tiers (0-4) using 4 ascending cut points.
+
+    Tier only encodes "how far along the scale" — whether a high tier is good or bad
+    depends on the caller's cut points, not on this function. Team K%/Whiff% cuts run
+    low-to-high with a HIGH tier meaning worse for the offense; pitcher K%/Whiff% cuts
+    are the mirror image, with a HIGH tier meaning better stuff. The team cuts mirror
+    render_html.py's _k_bat_cls/_whiff_bat_cls boundaries; the pitcher cuts mirror
+    _k_sp_cls/_whiff_sp_cls — kept in sync by hand since analysis.py cannot import
+    render_html.py (wrong direction per the module order in CLAUDE.md).
+    """
+    if v is None:
+        return None
+    c0, c1, c2, c3 = cuts
+    if v < c0: return 0
+    if v < c1: return 1
+    if v < c2: return 2
+    if v < c3: return 3
+    return 4
+
+
+def team_whiff_k_flag(off: Optional[dict]) -> Optional[str]:
+    """L6 K% vs Whiff% disagreement for a lineup — last-6 only, deliberately ignoring
+    the last-12 window (that one is context, not the number a live alert should react
+    to). Team K% and Whiff% are both "higher is worse for the offense" rates on the
+    same card, so their tiers are directly comparable. A 2+ tier gap either way is the
+    alert; see suggestions.py Section 1 (WHIFF% VS K%) for how the prompt uses it.
+    """
+    if not off:
+        return None
+    k     = flt(off.get("k"))
+    whiff = flt(off.get("whiff"))
+    if k is None or whiff is None:
+        return None
+    k_tier     = _pct_tier(k,     (16, 20, 24, 28))
+    whiff_tier = _pct_tier(whiff, (18, 21, 25, 28))
+    gap = k_tier - whiff_tier
+    if gap >= 2:
+        return (f"K% {k:.1f} (last 6) is well above what Whiff% {whiff:.1f} supports "
+                "— strikeout rate looks due for positive regression (fewer Ks)")
+    if gap <= -2:
+        return (f"Whiff% {whiff:.1f} (last 6) is well above what K% {k:.1f} shows "
+                "— strikeout rate may be undervalued, more Ks could be due")
+    return None
+
+
+def pitcher_whiff_k_flag(sp: dict) -> Optional[str]:
+    """Last-3-start K% vs Whiff% disagreement for a starter. Both are "higher is
+    better" rates for a pitcher, so a wide tier gap flags a K rate his swing-and-miss
+    stuff does not support in either direction. A 2+ tier gap either way is the alert.
+    """
+    k     = flt(sp.get("k"))
+    whiff = flt(sp.get("whiff"))
+    if k is None or whiff is None:
+        return None
+    k_tier     = _pct_tier(k,     (12, 17, 23, 28))
+    whiff_tier = _pct_tier(whiff, (12, 17, 23, 28))
+    gap = k_tier - whiff_tier
+    if gap >= 2:
+        return (f"K% {k:.1f} (last 3 starts) is well above what Whiff% {whiff:.1f} "
+                "supports — his strikeout rate may be inflated and due to come back down")
+    if gap <= -2:
+        return (f"Whiff% {whiff:.1f} (last 3 starts) is well above what K% {k:.1f} "
+                "shows — his strikeout rate looks undervalued, more Ks may be due")
+    return None
+
+
 def pitcher_csv_flags(row: dict) -> list[str]:
     """Generate flags from Handigraphs aggregate stats (last 3 starts)."""
     flags  = []
@@ -687,6 +754,7 @@ def analyze_game(
             "k":         fp1(p.get("K%")),
             "bb":        fp1(p.get("BB%")),
             "hard":      fp1(p.get("Hard-Hit%")),
+            "whiff":     fp1(p.get("Whiff%")),
             "barrel":    fp1(p.get("Barrel%")),
             "h_per_gs":  (lambda h, g: f"{h/g:.1f}" if h and g else "?")(
                 flt(p.get("H")), flt(p.get("Games"))),
@@ -717,8 +785,11 @@ def analyze_game(
             "wrc_gap":   (wrc - wrc_ctx) if (wrc is not None and wrc_ctx is not None) else None,
             "woba":      fp3(s.get("wOBA")),
             "k":         fp1(s.get("K%")),
+            "k_ctx":     fp1(ctx_row.get("K%")),
             "hard":      fp1(s.get("HardHit%")),
+            "hard_ctx":  fp1(ctx_row.get("HardHit%")),
             "whiff":     fp1(s.get("Whiff%")),
+            "whiff_ctx": fp1(ctx_row.get("Whiff%")),
             "vs_hand":   "RHP" if hand == "R" else "LHP",
         }
 
@@ -849,6 +920,14 @@ def analyze_game(
         name = p.get("Name", "?")
         for f in pitcher_csv_flags(p):
             flags.append(f"{team} — {name}: {f}")
+    for team, sp in [(away_team, away_sp), (home_team, home_sp)]:
+        f = pitcher_whiff_k_flag(sp)
+        if f:
+            flags.append(f"{team} — {sp.get('name', '?')}: {f}")
+    for team, off in [(away_team, away_off), (home_team, home_off)]:
+        f = team_whiff_k_flag(off)
+        if f:
+            flags.append(f"{team} offense: {f}")
     for team in [away_team, home_team]:
         b = bullpen.get(team, bullpen.get(to_stats(team), {}))
         for f in bullpen_flags(b):

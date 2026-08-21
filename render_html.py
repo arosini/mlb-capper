@@ -108,6 +108,7 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .mu-lbl{color:#9ca3af;font-size:.75rem;white-space:nowrap}
 .mu-v{font-weight:600;font-variant-numeric:tabular-nums}
 .mu-q{color:#9ca3af;font-size:.655rem;font-weight:500;white-space:nowrap}
+.mu-grp-hd{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-top:.35rem;padding-top:.3rem;border-top:1px solid rgba(0,0,0,.09)}
 .ot-wrap{font-size:.74rem}
 .ot-row{display:grid;grid-template-columns:3rem 3.2rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .18rem;align-items:center;padding:.04rem 0}
 .ot-hd span{font-size:.62rem;font-weight:700;color:#9ca3af;text-align:center}
@@ -159,6 +160,7 @@ header{background:#030712}
 .sec-nested{border-top-color:#2a2a2a}
 .trends-hd{border-top-color:#2a2a2a;color:#6b7280}
 .mu-lbl{color:#6b7280}
+.mu-grp-hd{color:#6b7280;border-top-color:#2a2a2a}
 .ot-hd span{color:#6b7280}
 .stats b{color:#d1d5db}
 .hb{background:#374151;color:#d1d5db}
@@ -293,6 +295,25 @@ def _k_bat_lbl(v):
     return "elite"
 
 
+def _bb_sp_cls(v):
+    """Low BB% = good command = good for pitcher."""
+    if v is None: return "era-na"
+    if v <= 5:  return "era-elite"
+    if v <= 7:  return "era-good"
+    if v <= 10: return "era-avg"
+    if v <= 13: return "era-below"
+    return "era-poor"
+
+
+def _bb_sp_lbl(v):
+    if v is None: return ""
+    if v <= 5:  return "elite"
+    if v <= 7:  return "good"
+    if v <= 10: return "avg"
+    if v <= 13: return "below avg"
+    return "poor"
+
+
 def _hh_sp_cls(v):
     """Low HH% allowed = good for pitcher."""
     if v is None: return "era-na"
@@ -354,6 +375,26 @@ def _hh_bat_lbl(v):
     if v >= 40: return "above avg"
     if v >= 35: return "avg"
     if v >= 30: return "below avg"
+    return "poor"
+
+
+def _whiff_sp_cls(v):
+    """High Whiff% = more swing-and-miss stuff = good for pitcher. Same cut points as
+    _k_sp_cls: pitcher Whiff% and K% run over a similar range across the slate."""
+    if v is None: return "era-na"
+    if v >= 28: return "era-elite"
+    if v >= 23: return "era-good"
+    if v >= 17: return "era-avg"
+    if v >= 12: return "era-below"
+    return "era-poor"
+
+
+def _whiff_sp_lbl(v):
+    if v is None: return ""
+    if v >= 28: return "elite"
+    if v >= 23: return "good"
+    if v >= 17: return "avg"
+    if v >= 12: return "below avg"
     return "poor"
 
 
@@ -712,13 +753,15 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         return f"{sum(vals)/len(vals):.0f}" if vals else None
 
     def _sp_card(sp, pc_avg=None, sec_id=""):
-        # Headline three stay visible; the peripherals live behind "More Stats".
+        # Headline four stay visible; the peripherals live behind "More Stats".
         ec = _era_cls(sp["label"])
         rows  = _row("xERA",    sp["xera_s"], ec,             sp["label"])
         era_lbl = xera_label(sp.get("era"))
         rows += _row("ERA",     sp["era_s"], _era_cls(era_lbl), era_lbl)
         k_v   = flt(sp["k"])
         rows += _row("K%",      sp["k"],      _k_sp_cls(k_v),  _k_sp_lbl(k_v))
+        wf_v  = flt(sp["whiff"])
+        rows += _row("Whiff%",  sp["whiff"],  _whiff_sp_cls(wf_v), _whiff_sp_lbl(wf_v))
 
         hh_v  = flt(sp["hard"])
         more  = _row("HH%",     sp["hard"],   _hh_sp_cls(hh_v), _hh_sp_lbl(hh_v))
@@ -728,7 +771,8 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         more += f'<span class="mu-lbl">H/gs</span><span class="dim">{_h(sp["h_per_gs"])}</span>'
         pc_display = pc_avg if (pc_avg and sp.get("has_stats")) else "?"
         more += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_display)}</span>'
-        more += f'<span class="mu-lbl">BB%</span><span class="dim">{_h(sp["bb"])}</span>'
+        bb_v = flt(sp["bb"])
+        more += _row("BB%", sp["bb"], _bb_sp_cls(bb_v), _bb_sp_lbl(bb_v))
         more_html = (
             f'<details class="sec sec-nested" id="{_h(sec_id)}">'
             f'<summary class="sec-sum">More Stats</summary>'
@@ -741,33 +785,42 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
                 f'<div class="mu-2c">{rows}</div>{more_html}</div>')
 
     def _bat_card(team, off):
-        # Every number here is the last-6 window vs the opposing starter's hand, which the
-        # card header and the section title both state — so the rows carry no window suffix.
-        # Only the L12 wRC+ row is labelled, because it is the one figure on a different
-        # window and an unlabelled second wRC+ would be unreadable.
+        # The window (L6 vs L12) lives on its own group header now, not on individual
+        # rows or the card subtitle, so wRC+/K%/Whiff%/HH% carry identical labels in
+        # both groups — position tells you the window, not the text.
         if off:
             wc = _wrc_cls(off["label"])
-            rows  = _row("wRC+", off["wrc_s"], wc, off["label"])
-            # "12+" rather than "wRC+ L12": the label column is `auto`, so the widest
-            # label sets the width for every row on the card and the long form pushed
-            # all the values across.
-            ctx_lbl = wrc_label(off.get("wrc_ctx"))
-            rows += _row("12+", off.get("wrc_ctx_s", "N/A"),
-                         _wrc_cls(ctx_lbl), ctx_lbl)
-            k_v   = flt(off["k"])
-            rows += _row("K%",  off["k"],   _k_bat_cls(k_v),  _k_bat_lbl(k_v))
-            hh_v  = flt(off["hard"])
-            rows += _row("HH%", off["hard"], _hh_bat_cls(hh_v), _hh_bat_lbl(hh_v))
-            if off.get("whiff") and off["whiff"] != "?":
+            l6  = _row("wRC+", off["wrc_s"], wc, off["label"])
+            k_v = flt(off["k"])
+            l6 += _row("K%",  off["k"],   _k_bat_cls(k_v),  _k_bat_lbl(k_v))
+            has_whiff = off.get("whiff") and off["whiff"] != "?"
+            if has_whiff:
                 wf_v = flt(off["whiff"])
-                rows += _row("Whiff%", off["whiff"], _whiff_bat_cls(wf_v), _whiff_bat_lbl(wf_v))
-            vs = f'vs {off["vs_hand"]} · last 6'
+                l6 += _row("Whiff%", off["whiff"], _whiff_bat_cls(wf_v), _whiff_bat_lbl(wf_v))
+            hh_v = flt(off["hard"])
+            l6 += _row("HH%", off["hard"], _hh_bat_cls(hh_v), _hh_bat_lbl(hh_v))
+
+            ctx_lbl = wrc_label(off.get("wrc_ctx"))
+            l12  = _row("wRC+", off.get("wrc_ctx_s", "N/A"), _wrc_cls(ctx_lbl), ctx_lbl)
+            k_ctx_v = flt(off.get("k_ctx"))
+            l12 += _row("K%", off.get("k_ctx", "?"), _k_bat_cls(k_ctx_v), _k_bat_lbl(k_ctx_v))
+            if has_whiff:
+                wf_ctx_v = flt(off.get("whiff_ctx"))
+                l12 += _row("Whiff%", off.get("whiff_ctx", "?"),
+                             _whiff_bat_cls(wf_ctx_v), _whiff_bat_lbl(wf_ctx_v))
+            hh_ctx_v = flt(off.get("hard_ctx"))
+            l12 += _row("HH%", off.get("hard_ctx", "?"), _hh_bat_cls(hh_ctx_v), _hh_bat_lbl(hh_ctx_v))
+
+            body = (f'<div class="mu-grp-hd">L6</div><div class="mu-2c">{l6}</div>'
+                    f'<div class="mu-grp-hd">L12</div><div class="mu-2c">{l12}</div>')
+            vs = f'vs {off["vs_hand"]}'
         else:
-            rows = f'<span class="dim" style="grid-column:1/-1;font-size:.8rem">No data</span>'
+            body = (f'<div class="mu-2c"><span class="dim" '
+                     'style="grid-column:1/-1;font-size:.8rem">No data</span></div>')
             vs = ""
         return (f'<div class="mu-card"><div class="mu-card-hd">'
                 f'{_h(team)} <span class="dim" style="font-weight:400">{_h(vs)}</span></div>'
-                f'<div class="mu-2c">{rows}</div></div>')
+                f'{body}</div>')
 
     def _outing_table(outings):
         if not outings:
@@ -977,7 +1030,7 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
 
     matchup_html = (
         f'<details class="sec" id="{g_id}-matchup" open>'
-        f'<summary class="sec-sum">Matchup · SP Last 3 / Team Last 6</summary>'
+        f'<summary class="sec-sum">Matchup · SP Last 3 / Team Last 6/12</summary>'
         f'<div class="sec-body">'
         f'<div class="mu-outer">'
         f'<div class="mu-col">{_sp_card(sp_a, pc_avg=away_pc, sec_id=f"{g_id}-more-away")}{_bat_card(home, of_h)}</div>'

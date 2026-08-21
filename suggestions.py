@@ -97,11 +97,12 @@ Every stat in the card is a specific TIME WINDOW, not a season figure. Use the n
 exactly as given. Do NOT compute your own rates, do NOT project season-long stats, and
 do NOT invent any figure that is not printed in the card.
 
-  SP xERA, ERA, K%, BB%, HH%, Barrel%, IP/gs   →  that starter's LAST 3 STARTS only
-  Team wRC+, K%, HH% marked "last 6"            →  that lineup's LAST 6 GAMES, split
+  SP xERA, ERA, K%, Whiff%, BB%, HH%, Barrel%,
+  IP/gs                                         →  that starter's LAST 3 STARTS only
+  Team wRC+, K%, Whiff%, HH% marked "last 6"    →  that lineup's LAST 6 GAMES, split
                                                     against the HAND of today's opposing
                                                     starter (RHP or LHP)
-  Team wRC+ marked "last 12"                    →  the SAME lineup vs the SAME hand over
+  Team wRC+, K%, Whiff%, HH% marked "last 12"   →  the SAME lineup vs the SAME hand over
                                                     its LAST 12 GAMES — context only
   Bullpen xERA / ERA                            →  that bullpen's LAST 12 GAMES
   Bullpen stress                                →  relief innings over the past 2 days
@@ -121,27 +122,56 @@ not exist in this data. What the gap between them means:
                      ERA. Possible value AGAINST him — fade his side, look at overs.
   Gap under ~0.75 →  noise. Say nothing about it.
 
-THE TWO OFFENSE WINDOWS. Every lineup carries two wRC+ figures against today's starter's
-hand: one over its LAST 6 GAMES and one over its LAST 12. They are not interchangeable.
+THE TWO OFFENSE WINDOWS. Every lineup carries a LAST 6 and a LAST 12 figure — against
+today's starter's hand — for wRC+, K%, Whiff%, and HH%. This is not just a wRC+ thing:
+the same relationship holds for all four stats, and none of them are interchangeable
+with their other window.
 
   • The LAST 6 is the stronger signal and the number you reason from. It is the current
-    state of that lineup against that hand, and it is what the K% and HH% on the card
-    also describe.
-  • The LAST 12 is CONTEXT — a longer read on the same lineup. Never lead with it and
-    never use it in place of the last 6.
-  • A LARGE GAP BETWEEN THEM IS ITSELF A FINDING, and you should say so in the reason
-    whenever it is 20 wRC+ points or more. A lineup at 140 over its last 6 but 95 over
-    its last 12 is on a heater, not a good offense — the 140 will not hold, and a total
-    or team total priced off the hot streak is the mispricing. The same in reverse: 70
-    over 6 against 105 over 12 is a slump inside a decent lineup, and fading it as though
-    it were true talent is how you end up on the wrong side of a correction.
-  • When the two windows AGREE — inside about 10 points — the read is established rather
-    than streaky, and you can lean on it harder.
+    state of that lineup against that hand.
+  • The LAST 12 is CONTEXT, not the truth the last 6 is measured against. It is a longer,
+    noisier read on the same lineup. Never lead with it and never use it in place of the
+    last 6.
+  • WHEN THE TWO WINDOWS AGREE, that is the strongest version of the read — for any of
+    the four stats. wRC+ within about 10 points, or K%/Whiff%/HH% within a few points,
+    front to back, means the number is established form rather than a streak, and you
+    can lean on it harder than either window alone.
+  • A LARGE GAP BETWEEN THEM IS ITSELF A FINDING, and you should say so in the reason —
+    for wRC+ at 20+ points, for K%/Whiff%/HH% at roughly 6+ points. Read the DIRECTION as
+    momentum, not as noise, remembering that a HIGHER K% or Whiff% is worse for the
+    offense while a HIGHER wRC+ or HH% is better:
+      - LAST 6 BETTER than LAST 12 (wRC+/HH% up, K%/Whiff% down) → the lineup may be
+        heating up. Treat the last-6 number as real and current, but as a heater rather
+        than a new baseline — a total or team total priced off the last-12 read (or off
+        reputation) is the likely mispricing, not the last-6 number itself.
+      - LAST 6 WORSE than LAST 12 (wRC+/HH% down, K%/Whiff% up) → the lineup may be
+        cooling off or slumping. Bet from the last-6 form, but do not treat the slump as
+        the offense's true talent level — fading it as though the last-12 figure no
+        longer applies is how you end up on the wrong side of a correction.
+    Either way, the last-6 number is what you bet from today; the gap just tells you how
+    much confidence to attach to it and which way it is likely to move next.
   • SIX GAMES IS A SMALL SAMPLE. Roughly 25 plate appearances per hitter, one hot series
-    away from moving 20 points. So a MODEST last-6 edge is not decisive on its own: a gap
-    under about 15 wRC+ points between the two lineups is not, by itself, a reason to bet
-    a side or a total. Require the last-6 number to be either large, or corroborated by
-    the last-12 window, the starter matchup, or the head-to-head history.
+    away from moving 20 wRC+ points. So a MODEST last-6 edge is not decisive on its own: a
+    gap under about 15 wRC+ points between the two lineups (or the K%/Whiff%/HH%
+    equivalent) is not, by itself, a reason to bet a side or a total. Require the last-6
+    number to be either large, or corroborated by the last-12 window, the starter
+    matchup, or the head-to-head history.
+
+WHIFF% VS K% — A PROCESS/OUTCOME GAP. Whiff% (swings missed) is the process; K% is the
+outcome. They usually move together, but when they diverge, the gap is informative on
+both sides of the ball:
+
+  • A lineup (or a pitcher) whose WHIFF% RUNS HIGH RELATIVE TO ITS K% is missing more
+    bats than its strikeout total shows — foul balls, deep counts, and two-strike survival
+    are propping the K% up artificially low. That is a sign the K% is UNDERVALUED and due
+    to climb: a soft spot for a K prop OVER on a pitcher facing that lineup, or for that
+    pitcher's own K prop, even when the raw K% alone looks unremarkable.
+  • A lineup or pitcher whose K% runs high relative to a middling Whiff% is getting
+    strikeouts some other way (called strikes, an aggressive approach) rather than from
+    bat-missing stuff — treat that K% as less repeatable than a whiff-supported one, and
+    lean toward it regressing down rather than up.
+  • This is a refinement on top of Section 8's strikeout-prop inputs, not a new
+    standalone signal — use it to adjust confidence in the K%, not to override it outright.
 
 ═══════════════════════════════════════════════════════════════════
 2. HOW TO WEIGHT THE INPUTS
@@ -309,14 +339,19 @@ rate over four innings beats nothing. Handle them separately, then combine.
 
 STRIKEOUTS. Use exactly five inputs, then the price:
   1. TODAY'S OPPONENT'S K% (last 6 vs his hand) — the STRONGEST rate signal. A lineup
-     that does not strike out will not strike out today, no matter who is pitching.
+     that does not strike out will not strike out today, no matter who is pitching. Check
+     it against the lineup's Whiff% on the same window (see Section 1): a lineup whiffing
+     more than its K% suggests is a soft OVER lean even off a middling K% — the true rate
+     against them is likely higher than the last-6 K% alone shows.
   2. HIS POSTED OUTS LINE, when the card shows one — this is the LENGTH half, and it is
      the market's own estimate of how long he goes. Read it as innings: 15 outs is 5,
      18 outs is 6. Convert the K line into what it demands per inning and ask whether
      that is plausible over the outing the outs line describes. A 6.5 K line against an
      outs line of 15.5 is asking for better than a strikeout per inning; against 18.5 it
      is an ordinary ask. When there is no outs line, fall back to IP/gs over his last 3.
-  3. The pitcher's K% (last 3 starts)
+  3. The pitcher's K% (last 3 starts). Check it against his own Whiff% the same way — a
+     pitcher whose Whiff% runs ahead of his K% is due more strikeouts than his rate shows,
+     which supports an over even when the raw K% looks average.
   4. His K/gs and IP/gs VS THIS OPPONENT (up to last 3 meetings) — how many he has
      actually gotten against these hitters, over how long an outing. A consistent
      head-to-head pattern outweighs input 3, and where it conflicts with his overall K%
@@ -497,11 +532,12 @@ You will be given the exact data card the analyst saw, plus their pick and their
 rationale. Return ACCEPT or REJECT.
 
 WINDOWS ON THE CARD. Every stat is a specific time window, and the card labels each one:
-SP xERA/ERA/K%/BB% are his LAST 3 STARTS; team offense — wRC+, K%, HH% — is the lineup's
-LAST 6 GAMES vs today's opposing starter's hand; a SECOND wRC+ is printed for the same
-lineup and the same hand over its LAST 12 GAMES, for comparison; bullpens are the LAST 12
-GAMES. Both offense wRC+ figures are legitimately on the card, so a rationale citing
-either one is quoting real data — check which window it names, not just the number.
+SP xERA/ERA/K%/Whiff%/BB% are his LAST 3 STARTS; team offense — wRC+, K%, Whiff%, HH% —
+is the lineup's LAST 6 GAMES vs today's opposing starter's hand, AND each of those four
+stats is printed a second time for the SAME lineup and hand over its LAST 12 GAMES, for
+comparison; bullpens are the LAST 12 GAMES. Both windows of every offense stat are
+legitimately on the card, so a rationale citing either one is quoting real data — check
+which window it names, not just the number.
 
 ═══════════════════════════════════════════════════════════════════
 REJECT if ANY of the following is true
@@ -529,9 +565,9 @@ REJECT if ANY of the following is true
    attributing one team's number to the other.
      • REJECT: a stat quoted with the WRONG WINDOW. The rationale is published as fact, so
        calling a last-6 offense number "over their last 12" (or the reverse) states a false
-       time period to the reader. Team K% and HH% only exist over the last 6 — a rationale
-       citing either "over their last 12" is quoting a window the card does not contain.
-       This is a factual error, not a style quibble.
+       time period to the reader. wRC+, K%, Whiff%, and HH% all carry both windows on the
+       card now — check the number against the window actually named, not just whether
+       that window exists for the stat.
 
 3. THE RATIONALE DOES NOT SUPPORT THE SIDE ACTUALLY BET. The reasoning argues for one
    outcome and the bet is on a different one — an under rationale attached to an over, a
@@ -551,7 +587,9 @@ REJECT if ANY of the following is true
 7. K PROP FIGHTING THE LINEUP. The opponent's K% (last 6 vs that hand) is the strongest
    input on a strikeout prop, and the two signals must agree.
      • REJECT: a K OVER into a lineup that does not strike out, unless the rationale
-       explicitly confronts the low K% and explains why the number is beatable anyway.
+       explicitly confronts the low K% and explains why the number is beatable anyway —
+       a lineup's Whiff% running notably above its K% (see Section 1) is one legitimate
+       version of that argument, not a REJECT on its own.
      • REJECT: a K UNDER against a high-K lineup on the same terms.
      • REJECT: a K prop justified ONLY by the pitcher's own K% with no mention at all of
        what the opposing lineup does against that hand.
@@ -778,7 +816,7 @@ def _serialize_game_for_ai(g: dict) -> str:
             parts.append(f"xERA {sp['xera_s']} ({sp['label']})")
         else:
             parts.append(f"xERA {sp['xera_s']}")
-        for key, lbl in [("k", "K%"), ("hard", "HH%"), ("bb", "BB%"), ("barrel", "Barrel%"), ("era_s", "ERA")]:
+        for key, lbl in [("k", "K%"), ("whiff", "Whiff%"), ("hard", "HH%"), ("bb", "BB%"), ("barrel", "Barrel%"), ("era_s", "ERA")]:
             val = sp.get(key)
             if val not in ("?", "—", None):
                 parts.append(f"{lbl} {val}")
@@ -798,17 +836,27 @@ def _serialize_game_for_ai(g: dict) -> str:
         return base
 
     def _off_line(team, off, vs_hand):
-        # Every stat is labelled with its own window inline. The card carries two
-        # different wRC+ windows now, and the model writes public copy that must name the
-        # window it is quoting — an unlabelled pair is exactly the kind of thing a second
-        # opinion over the same card cannot catch.
+        # Every stat is labelled with its own window inline. The card carries a last-6 AND
+        # a last-12 figure for wRC+, K%, Whiff%, and HH% now, and the model writes public
+        # copy that must name the window it is quoting — an unlabelled pair is exactly the
+        # kind of thing a second opinion over the same card cannot catch.
         if not off:
             return f"  {team} vs {vs_hand}HP: No data"
         lbl = f" ({off['label']})" if off.get("label") else ""
         parts = [f"wRC+ last 6: {off.get('wrc_s', '?')}{lbl}"]
         parts.append(f"wRC+ last 12: {off.get('wrc_ctx_s', 'N/A')}")
-        if off.get("k") not in ("?", None):    parts.append(f"K% last 6: {off['k']}")
-        if off.get("hard") not in ("?", None): parts.append(f"HH% last 6: {off['hard']}")
+        if off.get("k") not in ("?", None):
+            parts.append(f"K% last 6: {off['k']}")
+            if off.get("k_ctx") not in ("?", None):
+                parts.append(f"K% last 12: {off['k_ctx']}")
+        if off.get("whiff") not in ("?", None):
+            parts.append(f"Whiff% last 6: {off['whiff']}")
+            if off.get("whiff_ctx") not in ("?", None):
+                parts.append(f"Whiff% last 12: {off['whiff_ctx']}")
+        if off.get("hard") not in ("?", None):
+            parts.append(f"HH% last 6: {off['hard']}")
+            if off.get("hard_ctx") not in ("?", None):
+                parts.append(f"HH% last 12: {off['hard_ctx']}")
         return f"  {team} vs {vs_hand}HP: " + ", ".join(parts)
 
     def _bp_line(team, bp):
@@ -939,9 +987,10 @@ def _serialize_game_for_ai(g: dict) -> str:
     lines.append(_sp_line(sp_a, outs_a, away, "away"))
     lines.append(_sp_line(sp_h, outs_h, home, "home"))
     lines.append(
-        "OFFENSE — LAST 6 GAMES vs the opposing starter's hand. Every offense number "
-        "below is that 6-game window, EXCEPT the second wRC+, which is the same lineup "
-        "vs the same hand over its LAST 12 GAMES and is shown for comparison only:"
+        "OFFENSE — vs the opposing starter's hand. wRC+, K%, Whiff%, and HH% are each "
+        "shown twice: LAST 6 GAMES (the primary read) and LAST 12 GAMES (the same lineup, "
+        "same hand, longer window — context only, see Section 1 on how to weigh the gap "
+        "between them):"
     )
     lines.append(_off_line(away, of_a, hand_h))
     lines.append(_off_line(home, of_h, hand_a))
