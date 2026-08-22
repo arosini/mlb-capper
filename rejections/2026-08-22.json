@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-08-22",
+    "game": "NYM @ CHW",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Christian Scott Over 6.5 Ks",
+    "odds": "+132",
+    "confidence": "medium",
+    "reason": "Scott owns a 27.8 K% and 29.8 Whiff% over his last 3 starts with 7, 6, 7 strikeouts. Chicago's 29.7 Whiff% vs RHP over their last 6 runs well ahead of their 21.7 K%, signaling their strikeout rate is due to climb against a bat-missing arm. Plus money on a high-whiff pitcher facing a lineup swinging through this many pitches is the mispricing.",
+    "reject_reason": "Check 8: the card posts Scott's Outs O/U at 15.5, so this K OVER 6.5 needs the rationale to explain why he pitches deeper than the market expects, but it never engages with the short outing at all (only cites rate stats: \"27.8 K% and 29.8 Whiff%\").",
+    "rejected_at": "2026-08-22T14:14:32.552246+00:00"
+  }
+]
