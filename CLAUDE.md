@@ -570,6 +570,59 @@ branch for a schema the tool can no longer produce, so `is_best` is dead — `Tr
 737 picks ever, from the pre-`picks[]` era. Left alone because old cached suggestion files
 still parse through it; delete it with the archive, not on its own.
 
+## Prop Market Bias — Ks vs outs
+
+Measured 2026-08-23, after the AI picks looked strikeout-heavy. It was not a hunch:
+
+| | K props | Outs props |
+|---|---|---|
+| Current prompt (8/08-8/23) | 91 | 10 |
+| Archive (6/25-8/07) | 125 | 8 |
+| **All** | **216 (92%)** | **18 (8%)** |
+
+Within outs it is worse still — **16 unders to 2 overs, all-time**. The model treated outs
+as an under-only market.
+
+**This is not a supply problem, which was the first thing checked.** Across
+`history/2026-08-*.json`, 68% of pitcher-game rows carry a K line and **65% carry an outs
+line**, with 64% carrying both. When both are on the card the model took strikeouts ~92%
+of the time.
+
+**It was prompt attention.** §8 spent 5,275 characters on strikeouts and 852 on outs — a
+6.2x ratio. Worse, every one of the nine sentences in the prompt containing "outs line"
+sat inside the STRIKEOUTS block, framing outs as an *input* to a K prop (the length half
+of rate × length) rather than a bet. The only place outs appeared as an alternative at all
+was §4's hard limit — "either strikeouts OR outs, never both" — which is a restriction, not
+an invitation. And the one directional hint the OUTS block gave ("if the line sits right at
+his normal depth, the under is often the play") is the likely source of the 16-to-2 skew.
+
+Three changes, all in §8:
+- A **CHOOSE THE MARKET** step now opens the section, mapping the shape of the read to the
+  market: bat-missing → strikeouts, length → outs, "he is good/bad today" → usually outs.
+- The OUTS block was rewritten with a fifth input (BB%, since walks are what end outings)
+  and an explicit **both sides are live** treatment, naming the stressed-bullpen-behind-a-
+  deep-starter spot as the cleanest outs over. Ratio is now 2.8x, not 6.2x.
+- "DO NOT DEFAULT TO STRIKEOUTS" says out loud that the section's own length imbalance is
+  not evidence about which market is the better bet.
+
+> Re-measure this after a few weeks. The target is not 50/50 — strikeouts may genuinely be
+> the better market — but 92/8 with equal line availability was the prompt talking, not the
+> board. If outs picks are still in single digits, the fix did not take.
+
+**Related: `pass_reasons` now have to cover the props.** A pass reason that explained why
+there was no side or total and said nothing about either starter was answering half the
+question, since the reader can see the posted K and outs numbers on the same card. The
+prompt and the tool-schema description both now require two to three sentences covering
+the game lines AND both starters' strikeouts and outs. Note §10 still applies to pass
+reasons, so the explanation has to be in baseball terms — "the lineup does not strike out",
+not "the signals disagreed", which is a phrase §10 explicitly bans.
+
+**Known gap, not addressed:** `render_html.py` renders `pass_reason` only in an `elif` —
+a game with *any* pick shows its picks and no pass reason at all. So a game where the model
+bet the total but passed both props still explains nothing about the props. Fixing that
+means either per-market pass reasons in the schema or rendering both blocks; neither is
+worth doing until the fuller pass reasons above have been seen in production.
+
 ## Grading Pitcher Props
 
 Prop picks grade off `history/{date}.json` → `pitchers[]`, which is built from **posted

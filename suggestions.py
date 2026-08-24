@@ -410,10 +410,28 @@ things and should be expressed differently.
 8. PITCHER PROPS
 ═══════════════════════════════════════════════════════════════════
 
-A strikeout total is RATE × LENGTH. Both halves have to clear the number — an elite K
-rate over four innings beats nothing. Handle them separately, then combine.
+There are TWO prop markets on a starter and they are not ranked. Strikeouts and outs are
+different bets on the same arm, and the card posts both for roughly two-thirds of starters.
 
-STRIKEOUTS. Use exactly five inputs, then the price:
+CHOOSE THE MARKET BEFORE YOU HANDICAP IT. Ask what your read actually is:
+  • "He will miss more/fewer bats than the number implies" → STRIKEOUTS.
+  • "He will go longer/shorter than the number implies"    → OUTS.
+  • "He is good/bad today" without either of those being the specific claim → usually OUTS,
+    because depth is what a manager decides from performance and it is priced more loosely
+    than the strikeout number.
+A read about LENGTH does not become a strikeout bet just because the strikeout line is the
+one you looked at first. If the honest version of your case is "he gets knocked out early"
+or "he cruises into the seventh," the outs line is where that belongs — betting it through
+a K prop adds a rate assumption you do not actually have.
+
+DO NOT DEFAULT TO STRIKEOUTS. It is the busier market and the one this section says more
+about, neither of which makes it the better bet. An outs line is frequently the softer
+number on the same pitcher, and outs OVERS in particular are a live bet, not an exotic —
+if you are never taking one, you are not reading the market, you are avoiding it.
+
+STRIKEOUTS. A strikeout total is RATE × LENGTH, and both halves have to clear the number —
+an elite K rate over four innings beats nothing. Handle them separately, then combine.
+Use exactly five inputs, then the price:
   1. TODAY'S OPPONENT'S K% (last 6 vs his hand) — the STRONGEST rate signal. A lineup
      that does not strike out will not strike out today, no matter who is pitching. Read
      it against the lineup's Whiff% on the same window, per the process/outcome gap in
@@ -489,7 +507,9 @@ STRIKEOUTS. Use exactly five inputs, then the price:
 
   Then check the line and the price.
 
-OUTS. Use exactly these:
+OUTS. An outs prop is a bet on how long the manager lets him work, which is a different
+question from how well he pitches — a starter can be excellent and still get 15 outs, or
+mediocre and grind through 19. Use exactly these:
   1. How deep he normally goes (IP/gs, last 3)
   2. His IP/gs VS THIS OPPONENT and AT THIS PARK (up to last 3 meetings) — a lineup that
      runs his pitch count up has done it repeatedly, and it shows here before it shows
@@ -497,11 +517,24 @@ OUTS. Use exactly these:
      IP/gs, trust the head-to-head.
   3. How deep he went LAST time, and how recently that was
   4. Bullpen stress on his own team
+  5. His BB% over the last 3 — walks are what end outings early. A command wobble caps
+     depth even when the runs look fine, and the box scores show it as pitch count
+     climbing faster than innings.
+
   Key thresholds: 15 outs (5 full innings) and 18 outs (6 innings) are what starters aim
-  for — lines near those numbers are where the real decisions are. If the line sits right
-  at his normal depth, the under is often the play depending on price. A 100+ pitch last
-  start plus a fresh bullpen argues for a shorter leash today; a stressed bullpen argues
-  the manager lets him wear it.
+  for — lines near those numbers are where the real decisions are.
+
+  BOTH SIDES ARE LIVE, and the reasons differ:
+    • UNDER — the line sits at or above his normal depth, a 100+ pitch last start plus a
+      fresh bullpen argues for a shorter leash, his BB% is climbing, or this opponent has
+      historically run his count up. The under is the more common bet, not the default one.
+    • OVER — the line sits BELOW his recent depth, his own bullpen is stressed so the
+      manager needs innings out of him, and nothing about the matchup suggests early
+      trouble. A stressed bullpen behind a starter who has been going 6 is the cleanest
+      outs over available, and the market is slow to price it because it is reasoning
+      about the manager rather than the pitcher.
+  A read that his OFFENSE will stake him a lead cuts the same way — a comfortable margin
+  buys a starter innings that a tight game does not.
 
 DISQUALIFIERS, both absolute: meaningful rain risk kills pitcher OVERS — he may not take
 the mound or may be pulled after a delay. And never bet a pitcher marked "NO STATS," in
@@ -676,8 +709,30 @@ your own confidence in the published copy.
 
 ═══════════════════════════════════════════════════════════════════
 
-For every game you do NOT bet, give a one-sentence pass_reason. "Priced correctly" and
-"no edge at this number" are excellent pass reasons and should be common.
+For every game you do NOT bet, give a pass_reason that accounts for the WHOLE card, not
+just the game lines. A pass reason that explains why there was no side or total and says
+nothing about the two starters has answered half the question — the reader can see the
+posted strikeout and outs numbers and wants to know what you made of them.
+
+Cover both parts, in two or three sentences:
+  1. The game lines — side and total.
+  2. THE PITCHER PROPS, naming both starters and covering strikeouts AND outs for each.
+     Say what stopped them in plain baseball terms — the lineup does not strike out, the
+     number already sits where his recent starts land, the outs line matches the depth he
+     actually goes, the price is gone, or the card posts no prop for him. Section 10
+     applies here too: describe the game, never the method, so no "the signals disagreed"
+     or "the rate check failed".
+
+"Priced correctly" and "no edge at this number" remain excellent reasons and should be
+common — the requirement is that they are said about the props too, not only the lines.
+
+  THIN:  "No side or total here — Skubal is priced exactly where his xERA says he should
+          be and the total already reflects two cold lineups."
+  FULL:  "No side or total here — Skubal is priced exactly where his xERA says he should
+          be and the total already reflects two cold lineups. His strikeout number at 7.5
+          asks for a top-end outing against a lineup that makes contact, and his outs line
+          at 18.5 is already at his season depth with a rested bullpen behind him. Keller's
+          props are both fair for an arm that has gone five in each of his last three."
 
 Returning an empty picks array is a valid and often correct outcome.
 
@@ -1409,7 +1464,15 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                 },
                 "pass_reasons": {
                     "type": "object",
-                    "description": "Key = game header exactly (e.g. 'TEX @ MIA'). Value = 1-sentence reason why no bet, written for a reader who has not seen these instructions — no rule or methodology references. Include every game not in picks.",
+                    "description": (
+                        "Key = game header exactly (e.g. 'TEX @ MIA'). Value = why no bet, "
+                        "in 2-3 sentences, written for a reader who has not seen these "
+                        "instructions — no rule or methodology references. Must cover BOTH "
+                        "the game lines (side, total) AND the pitcher props, naming both "
+                        "starters and saying what ruled each one out; a pass reason that "
+                        "only explains the side and total is incomplete. Include every game "
+                        "not in picks."
+                    ),
                     "additionalProperties": {"type": "string"},
                 },
             },
