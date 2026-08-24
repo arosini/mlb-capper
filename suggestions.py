@@ -915,7 +915,7 @@ def _verify_pick(client, pick: dict, game_block: str) -> tuple[bool, str]:
     )
     try:
         resp = client.messages.create(
-            model="claude-opus-4-8",
+            model="claude-opus-5",
             max_tokens=4000,
             thinking={"type": "adaptive"},
             output_config={"effort": "medium"},
@@ -923,7 +923,7 @@ def _verify_pick(client, pick: dict, game_block: str) -> tuple[bool, str]:
             tools=[_VERIFY_TOOL],
             messages=[{"role": "user", "content": user_msg}],
         )
-        record_claude("claude-opus-4-8", getattr(resp, "usage", None))
+        record_claude("claude-opus-5", getattr(resp, "usage", None))
         block = next((b for b in resp.content if getattr(b, "type", "") == "tool_use"), None)
         if not block:
             # No structured verdict — fail open rather than discard a possibly-good pick.
@@ -1480,12 +1480,15 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
         },
     }
 
-    # Forcing tool_choice suppresses thinking entirely on Opus 4.8 (verified: a forced
-    # call returns a bare tool_use block and no thinking). Since the whole point of Opus
-    # here is the per-game reasoning, run with tool_choice auto and fall back to a forced
-    # follow-up turn on the rare occasions it answers in prose instead.
+    # Forcing tool_choice suppresses thinking entirely — verified on Opus 4.8, and
+    # re-verified on Opus 5 at the 2026-08-24 model swap: with this exact system prompt
+    # and tool schema, tool_choice auto returned ['thinking', 'text', 'tool_use'] and
+    # 7345 output tokens, while a forced call returned a bare ['tool_use'] with no
+    # thinking block and 2684. Since the whole point of Opus here is the per-game
+    # reasoning, run with tool_choice auto and fall back to a forced follow-up turn on
+    # the rare occasions it answers in prose instead.
     _common = dict(
-        model="claude-opus-4-8",
+        model="claude-opus-5",
         max_tokens=16000,
         thinking={"type": "adaptive"},
         output_config={"effort": "high"},

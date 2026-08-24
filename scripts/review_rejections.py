@@ -241,7 +241,7 @@ def main() -> int:
     # gives back the same Message object create() would have returned.
     try:
         with client.messages.stream(
-            model="claude-opus-4-8",
+            model="claude-opus-5",
             max_tokens=32000,
             thinking={"type": "adaptive"},
             output_config={"effort": "high"},
@@ -255,7 +255,7 @@ def main() -> int:
             # Same auto/forced pattern as generation: thinking is suppressed by a forced
             # tool_choice, so ask freely first and only force the structuring turn.
             with client.messages.stream(
-                model="claude-opus-4-8", max_tokens=32000,
+                model="claude-opus-5", max_tokens=32000,
                 thinking={"type": "adaptive"}, output_config={"effort": "high"},
                 system=_REVIEW_SYSTEM, tools=[_REVIEW_TOOL],
                 tool_choice={"type": "tool", "name": "report_prompt_review"},
