@@ -278,10 +278,13 @@ Two ordering rules in `publish.yml` protect the invariant:
 
 Two direct dependencies, in `requirements.txt`; everything else is transitive.
 
-| | Pin | Why the ceiling |
-|---|---|---|
-| `requests` | `>=2.32.0,<3` | ordinary HTTP client; no 3.x exists yet |
-| `anthropic` | `>=1.0.0,<2` | the SDK that generates picks |
+| | Pin | Latest on PyPI (checked 2026-08-24) | Why the ceiling |
+|---|---|---|---|
+| `requests` | `>=2.32.0,<3` | 2.34.2 — inside the pin | ordinary HTTP client; no 3.x exists yet |
+| `anthropic` | `>=1.0.0,<2` | 1.0.0 — the floor is the latest | the SDK that generates picks |
+
+Both pins were re-checked on 2026-08-24 with `pip index versions`: neither package has a
+new major, so **nothing needed bumping**. The ceilings did not have to move.
 
 **The ceilings are the point.** Every workflow runs `pip install -r requirements.txt`
 and deploys the result, so an unbounded floor means the next major release of either
@@ -311,27 +314,41 @@ The floor stays at 1.x-era capability because `thinking={"type": "adaptive"}` an
 3. Grep for the removed surface the new major names in its own `MIGRATION.md`.
 4. Only then deploy.
 
-GitHub Actions are dependencies too. As of 2026-08-24 all four are on their current
-major — `actions/checkout@v7`, `actions/setup-python@v7`, `actions/cache@v6`,
-`cloudflare/wrangler-action@v4`. Check with `gh api repos/{owner}/{repo}/releases/latest`.
+GitHub Actions are dependencies too. Re-checked 2026-08-24 — all four are on their
+current major, and none needed bumping: `actions/checkout@v7` (latest v7.0.1),
+`actions/setup-python@v7` (v7.0.0), `actions/cache@v6` (v6.1.0),
+`cloudflare/wrangler-action@v4` (v4.0.0). The workflows float on the major tag, so the
+patch releases arrive on their own. Check with
+`gh api repos/{owner}/{repo}/releases/latest`.
 
 > ⚠️ **The model id is not a dependency and is not covered by these pins.**
-> `suggestions.py` and `scripts/review_rejections.py` hardcode `claude-opus-4-8`.
-> Newer models exist (`claude-opus-5` is same-price at $5/$25 per MTok). Moving is a
-> deliberate change, not a version bump: the prompts here are tuned against 4.8, and
-> `usage.PRICING` must carry a rate for whatever id is used. Do not fold a model
-> change into a dependency pass.
+> `suggestions.py` and `scripts/review_rejections.py` hardcode `claude-opus-5` as of
+> 2026-08-24 (previously `claude-opus-4-8`; same price, $5/$25 per MTok). Moving is a
+> deliberate change, not a version bump, and `usage.PRICING` must carry a rate for
+> whatever id is used — it already carries both. `PRICING` keeps the `claude-opus-4-8`
+> key as the unknown-model fallback and so historical `usage/*.json` days still price
+> correctly; do not delete it.
+>
+> **The prompts have not been re-tuned for Opus 5.** `_AI_SYSTEM_PROMPT` and
+> `_VERIFY_SYSTEM_PROMPT` were written and calibrated against 4.8, including the
+> selectivity language in `## Selectivity`. The swap was verified for API contract and
+> output shape, not for pick quality or pick volume. Re-tune against real Opus 5
+> rejections in `rejections/` once a few days have accumulated.
 
 ## AI Picks — generation and verification
 
-Two model calls, both Claude Opus 4.8 with `thinking: {"type": "adaptive"}`:
+Two model calls, both Claude Opus 5 with `thinking: {"type": "adaptive"}` (Opus 4.8
+until the 2026-08-24 swap):
 
 1. **Generation** (`generate_suggestions`) — one call for the whole slate. Runs with
-   `tool_choice: auto`, **not** forced. Forcing the tool suppresses thinking entirely on
-   Opus 4.8 (verified: a forced call returns a bare `tool_use` block, no thinking), which
-   would defeat the point of using Opus. If the model answers in prose instead of calling
-   the tool, a follow-up turn re-asks with the tool forced — the reasoning is already in
-   context, so nothing is lost.
+   `tool_choice: auto`, **not** forced. Forcing the tool suppresses thinking entirely,
+   which would defeat the point of using Opus. Verified on Opus 4.8, and **re-verified on
+   Opus 5 on 2026-08-24** against this exact system prompt and tool schema: `auto`
+   returned `['thinking', 'text', 'tool_use']` and 7345 output tokens with 4 picks, while
+   a forced call returned a bare `['tool_use']` — no thinking block — and 2684 tokens.
+   The suppression is not a 4.8 quirk; do not "simplify" this to a single forced call.
+   If the model answers in prose instead of calling the tool, a follow-up turn re-asks
+   with the tool forced — the reasoning is already in context, so nothing is lost.
 2. **Verification** (`_verify_pick`) — one call *per pick*. Re-sends the exact data card
    that pick came from plus its rationale to a fresh context, and returns ACCEPT/REJECT.
    Rejected picks are dropped before anything is saved and logged to
