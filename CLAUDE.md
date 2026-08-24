@@ -387,6 +387,96 @@ last-12 dataset** (`bullpen_stats_last12g`) and are not part of this.
 `extract_outings()` returns outings **newest-first**. `render_html.py` slices `[:n]`;
 `suggestions.py` takes `[:3]` then reverses for chronological display. Do not `[-3:]`.
 
+## Selectivity — demanding numbers and pick volume
+
+Added 2026-08-23 after a P&L review of every graded pick from 2026-06-25 to 2026-08-23
+(619 graded, `picks/` plus `picks/archive/`). The complaint being addressed was volume:
+the model was making 10-15 picks a day on ~15-game slates, i.e. a bet on well over half
+the board, which is not what "find mispriced numbers" produces.
+
+**Read the two eras separately.** `picks/archive/` is the pre-rewrite prompt (-5.7% ROI
+over 435 picks); `picks/` from 2026-08-08 on is the current one (+5.9% over 184). Several
+of the archive's worst leaks are already fixed and must not be "fixed" again:
+
+| Leak | Archive | Current | Status |
+|---|---|---|---|
+| Games carrying 4+ picks | -34.3% ROI (n=49) | n=0 | fixed by §4 per-game caps |
+| Two totals on one game | -16.8% ROI (n=119) | rare | fixed by §4 |
+| F5 totals | -54.0% ROI (n=25) | n=0 | model stopped taking them |
+
+**What is still live.** Only two findings clear noise at this sample size (t < -2.5); the
+rest are directional and were encoded as *scrutiny*, not bans, on that basis:
+
+| Pattern | n | ROI | t | Encoded as |
+|---|---|---|---|---|
+| Pitcher props priced -130 or worse | 20 | -49.3% | -2.77 | hard rule, §5 + audit check 4 |
+| Team total OVER at 4.5+ | 92 | -16.2% | -1.57 | demanding number, §5/§6 |
+| Team total OVER at 5.5+ | 26 | -31.4% | -1.66 | demanding number, §5 |
+| K UNDER at 5.5+ | 10 | -43.6% | -1.51 | **not encoded** — see below |
+| K OVER at 8.5+ | 8 | -21.2% | -0.55 | demanding number, §8 |
+
+Two of the hypotheses that prompted this review did **not** survive the data and were
+encoded anyway, as scrutiny, on the understanding that they are priors rather than findings:
+
+- **K over at 7.5+** is +10.6% over the full sample (n=17). Only the 8.5+ slice loses, and
+  the recent-era 7.5+ result (1-5) is six picks. The prompt flags 7.5 and reserves the
+  sharper language for 8.5.
+- **K under at 3.5 or lower** is the single best bucket on the board (see below).
+
+**K unders at 5.5 or higher are a known, unencoded leak.** 3-7, -43.6%. It is tempting to
+file this under the price rule — three of the ten were juiced at -134/-136/-142 — but the
+other seven were priced -110 or better and lost at the same rate (-44.2%). The juice is not
+what is wrong with them, so the -130 rule does not cover this bucket and nothing else in
+the prompt targets it either. Left alone at n=10; it is the first thing to look at on the
+next review. §8 does now point the model at 3.5-4.5 as the productive under band, which
+leans against 5.5+ indirectly.
+
+**The price rule is the load-bearing one.** Props at -130 or worse went 6-14. Props in the
+-101..-129 band went 27-14 (+23.6%) and plus-money props are also profitable, so the leak
+is specifically the juice, not the direction. The prompt used to say "-105 to -145 is where
+you should be living" — that band was wrong on its right-hand end. It now reads -105 to
+-129, props at -130+ are a pass with no justifying-rationale escape, and audit check 4
+enforces it. The alt-line field is the intended outlet for a read you like at a bad price.
+
+**Demanding numbers (§5, "THE NUMBER ITSELF IS EVIDENCE").** Team total over 4.5+, K over
+7.5+, K under 3.5-, outs over 18.5+, game total over 9.5+ / under 7.0-. These are a
+**scrutiny prompt, not a filter, not a gate, and not a disqualifier** — the section says so
+in those words, and it must keep saying so. They are the numbers where "I like this side"
+most often passes itself off as value, so the prompt asks three questions before one gets
+recommended (is the edge in the number's direction; does the recent box-score record
+actually clear it; does the published reason name what clears it) and points at the cheaper
+line carrying the same read as the usual alternative to passing.
+
+> **Do not turn these into hard filters** — not in the prompt's wording, not in the
+> auditor, and not in code. The samples are 8-26 picks wide, and a ban would have thrown
+> out the K over 6.5 bucket's +33.8% along with the 8.5 bucket's losses. This was tightened
+> once during the original change and walked back deliberately: an earlier draft made the
+> three questions a checklist ("ALL THREE must hold") and had audit check 9 REJECT any
+> demanding number argued only directionally. That is a hard stop wearing scrutiny's
+> clothes — the auditor is a binary, so *any* size-based reject rule is a ban.
+> **Audit check 9 is scoped to self-contradiction only**: a rationale whose own cited
+> evidence points away from the bet (a K over sold on a streak built against higher-K
+> lineups than today's), or one that concedes the number is a stretch and bets it anyway.
+> It explicitly instructs ACCEPT for a coherent case at a demanding number. Keep it there.
+
+**The K under threshold is a deliberate exception to the evidence.** K unders at 3.5 or
+lower are historically the *best* bucket on the board (12 picks, +34.9%; 11 picks and
++47.2% in the current era). They are in the demanding-number list anyway, because a low
+number means the market has already forecast a quiet outing and the bucket is thin enough
+that it could be noise. §8 says this explicitly — the instruction is to confirm the price
+still pays, not to avoid the bet. If this bucket keeps winning, take it back out.
+
+**Volume itself is addressed in §4**, not by a numeric cap: touch fewer than half the
+games, and two picks resting on one underlying read (a side and a team total that are both
+"this lineup beats this starter") count as one opinion sold twice. There is no hard slate
+limit, because the right number of picks on a given slate is a function of the slate.
+
+**Re-run the review before changing any of this.** The analysis is a straight replay of
+`picks/*.json` — every pick carries `bet`, `line`, `odds_num`, and `result`, so ROI by
+line/side/price bucket is reproducible without touching the API. Over/under has to be
+parsed out of the `bet` string for props (`team_side` is null there) and off `team_side`
+for totals.
+
 ## Grading Pitcher Props
 
 Prop picks grade off `history/{date}.json` → `pitchers[]`, which is built from **posted

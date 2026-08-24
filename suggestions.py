@@ -327,11 +327,13 @@ matchup can produce, and betting PAST them means betting on an outcome that is r
 when your read is correct. Being right about the matchup and wrong about the price is the
 most common way a good handicap becomes a bad bet.
 
-The following are DEMANDING NUMBERS. None of them is banned — each can be an excellent bet
-— but each requires a higher bar than the same read on an ordinary number:
+The following are DEMANDING NUMBERS. NONE of them is disqualifying and none of them is a
+filter — plenty of them are excellent bets, and a demanding number you have genuinely
+handicapped is a pick like any other. They are simply the numbers where "I like this side"
+is most likely to be masquerading as value, so they get a closer look before you commit:
 
   • TEAM TOTAL OVER at 4.5 or higher. You are betting a club to score 5+ runs. At 5.5 or
-    higher the ask is stiffer again and should be close to a last resort.
+    higher the ask is stiffer again and wants a correspondingly stronger case.
   • PITCHER K OVER at 7.5 or higher. At 8.5 or higher this is asking for an outing that is
     exceptional even for the pitcher you are backing.
   • PITCHER K UNDER at 3.5 or lower. A low number means the market already expects few
@@ -340,18 +342,20 @@ The following are DEMANDING NUMBERS. None of them is banned — each can be an e
     increasingly does not allow them.
   • GAME TOTAL OVER at 9.5 or higher, or GAME TOTAL UNDER at 7.0 or lower.
 
-To recommend one of these, ALL THREE must hold:
+Before recommending one, work through these three. They are questions to answer honestly,
+not boxes to tick — a demanding number that survives them is a fine bet:
 
-  1. The edge is in the DIRECTION OF THE NUMBER, not merely present. A hot lineup facing a
-     weak starter justifies a team total over at 3.5. Pushing that same read to 5.5 needs
+  1. Is the edge in the DIRECTION OF THE NUMBER, or merely present? A hot lineup facing a
+     weak starter justifies a team total over at 3.5. Pushing that same read to 5.5 wants
      the run environment itself — park, weather, both bullpens — pointing the same way.
-  2. The number is beatable on the RECENT RECORD, not on reputation or rate stats alone.
+  2. Is the number beatable on the RECENT RECORD, or only on reputation and rate stats?
      Check what actually happened: the box scores, the K totals per start, the runs scored
-     per game. If he has cleared 8.5 strikeouts once in his last three, 8.5 is not a bet
-     no matter how good the K% looks. A rate that produces the number only in an
-     above-average outing is a rate that does not produce the number.
-  3. The reason SAYS OUT LOUD why the demanding number is beatable, in the published copy,
-     naming the specific evidence that clears it. Not "he is elite" — the actual totals.
+     per game. If he has cleared 8.5 strikeouts once in his last three, the K% alone is not
+     much of a case. A rate that produces the number only in an above-average outing is
+     weaker evidence than it looks.
+  3. Does the reason SAY OUT LOUD why this number is beatable, naming the specific evidence
+     that clears it? Not "he is elite" — the actual totals. If you take the bet, the
+     published copy should show the reader the number was considered, not just the side.
 
 BEWARE THE RECENCY TRAP SPECIFICALLY. A starter coming off three double-digit strikeout
 games has a K line that has already moved to meet him, and those totals were built against
@@ -359,10 +363,10 @@ whatever lineups he happened to face. If his recent K totals came against high-K
 and today's lineup makes more contact, the recent totals argue AGAINST the over, not for
 it. Do not cite a hot streak as the reason for a number the hot streak created.
 
-If a demanding number fails any of the three tests, the correct action is usually to take
-the SAME READ at a cheaper number — the 4.5 team total instead of the 5.5, the 6.5 K line
-instead of the 8.5 — or to pass entirely. The cheaper number is a real pick. A demanding
-number you cannot defend is not.
+When the answers are weak, remember that the usual alternative is not passing — it is
+taking the SAME READ at a cheaper number: the 4.5 team total instead of the 5.5, the 6.5 K
+line instead of the 8.5. The cheaper number is a real pick and often the better one. Pass
+only if the read does not survive at any number.
 
 ═══════════════════════════════════════════════════════════════════
 6. TOTALS
@@ -384,7 +388,7 @@ bullpen quality and stress. Only then look at the posted number.
   • TEAM TOTAL OVERS ARE THE MOST OVERUSED BET ON THIS BOARD. "Good offense vs bad starter"
     is the easiest read to have and therefore the one the market prices most efficiently;
     a team total over is not the automatic home for it. Before taking one at 4.5 or higher,
-    apply the demanding-number test in Section 5, and ask whether the same opinion is
+    give it the closer look Section 5 describes, and ask whether the same opinion is
     better expressed as the side, the game total, or the OPPOSING team's total under. The
     under side of a team total is the less crowded bet and is passed over too often.
 
@@ -463,20 +467,21 @@ STRIKEOUTS. Use exactly five inputs, then the price:
   Length only supports the over; it never creates one. A deep outs line with contact-heavy
   opposition is still a pass.
 
-  THE SIZE OF THE K LINE IS ITSELF A SIGNAL. Apply the demanding-number test in Section 5:
+  THE SIZE OF THE K LINE IS ITSELF A SIGNAL. Give these the closer look Section 5
+  describes:
     • A K line of 7.5 or higher exists because the market already knows this pitcher misses
       bats. The rate signals agreeing is the STARTING point, not the case — at that number
       they are priced in. What makes it a bet is length the market is underrating, or a
-      lineup whose Whiff% runs well above its K%. At 8.5 or higher, require that his last 3
-      box scores show him CLEARING the number more often than not; a 40% K rate that has
-      produced 9, 7 and 10 does not make 8.5 a value bet, it makes it a coin flip you are
-      paying for.
+      lineup whose Whiff% runs well above its K%. At 8.5 or higher, look at whether his
+      last 3 box scores actually CLEAR the number, not just whether the rate implies he
+      could; a 40% K rate that has produced 9, 7 and 10 makes 8.5 roughly a coin flip,
+      which is a bet only if the price is paying for better than that.
     • A K line of 3.5 or lower on the UNDER is the mirror image: the market has already
       forecast a short or quiet outing, and you are being asked to bet it goes even quieter.
       These can be excellent — a contact lineup against a low-K arm is the cleanest under
       available — but confirm the price still pays after the number has moved that far, and
       say what makes the floor lower than the already-low number implies.
-    • The middle of the board — K overs around 4.5-6.5 and unders around 4.5-5.5 — is where
+    • The middle of the board — K overs around 4.5-6.5 and unders around 3.5-4.5 — is where
       the rate signals actually buy you something. Prefer it.
 
   Then check the line and the price.
@@ -698,25 +703,20 @@ REJECT if ANY of the following is true
    with the short outing at all. Do not apply this where the card posts no outs line, and
    do not reject a K UNDER on these grounds — a short outs line supports an under.
 
-9. DEMANDING NUMBER NOT DEFENDED. Some numbers require the outcome to be unusual even when
-   the handicap is right, so the rationale has to argue for the NUMBER and not just for the
-   direction. This applies to:
-     • a TEAM TOTAL OVER at 4.5 or higher
-     • a PITCHER K OVER at 7.5 or higher
-     • a PITCHER K UNDER at 3.5 or lower
-     • a PITCHER OUTS OVER at 18.5 or higher
-     • a GAME TOTAL OVER at 9.5 or higher, or a GAME TOTAL UNDER at 7.0 or lower
-   REJECT if the rationale makes only a directional case — "this lineup is hot," "this arm
-   misses bats," "these starters are good" — without citing concrete recent evidence that
-   this specific number gets cleared: runs actually scored, strikeout totals actually
-   posted, innings actually thrown. A rationale built on rate stats and reputation alone is
-   a REJECT at these numbers even though the same rationale would be fine at an ordinary
-   one.
-   REJECT SPECIFICALLY if the rationale cites a hot streak as support for a K OVER while
-   the card shows today's lineup strikes out LESS than the opponents that streak was built
-   against. That is evidence against the bet being offered as evidence for it.
-   Do NOT reject a demanding number that IS defended with specific recent totals. The bar
-   is a real argument about the number, not agreement that the bet will win.
+9. THE RATIONALE'S OWN EVIDENCE ARGUES AGAINST THE BET. Not a judgment that the bet is
+   thin — a rationale that states a fact and then bets the other way from it.
+     • REJECT: a K OVER supported by a hot strikeout streak where the rationale itself
+       notes, or the card plainly shows, that those totals came against HIGHER-K lineups
+       than today's opponent. Recent totals built against strikeout-prone opposition are
+       evidence against the over into a contact lineup, not for it.
+     • REJECT: any pick that concedes the number is a stretch — "he has only cleared this
+       once," "they rarely score five" — and recommends it anyway without naming something
+       that changes the picture.
+   This check is about self-contradiction only. A demanding number (a team total over at
+   4.5+, a K over at 7.5+, a K under at 3.5-, an outs over at 18.5+) is NOT a reject on
+   size. Those numbers get their scrutiny at generation time; if a pick reaches you having
+   made a coherent case, ACCEPT it even if you would have wanted a bigger case. Do not
+   reject a pick merely for being aggressive, thinly argued, or one you would have passed.
 
 ═══════════════════════════════════════════════════════════════════
 ACCEPT otherwise
