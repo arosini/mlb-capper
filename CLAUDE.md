@@ -19,7 +19,7 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHR
 | Source | Auth | What it provides |
 |--------|------|-----------------|
 | Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L6RHP/LHP primary + L12RHP/LHP for the comparison wRC+, plus unsplit L6G/L12G for bullpen games), bullpen stats (last 12), ballpark weather |
-| MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs |
+| MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs, posted lineups + bat sides (`get_lineups`/`get_bat_sides`), home plate umpire (recorded to `history/`, not on the card — see Adversarial Review) |
 | The Odds API | API key (query param) | Full-game ML/spread/total + F5 ML/spread/total + team totals + pitcher K/outs props for DK, FanDuel, Fanatics. Paid plan (~20K credits/month); billed per market × region, **not** per call — see API Budget |
 | Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Opus 4.8 for AI Picks — one generation call per odds refresh plus one audit call per pick, cached to `data/suggestions_{date}.json` |
 
@@ -66,17 +66,17 @@ handicap.py       — slim entry point, main() only; imports everything
 
 **`teams.py`**: `_STATS_MAP`, `_MLB_MAP`, `ODDS_TEAM`, `MLB_NAME_TO_CODE`, `MLB_ID_TO_CODE`, `to_stats()`, `to_mlb()`, `from_mlb_id()`, `normalize_name()`, `logo_img()`, `_LOGO`
 
-**`odds.py`**: `load_odds()`, `get_game_odds()`, `best_outcome()`, `fmt_ml()`, `fmt_spread()`, `fmt_total()`, `fmt_k_line()`, `fmt_outs_line()`
+**`odds.py`**: `load_odds()`, `get_game_odds()`, `best_outcome()`, `fmt_ml()`, `fmt_spread()`, `fmt_total()`, `fmt_k_line()`, `fmt_outs_line()`, `price_from()`, `point_from()`, `implied_prob()`, `no_vig_pair()`
 
 **`loaders.py`**: `load_starters()`, `load_team_stats()`, `load_bullpen()`, `load_ballpark_weather()`, `load_odds_meta()`, `load_pitcher_props()`
 
-**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_pitch_hands()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()` (takes lat/lon, not a team code), `wind_effect()`, `compass_point()`, `stress_label_cls()`, `HAS_REQUESTS`
+**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_pitch_hands()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()` (takes lat/lon, not a team code), `get_lineups()`, `get_bat_sides()`, `wind_effect()`, `compass_point()`, `stress_label_cls()`, `HAS_REQUESTS`
 
 **`analysis.py`**: `analyze_game()`, `build_games()`, `resolve_pitchers()`, `pitcher_ids_to_check()`, `pitcher_workload()`, `is_short_arm()`, `is_bulk_arm()`, `pitched_too_recently()`, `outing_ip()`, `has_sp_stats()`, `flt()`, `fp1()`, `fp3()`, `wrc_label()`, `xera_label()`, `pitcher_csv_flags()`, `bullpen_flags()`, `weather_flags()`, `pitcher_history_flags()`, `team_whiff_k_flag()`, `pitcher_whiff_k_flag()`, `extract_outings()`
 
 **`render_terminal.py`**: `print_game()`, `bold()`, `cyan()`, `yellow()`, `dim()`, `use_color` (set to False for --no-color)
 
-**`suggestions.py`**: `generate_suggestions()`, `_render_suggestions_html()`, `_ai_game_map()`, `_pick_dom_id()`, `_pick_summary_title()`
+**`suggestions.py`**: `generate_suggestions()`, `_validate_pick()`, `_render_suggestions_html()`, `_ai_game_map()`, `_pick_dom_id()`, `_pick_summary_title()`
 
 **`render_html.py`**: `render_html_page()`, `_html_game()`
 
@@ -472,8 +472,11 @@ When alt-line picks have accumulated, re-run the analysis **split by main vs alt
 line**. If juiced alternates lose the way juiced main lines did, that is a real finding;
 the current pooled number is not.
 
-**Demanding numbers (§5, "THE NUMBER ITSELF IS EVIDENCE").** Team total over 4.5+, K over
-7.5+, K under 3.5-, outs over 18.5+, game total over 9.5+ / under 7.0-. These are a
+**Demanding numbers (§5, "THE NUMBER ITSELF IS EVIDENCE").** Team total over 4.5+ **and
+under 3.5-**, K over 7.5+, K under 3.5-, outs over 18.5+ **and under 14.5-**, game total
+over 9.5+ / under 7.5-. **The list is symmetric as of 2026-08-24 and must stay symmetric**
+— see "Adversarial Review — 2026-08-24" below for why the earlier one-sided version pushed
+the picks under. These are a
 **scrutiny prompt, not a filter, not a gate, and not a disqualifier** — the section says so
 in those words, and it must keep saying so. They are the numbers where "I like this side"
 most often passes itself off as value, so the prompt asks three questions before one gets
@@ -485,10 +488,11 @@ line carrying the same read as the usual alternative to passing.
 > auditor, and not in code. The samples are 8-26 picks wide, and a ban would have thrown
 > out the K over 6.5 bucket's +33.8% along with the 8.5 bucket's losses. This was tightened
 > once during the original change and walked back deliberately: an earlier draft made the
-> three questions a checklist ("ALL THREE must hold") and had audit check 9 REJECT any
+> three questions a checklist ("ALL THREE must hold") and had audit check 9 (now **8**)
+> REJECT any
 > demanding number argued only directionally. That is a hard stop wearing scrutiny's
 > clothes — the auditor is a binary, so *any* size-based reject rule is a ban.
-> **Audit check 9 is scoped to self-contradiction only**: a rationale whose own cited
+> **Audit check 8 (was 9) is scoped to self-contradiction only**: a rationale whose own cited
 > evidence points away from the bet (a K over sold on a streak built against higher-K
 > lineups than today's), or one that concedes the number is a stretch and bets it anyway.
 > It explicitly instructs ACCEPT for a coherent case at a demanding number. Keep it there.
@@ -500,16 +504,183 @@ number means the market has already forecast a quiet outing and the bucket is th
 that it could be noise. §8 says this explicitly — the instruction is to confirm the price
 still pays, not to avoid the bet. If this bucket keeps winning, take it back out.
 
-**Volume itself is addressed in §4**, not by a numeric cap: touch fewer than half the
-games, and two picks resting on one underlying read (a side and a team total that are both
-"this lineup beats this starter") count as one opinion sold twice. There is no hard slate
-limit, because the right number of picks on a given slate is a function of the slate.
+**Volume is addressed in §4 by an EDGE THRESHOLD, not a game-count target** (changed
+2026-08-24). Two picks resting on one underlying read still count as one opinion sold
+twice. There is still no hard slate limit — the right number of picks on a slate is a
+function of the slate — but every pick must now clear the card's own no-vig price by at
+least 4 percentage points, stated in `win_probability` and `market_probability` and
+enforced in `suggestions._validate_pick`, not asserted.
+
+The sentence this replaced ("touch fewer than half the games") was measured and did not
+hold: over 17 slates the model touched 6-10 games of ~15, every day. A quota you cannot
+check one pick against does not bind; a per-pick threshold does, and it limits volume as a
+consequence rather than as an instruction.
 
 **Re-run the review before changing any of this.** The analysis is a straight replay of
 `picks/*.json` — every pick carries `bet`, `line`, `odds_num`, and `result`, so ROI by
 line/side/price bucket is reproducible without touching the API. Over/under has to be
 parsed out of the `bet` string for props (`team_side` is null there) and off `team_side`
 for totals.
+
+## Adversarial Review — 2026-08-24
+
+A red-team pass over `_AI_SYSTEM_PROMPT`, `_VERIFY_SYSTEM_PROMPT`, `_serialize_game_for_ai`
+and the flag generators in `analysis.py`, read against all 200 picks logged since the
+rewrite (196 graded, 189 priced, +5.3% ROI). Everything `CLAUDE.md` already recorded as
+known and deliberate was excluded. What it found and what changed:
+
+### The flags were giving betting advice — this was the biggest one
+
+`analysis.py` wrote directional verdicts into the card, and a card line beats a prompt
+rule because it is specific to the game while the rule is generic:
+
+| Flag | Tail that was removed |
+|---|---|
+| bullpen stress | "— manager likely leaves starter in longer; lean SP K/outs OVER" / "...may hook starter early; lean SP K/outs UNDER" |
+| park factor | "— park boosts offense, favor the over and HR props" / "— park suppresses offense, favor the under" |
+| wind | "— supports the over and HR props" / "— suppresses the over" |
+| divisional | "— the underdog can carry a bit more value than the price suggests" |
+| swept / shut out / 1-0 | "classic bounce-back spot", "due for some offensive regression", "extra motivation to avoid it" |
+| whiff-vs-K gap | "— strikeout rate looks due for positive regression (fewer Ks)" |
+
+The stress one is the mechanism behind the outs skew the §8 rewrite was aimed at and did
+not fix: §8 now says both sides of an outs prop are live, and the card went on saying
+"lean UNDER" next to the numbers. Outs picks after that rewrite ran **9 unders to 1 over**.
+The park-factor one contradicted §9 in as many words ("ordinary hitter-friendly or
+pitcher-friendly labels are not a reason for anything").
+
+**The rule now is: flags state facts, the prompt assigns weight.** `CLAUDE.md` already
+said anything the model must not get wrong has to be on the card. The converse holds just
+as hard — anything the card asserts, the model will act on. Do not put a lean, a
+recommendation, or a "due for" back into a flag string.
+
+### Wording that leaned, and the picks that followed it
+
+| Finding | Evidence | Change |
+|---|---|---|
+| §6's only worked totals example was an under; the over appeared only as the "pass" case | game totals 11 U / 2 O | a matched over example; both framed as distance from the posted number |
+| Demanding numbers gated overs and left unders open (no team-total-under entry, no outs-under entry, game-total under threshold 1.5 runs off the mean vs 1.0 for the over) | all 13 game-total picks and 9 of 10 outs picks landed inside the ungated corridor | list symmetrised; the asymmetry is called out in the prompt so absence stops reading as permission |
+| §6 carried the one bare directional preference in the prompt ("the under side of a team total is passed over too often") | team-total overs were still the most common bet type, 31 to 22 — it bought nothing | cut |
+| §11 pointed one way in all five bullets | sides 22 away / 10 home, F5 ML 4-0 away | rewritten: mirror cases added, weight dropped below Tier 2, "due" reasoning named as the fallacy it is |
+| §8A's ladder was being climbed toward plus money, the opposite of its purpose | median price +100; **zero** of 193 picks worse than -155 against a -200 floor; team-total overs 18 at 4.5 vs 10 at ≤3.5 | `rung_rejected` is now a schema field — the pick must name the rung it turned down |
+
+### Numbers that were computed and never reached the model
+
+Temperature, humidity and elevation were fetched, rendered on the HTML weather badge, and
+dropped from the AI card — every game serialized as "Clear/Calm". Bullpen stress reached
+the card only through the flag above, which fired on three of five labels, so on **56% of
+team-games** (Normal, or no recent games) §2 and §8 asked the model to weigh something with
+no line on the card at all. Also added: bullpen K%/BB%/HH%, starter K-BB%, the
+`ou_trends()` over/under block (computed and rendered since forever, never serialized), the
+season head-to-head line, and no-vig probabilities on every two-sided market.
+
+### Concepts that changed weight
+
+- **Head-to-head is Tier 2 now, not Tier 1.** Up to three starts against one club is
+  roughly 60-80 plate appearances across a roster that has turned over. The prompt had it
+  outranking xERA and wRC+ on conflict, *and* the auditor was explicitly told to ACCEPT
+  picks resting primarily on it — so the thinnest evidence on the card was the one thing
+  the audit could not question. Both are gone. The per-meeting box scores stay: they show
+  HOW he pitched, which the average destroys.
+- **The xERA/ERA noise floor went from 0.75 to 1.50.** Three starts is ~18 IP, a smaller
+  sample than the six games §1 spends forty lines being careful about, and it carries no
+  longer window to check against. §1 says that out loud now.
+- **"The market may be pricing the ERA" was cut.** It asserts a naive book as the standing
+  mechanism for a whole class of bets. The inference worth keeping is about the pitcher.
+- **League baselines are on the card** (§1), measured from `history/` over 1,589 games:
+  8.9 mean game total, 4.4 runs per club, a club scores 5+ 42% of the time and 3 or fewer
+  30% of the time. The model had no anchor for "is 4.5 high" and was supplying one from
+  its prior — the exact thing §1 forbids for every other number.
+
+### Mechanical checks moved from the prompt into code
+
+`suggestions._validate_pick()` runs before the paid audit call and rejects deterministically:
+
+1. price worse than the **-200 floor**;
+2. a **price or line the card does not post** for that market and side (the alt ladder
+   counts as posted);
+3. **stated edge under 4 points** over the card's no-vig price;
+4. the two §8 disqualifiers — a pitcher **OVER into rain risk**, and any bet on a **NO
+   STATS** pitcher.
+
+None of these needed a model. The floor used to be a sentence in two prompts with nothing
+comparing a submitted price against the card, and the rejection log has the failure in it
+(a pick citing "an 18.5 outs line" against a card posting 17.5). Audit checks 4 and 6 were
+removed as redundant and the remaining checks renumbered **1-8**; the audit call now spends
+its tokens only on reasoning. Mechanical rejections are logged to `rejections/` with a
+`[mechanical]` prefix so the weekly review can tell the two causes apart.
+
+### Umpires — measured, not shipped
+
+The audit called the home plate umpire the largest missing input. It was tested before
+being built, and **the number does not survive the test**, so no umpire figure is on the
+card:
+
+| Metric | Sample | Observed sd of umpire means | Null (shuffled) sd | p95 of null |
+|---|---|---|---|---|
+| Runs/game | 1,965 games, 82 umpires with 15+ | 1.034 | 0.947 | 1.065 |
+| Starter Ks | 1,356 outings, only 6 umpires with 20+ | 0.433 | 0.487 | 0.778 |
+
+Both sit **inside** the noise band — the spread across umpires is what random assignment
+produces. The metric that would work is called-strike rate on a real zone, which needs
+pitch-level data this project does not have. Putting a name on the card without a tendency
+is worse than nothing: it invites the model to supply a prior, which is what §1 exists to
+stop.
+
+What *was* built: `history.py` now records `hp_umpire` on every graded record (free — it
+rides the schedule call the annotate pass already makes), so a ledger accrues. Re-run the
+test above before surfacing anything. One `/schedule` call covers a 23-day range with
+`hydrate=officials,linescore`, so the backfill is a handful of requests, not 150.
+
+### Posted lineups
+
+`mlb_api.get_lineups()` + `get_bat_sides()`, two calls per slate, both free. MLB posts
+lineups 1-2 hours before first pitch, so the early runs get nothing and **the card says so
+explicitly** rather than going silent — the absence must not read as information. Where a
+lineup exists the card prints the batting order with each hitter's bat side and a count of
+how many carry the platoon advantage against today's starter. Switch hitters count on the
+advantage side.
+
+This does not fix the underlying gap — every offense number on the card is a team-level
+last-6 that is blind to who is in the box, and no per-player offense data reaches this
+project — but it is the one place a missing regular is visible at all.
+
+### Section balance — the prompt's shape was part of the bias
+
+Attention in the prompt maps onto the output, so section length is a design decision, not
+an accident. Measured before and after:
+
+| | Before | After |
+|---|---|---|
+| §7 Sides | 1,001 chars | 3,312 |
+| §6 Totals | 2,657 | 2,657 |
+| §8 Pitcher props | 8,824 | 9,981 |
+| — strikeouts within §8 | 6,414 | 6,414 |
+| — outs within §8 | 2,091 | 3,248 |
+| — K:outs ratio | 3.07x | **1.97x** |
+
+§7 was by far the thinnest market section and sides carried the worst ROI in the log
+(spreads -41%, F5 ML -100%, both on small n). It now covers the two things that actually
+make a side hard — the ladder cannot help you, and baseball sides are compressed so a big
+run-differential edge converts into a small win-probability one — plus the run-line and
+take-the-dog cases. §8's outs block gained the matched pair of demanding numbers (over
+18.5+, under 14.5-) that §5 now lists, which is both the symmetry fix and the rebalance.
+
+Re-measure with `parts = _AI_SYSTEM_PROMPT.split("═"*67)` when editing; a section that
+grows by a third has quietly changed what the model reaches for.
+
+### Still open
+
+- **No CLV.** The whole thesis is "this number is wrong" and the only feedback is win/loss,
+  which needs ~1,000 bets to say anything. `history/` overwrites its odds each run until
+  first pitch, so it holds a near-closing line but not an opening one. Keeping the first
+  snapshot alongside the last would make CLV computable at zero API cost, and it is the
+  single best measurement this project could add.
+- **No team defense.** xERA deliberately strips defense out, so a good-xERA arm in front of
+  a bad glove is systematically overrated by the card's own Tier 1 input.
+- **`projection` / `win_probability` are new and ungraded.** Once a few weeks have
+  accumulated, regress realised outcomes on the stated projections — that is a far better
+  calibration signal than W-L, and it is the reason those fields exist.
 
 ## Alternate Lines — the ladder
 
@@ -625,6 +796,13 @@ Three changes, all in §8:
 > Re-measure this after a few weeks. The target is not 50/50 — strikeouts may genuinely be
 > the better market — but 92/8 with equal line availability was the prompt talking, not the
 > board. If outs picks are still in single digits, the fix did not take.
+>
+> **Update 2026-08-24: it did not take, and §8 was not where the problem was.** Outs picks
+> since the rewrite ran 9 unders to 1 over. The bullpen-stress flag was telling the model
+> "lean SP K/outs UNDER" in imperative form on the card itself, which no §8 wording can
+> outvote. That tail is now gone (see Adversarial Review). Re-measure again from
+> 2026-08-24 — and if a prompt fix does not move a behaviour, check whether the card is
+> arguing with it before rewriting the prompt a third time.
 
 **Related: `pass_reasons` now have to cover the props.** A pass reason that explained why
 there was no side or total and said nothing about either starter was answering half the
@@ -702,6 +880,15 @@ a job that only gets one shot a week.
    are module-level functions, not nested inside `_html_game()`. If the new field should
    be colour-graded, add a scale to `_SCALES` and call `_scaled_row()` rather than writing
    a new threshold ladder.
+5. **Serialize it in `_serialize_game_for_ai()` in `suggestions.py`, or decide out loud
+   that you are not.** Step 5 did not exist and things fell through it: temperature,
+   humidity, elevation, bullpen K%/BB%/HH%, starter K-BB%, offense wOBA, the whole
+   `ou_trends()` block and the season head-to-head were all computed and rendered on the
+   page while the model never saw any of them. A field that reaches `analyze_game` and
+   stops at the HTML is a field the picks are made without.
+6. If it needs a new prompt rule to be usable, that rule goes in `_AI_SYSTEM_PROMPT` — and
+   the auditor's check 2 rejects figures not on the card, so anything new must also be
+   named in `_VERIFY_SYSTEM_PROMPT`'s preamble or good picks quoting it get thrown out.
 
 ## Season Window — regular + postseason only
 

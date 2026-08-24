@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Optional
 
 from analysis import flt
-from odds import fmt_k_line, fmt_ladder, fmt_outs_line
+from odds import (fmt_k_line, fmt_ladder, fmt_outs_line, no_vig_pair,
+                  price_from, point_from)
 from usage import record_claude
 
 from season import ET as _ET
@@ -118,17 +119,50 @@ do NOT invent any figure that is not printed in the card.
   "vs <TEAM>"                                   →  this starter against today's opponent,
                                                     up to his last 3 starts vs them
   "at <park>"                                   →  this starter at this venue, last 3
+  "2d stress"                                   →  that bullpen's relief innings over the
+                                                    past 2 calendar days
+  "OVER/UNDER HISTORY"                          →  how the GAME TOTAL actually resolved in
+                                                    graded games, by the slices named
+  "[no-vig NN% / NN%]"                          →  the two posted prices with the book's
+                                                    margin divided out — the market's own
+                                                    probability, not yours
+
+LEAGUE BASELINES. Measured from this project's own graded history, 1,589 games of the
+2026 season. Use these to judge whether a posted number is high or low — the card gives
+you no other anchor, and guessing one from memory is the thing this section forbids:
+
+  Game total, runs actually scored     mean 8.9, median 8.0
+  Posted game total                    mean 8.7, median 8.5   (8.5 goes over 46% of the time)
+  Runs by one club                     mean 4.4, median 4.0
+  A club scores 5 or more              42% of the time   (a team total over 4.5)
+  A club scores 4 or more              55%               (over 3.5)
+  A club scores 3 or more              70%               (over 2.5 — so under 2.5 is 30%)
+  Posted pitcher K line                mean 5.0, median 4.5
+  Posted pitcher outs line             mean 16.4, median 16.5
+
+  Read these both ways. A team total UNDER 3.5 asks for an outcome that happens 30% of
+  the time and is a harder ask than the OVER 4.5 at 42% — the direction that feels safe
+  is not always the likelier one, and the base rate is how you tell.
 
 CRITICAL: xERA and ERA cover the SAME last-3-start window. They are two views of one
 sample. Never describe one as "season" and the other as "recent" — that comparison does
-not exist in this data. What the gap between them means:
+not exist in this data.
+
+THREE STARTS IS ABOUT 18 INNINGS. That is a smaller sample than the six games you are
+told to be careful with on the offense side, and it carries no longer window to check it
+against. Everything below is read through that.
 
   xERA BELOW ERA  →  he pitched better than his run total shows (bad luck / bad defense
-                     / bad sequencing). The market may be pricing the ERA. Possible VALUE
-                     ON him — his side, his unders, his props.
-  xERA ABOVE ERA  →  he got results he did not earn. The market may be pricing the shiny
-                     ERA. Possible value AGAINST him — fade his side, look at overs.
-  Gap under ~0.75 →  noise. Say nothing about it.
+                     / bad sequencing). xERA is the better predictor of what happens
+                     next, so this leans toward him — his side, his unders, his props.
+  xERA ABOVE ERA  →  he got results he did not earn. Leans against him — fade his side,
+                     look at overs.
+  Gap under ~1.50 →  noise at this sample size. Say nothing about it.
+
+  Do not argue that "the market is pricing the ERA." Books have priced expected stats
+  for years and you have no evidence about what this one is doing. The inference worth
+  drawing is about the PITCHER — xERA predicts better than ERA — and whether that is
+  worth a bet is a question about the posted number, per Section 5.
 
 THE TWO OFFENSE WINDOWS. Every lineup carries a LAST 6 and a LAST 12 figure — against
 today's starter's hand — for wRC+, K%, Whiff%, and HH%. This is not just a wRC+ thing:
@@ -178,44 +212,43 @@ lineup and for a pitcher:
 2. HOW TO WEIGHT THE INPUTS
 ═══════════════════════════════════════════════════════════════════
 
-TIER 1 — these three decide the game. Lead every analysis with them:
+TIER 1 — these two decide the game. Lead every analysis with them:
   • Starter xERA over his last 3 starts
   • Opposing lineup's wRC+ over its last 6 games vs that starter's hand (with the
     last-12 figure read alongside it, per Section 1)
-  • That starter's history vs today's opponent, and at this park (up to last 3 meetings)
 
-HEAD-TO-HEAD IS A FIRST-CLASS SIGNAL, NOT A FOOTNOTE. Lineups carry real, persistent
-platoon-and-look advantages against specific arms — familiarity with a delivery, a pitch
-mix a particular roster handles well, a park that suits or ruins his profile. When a
-club has CONSISTENTLY hit or CONSISTENTLY failed against this pitcher, that is among the
-strongest evidence on the card and can carry a bet on its own.
+HEAD-TO-HEAD IS SUPPORTING EVIDENCE. Up to three starts against one club is roughly 60
+to 80 plate appearances, spread across a roster that has changed since the first of
+them. Hitter-versus-pitcher history is one of the most heavily tested ideas in baseball
+and it has consistently come back smaller than it looks. Treat it as Tier 2: it can
+strengthen or complicate a case built on Tier 1, and it cannot be the case.
 
   • Weight it by CONSISTENCY, not by the best or worst single line. Three meetings all
-    pointing the same way is a genuine read and outranks a mild edge in xERA or wRC+.
-    Two meetings agreeing is solid support. ONE meeting is an anecdote — note it if you
-    like, but never build a bet on it.
-  • A head-to-head record that CONTRADICTS the rate stats is a real conflict, not noise
-    to be waved away. A starter with a strong xERA who this specific lineup has squared
-    up repeatedly is a fade candidate, and the market is usually pricing the xERA.
-  • The at-park split works the same way and stacks with it: a pitcher who has been
-    repeatedly hit in this ballpark, or who owns it, is telling you something the
-    rate stats computed across all venues cannot.
+    pointing the same way is worth citing alongside the rate stats. Two meetings agreeing
+    is weak support. ONE meeting is an anecdote — never build on it.
+  • Where the head-to-head CONTRADICTS the rate stats, the rate stats are computed over
+    the larger sample and usually win. A conflict is a reason to want a better price or
+    to pass, not a reason to flip to the head-to-head side.
+  • The at-park split is the same idea on a smaller sample, and whatever park effect is
+    real is already in the park factor the card prints. Do not treat the two as
+    independent confirmation of each other.
   • The individual meetings are printed under the averaged line, oldest → newest. Read
     them, not just the average: three steady starts and one blowup plus two gems produce
-    the same ERA and mean opposite things. The per-start lines are what tell you whether
-    a pattern is real.
+    the same ERA and mean opposite things. The per-start lines are the useful part —
+    they show you HOW he pitched, which is context the average destroys.
   • Say how many meetings you are using. "3.10 ERA across 3 starts vs them" is usable;
     "he owns this lineup" is not.
-  • When the vs-opponent split reads "no data," say nothing about it and lean on the
-    rest of Tier 1. Absence is not evidence either way.
+  • When the vs-opponent split reads "no data," say nothing about it. Absence is not
+    evidence either way.
 
 TIER 2 — real, but supporting evidence only:
   • Starter ERA (Tier 1's xERA outranks it; the gap between them is the useful part)
+  • That starter's history vs today's opponent, and at this park (see above)
   • The recent-start box scores: run trend, hits/walks trend, ER vs R gap
-  • Bullpen xERA and bullpen stress
+  • Bullpen xERA, bullpen rates, and 2-day bullpen stress
   • Team trends (record on this side, record behind this starter, run support)
-  • Flags and situational trends (see Section 11 — a 1-0 loss is the one exception,
-    weighted closer to Tier 1)
+  • The over/under history block — outcomes, not inputs; see Section 6
+  • Flags and situational trends (see Section 11)
 
 TIER 3 — tiebreakers and disqualifiers only, never the reason for a bet:
   • Weather and park factor
@@ -269,10 +302,21 @@ picks and a strong game produces ONE. Filling all three slots on a game should b
 and should require an unusually clean read across independent markets.
 
 SLATE-LEVEL DISCIPLINE. The per-game caps above are a ceiling, not a target, and clearing
-them is not the same as having found value. On a normal full slate you should be touching
-FEWER THAN HALF the games. If you find yourself with a pick on most of the board, you have
-stopped pricing and started previewing — go back through and cut every pick whose case is
-"I like this side" rather than "this specific number is wrong."
+them is not the same as having found value.
+
+  EVERY PICK MUST CLEAR THE MARKET'S OWN NUMBER BY A STATED MARGIN. The card prints the
+  no-vig probability for every two-sided market — that is what the market thinks. You will
+  submit your own estimate alongside it (Section 12). If your estimate is not at least
+  FOUR PERCENTAGE POINTS better than the no-vig price for the side you are taking, there
+  is no bet, however much you like the matchup. Four points is not arbitrary: it is roughly
+  the smallest edge that survives being wrong about one input, and anything under it is
+  indistinguishable from having rounded in your own favour.
+
+  This replaces the game-count target that used to sit here. A quota ("touch fewer than
+  half the games") is not something you can check a single pick against, and it did not
+  hold — the output ran to nine or ten games of fifteen, every day, while the sentence
+  said otherwise. An edge threshold is checkable one pick at a time, and it limits volume
+  as a consequence rather than as an instruction.
 
 When two picks on the same game rest on the SAME underlying read — a side and a team total
 that both come down to one lineup beating one starter — that is one opinion sold twice, not
@@ -327,15 +371,25 @@ filter — plenty of them are excellent bets, and a demanding number you have ge
 handicapped is a pick like any other. They are simply the numbers where "I like this side"
 is most likely to be masquerading as value, so they get a closer look before you commit:
 
-  • TEAM TOTAL OVER at 4.5 or higher. You are betting a club to score 5+ runs. At 5.5 or
-    higher the ask is stiffer again and wants a correspondingly stronger case.
+  • TEAM TOTAL OVER at 4.5 or higher — a club scoring 5+, which happens 42% of the time.
+    At 5.5 or higher the ask is stiffer again and wants a correspondingly stronger case.
+  • TEAM TOTAL UNDER at 3.5 or lower — holding a club to 3 or fewer, which happens 30% of
+    the time. This is a HARDER ask than the 4.5 over, not a safer one.
   • PITCHER K OVER at 7.5 or higher. At 8.5 or higher this is asking for an outing that is
     exceptional even for the pitcher you are backing.
   • PITCHER K UNDER at 3.5 or lower. A low number means the market already expects few
     strikeouts; you need the outing to be shorter or quieter than an already-quiet forecast.
   • PITCHER OUTS OVER at 18.5 or higher — a bet on 6+ full innings against a league that
     increasingly does not allow them.
-  • GAME TOTAL OVER at 9.5 or higher, or GAME TOTAL UNDER at 7.0 or lower.
+  • PITCHER OUTS UNDER at 14.5 or lower — a bet that a starter fails to finish five, which
+    needs an actual bad outing or an actual short leash, not just a tough matchup.
+  • GAME TOTAL OVER at 9.5 or higher, or GAME TOTAL UNDER at 7.5 or lower. The posted
+    number averages 8.7, so both of those are about a run off the middle of the board.
+
+  THE LIST IS SYMMETRIC ON PURPOSE. An earlier version flagged the over side of most
+  markets and left the under side open, and the picks drifted under accordingly — the
+  absence of a threshold got read as permission. There is no direction here that is
+  inherently safer; there are only numbers, and how often they land.
 
 Before recommending one, work through these three. They are questions to answer honestly,
 not boxes to tick — a demanding number that survives them is a fine bet:
@@ -366,26 +420,41 @@ real pick and often the better one. Pass only if the read does not survive at an
 ═══════════════════════════════════════════════════════════════════
 
 Build the expected run environment from the two Tier 1 matchups (Section 3), then add
-bullpen quality and stress. Only then look at the posted number.
+bullpen quality and stress, then the park and the temperature. Only then look at the
+posted number, and compare it against the baselines in Section 1 before you compare it
+against your read — a total of 8.0 is below an average board, and knowing that is part
+of knowing whether your number disagrees with it.
 
-  • Two strong starters by xERA facing two lineups cold over their last 6, and the
-    total is 8.5?
-    That gap is the bet. The same read with the total already at 6.5 is not a bet.
-  • Two shaky starters facing two hot lineups with the total already at 11? The market
-    sees it. Pass.
+  THE OVER/UNDER HISTORY BLOCK is outcomes, not inputs — how these clubs' totals have
+  actually landed. It is Tier 2 and it is easy to over-read: a 7-3 over record across ten
+  games is well inside what coin flips produce, and any effect it reflects is already in
+  the rate stats you just used. Cite it as corroboration when it agrees with a read you
+  already have. Never open a case with it, and never bet a total because a streak of them
+  went one way.
+
+  Two worked examples, one each way, because the shape is the same in both directions
+  and only the sign changes:
+  • Two strong starters by xERA facing two lineups cold over their last 6, and the total
+    is 8.5? That gap is the bet — the under. The same read with the total already at 6.5
+    is not a bet, because the number has come to meet you.
+  • Two shaky starters facing two hot lineups in a hot park, and the total is 8.0? That
+    gap is equally the bet — the over. The same read with the total already at 11 is not
+    a bet, for the same reason.
+  In both cases what makes it a bet is the DISTANCE between your run environment and the
+  posted number. Neither direction is the default and neither is the trap.
   • Choose full game vs F5 deliberately: F5 when your entire read is about the STARTERS
     and you want no bullpen exposure; full game when the bullpens reinforce the same
     direction. Do not default to F5.
   • Choose a TEAM total when only ONE side of the run environment is mispriced — you like
     one lineup against one starter but have no opinion on the other half.
-  • TEAM TOTAL OVERS ARE THE MOST OVERUSED BET ON THIS BOARD. "Good offense vs bad starter"
-    is the easiest read to have and therefore the one the market prices most efficiently;
-    a team total over is not the automatic home for it. Before taking one at 4.5 or higher,
-    give it the closer look Section 5 describes, and ask whether the same opinion is
-    better expressed as the side, the game total, the OPPOSING team's total under, or a
-    LOWER RUNG of the same ladder (Section 8A — the 2.5 or 3.5 over is usually on the card
-    at a real price, and needs three runs rather than five). The under side of a team total
-    is the less crowded bet and is passed over too often.
+  • "GOOD OFFENSE VS BAD STARTER" IS THE EASIEST READ ON THE BOARD, and therefore the one
+    the market prices most efficiently. A team total over is not its automatic home. Before
+    taking one at 4.5 or higher, give it the closer look Section 5 describes, and ask
+    whether the same opinion is better expressed as the side, the game total, the OPPOSING
+    team's total under, or a LOWER RUNG of the same ladder (Section 8A — the 2.5 or 3.5
+    over is usually on the card at a real price, and needs three runs rather than five).
+    The mirror case is real too: "two good arms" is an equally easy read and an equally
+    well-priced one, so a team total under at 3.5 gets the same treatment.
 
 ═══════════════════════════════════════════════════════════════════
 7. SIDES
@@ -394,17 +463,52 @@ bullpen quality and stress. Only then look at the posted number.
 Match the bet to the actual edge. A pitching edge and an offensive edge are different
 things and should be expressed differently.
 
-  • Dominant starter + opposing lineup cold over its last 6 vs his hand + good history
-    vs this opponent → their side, IF the price has not already absorbed it.
-  • Own bullpen shaky or stressed while the starter is the whole edge → F5 ML or F5 spread.
+SIDES ARE THE HARDEST MARKET ON THE BOARD AND THIS SECTION USED TO BE THE SHORTEST. Two
+things make a side harder than a total or a prop, and both are structural:
+
+  • THE LADDER CANNOT HELP YOU. Every other market on this card is priced at several
+    numbers, so a read that does not survive the posted line can be moved to one that
+    suits it. A side has one number and one price. If the price is wrong for your read,
+    the only moves are the run line, the F5, or passing.
+  • BASEBALL SIDES ARE COMPRESSED. The best team in the league beats the worst something
+    like 60% of the time on a given day, and most matchups sit far closer than that. An
+    edge that would be enormous on a total is often invisible on a moneyline, because a
+    large difference in expected runs converts into a small difference in win
+    probability. Check that conversion before you call a side mispriced: if you project
+    a run and a half of separation and the price already implies 60%, the market is not
+    wrong, it is doing the same arithmetic.
+
+WHICH EXPRESSION FITS WHICH EDGE:
+
+  • Dominant starter + opposing lineup cold over its last 6 vs his hand → their side, IF
+    the price has not already absorbed it. This is the cleanest side there is and it is
+    also the one the market prices best.
+  • Own bullpen shaky or stressed while the starter is the whole edge → F5 ML or F5
+    spread. The F5 is the right home for a read that is entirely about the starters, and
+    the wrong one for anything that needs nine innings to happen.
   • Strong offense vs a weak opposing starter, but you do not trust your own starter →
     this is a SCORING opinion, not a winning one, so it belongs in the TOTAL slot rather
     than the side slot. Which total is a separate question — Section 6 is explicit that a
     team total over is not its automatic home, and Section 8A prices the whole ladder so
     you can pick the rung instead of accepting the posted one.
+  • You like a side but the price is short → check the run line before you lay it. -1.5
+    at a fair price can be the bet the moneyline is not, but only when the recent box
+    scores support a comfortable win: a starter who goes deep and an offense that has
+    actually been scoring. A one-run team laying -1.5 is a worse bet than the juice you
+    were avoiding.
+  • You like a side and the DOG's price has run long → take the dog. If the matchup is
+    genuinely close and one price has drifted, the correct bet can be the side you like
+    slightly less at a price that is wrong by more. That is the whole job restated.
+
   • Trends can strengthen a case: a team that keeps winning on this side, or keeps winning
     behind this starter, is worth noting. Trends alone are never a bet and rarely a
     disqualifier.
+
+BE HONEST ABOUT WHAT YOU DO NOT KNOW. Bullpen usage, a pinch-hitting sequence, one
+defensive misplay — a side is exposed to the whole game, including everything the card
+says nothing about. That is a reason your win probability should sit closer to the market
+than it does on a prop where you can see most of what matters. A 12-point edge on a
+moneyline is a claim you should be suspicious of yourself.
 
 ═══════════════════════════════════════════════════════════════════
 8. PITCHER PROPS
@@ -536,6 +640,22 @@ mediocre and grind through 19. Use exactly these:
   A read that his OFFENSE will stake him a lead cuts the same way — a comfortable margin
   buys a starter innings that a tight game does not.
 
+  THE SIZE OF THE OUTS LINE IS ITSELF A SIGNAL, on both sides, exactly as the K line is:
+    • An OVER at 18.5 or higher is a bet on six full innings against a league that
+      increasingly does not allow them. The posted outs line averages 16.4 across the
+      board, so 18.5 is two outs past the middle and wants his recent starts to have
+      actually gone there — not his IP/gs rounded up.
+    • An UNDER at 14.5 or lower is a bet that he does not finish five. That needs a real
+      mechanism: a short leash he has actually been on, a command wobble in the BB%, a
+      lineup that has run his count up before, or a fresh bullpen behind him. "Tough
+      matchup" is not a mechanism — good starters get knocked around and still take the
+      ball into the fifth.
+    • Between them, 15.5 to 17.5, is where the manager's decision is genuinely live and
+      where the rate stats and workload above buy you the most.
+  Neither end is a filter and neither is disqualifying — see Section 5, which lists both.
+  They are simply the two numbers where a read can pass itself off as value most easily,
+  and they are listed as a matched pair on purpose.
+
 DISQUALIFIERS, both absolute: meaningful rain risk kills pitcher OVERS — he may not take
 the mound or may be pulled after a delay. And never bet a pitcher marked "NO STATS," in
 any market, prop or otherwise.
@@ -578,9 +698,18 @@ easy number priced to fully reflect how easy it is is a pass like any other.
   • Going DOWN the ladder on an over (or up on an under) buys probability and costs price;
     the other way sells probability for price. Both directions can be the value.
 
-Say in the reason which number you took and why that rung rather than the obvious one —
-"the 2.5 over at -160 rather than the 3.5 at +120" is exactly the kind of line the reader
-benefits from seeing.
+NAME THE RUNG YOU REJECTED. Whenever the card posts a ladder for the market you are
+betting, the reason must say which OTHER rung you considered and why this one beat it —
+"the 2.5 over at -160 rather than the 3.5 at +120, because three runs is the part I am
+confident in" is exactly the kind of line the reader benefits from seeing. This is not
+decoration: writing the comparison down is what stops the ladder from being read as a
+list of prices to pick the most attractive one from.
+
+  A NOTE ON WHAT THAT COMPARISON KEEPS PRODUCING. The pull is toward plus money — the
+  cheaper price on the harder number feels like the bet with more in it. It is not, unless
+  your estimate says the number lands more often than the price implies. If you find that
+  every pick on a slate came back at plus money, you did not read the ladder; you sorted
+  it.
 
 When the rung you want is NOT on the card — no ladder for that market, or the number you
 want sits outside it — that is what "alt_suggestion" is for. Name the number and the price
@@ -600,9 +729,21 @@ you cannot see elsewhere: a pitcher who has not actually pitched in a long time,
 relief appearance, a bullpen that is stressed or unusually fresh, an opponent-K-rate
 warning, or a single blowup outing skewing the 3-start line.
 
-Weather matters only when it is extreme. A genuinely extreme park factor or a hard wind
-can reinforce a total you already lean — almost never disqualify one, and never create
-one. Ordinary "hitter-friendly" or "pitcher-friendly" labels are not a reason for anything.
+The FLAGS block states facts and stops. It does not tell you which side a fact favours,
+and earlier versions of it did — if you find yourself repeating a flag's wording as though
+it were a conclusion, that is a habit from a card that no longer talks that way.
+
+Weather matters only when it is extreme. A genuinely extreme park factor, a hard wind, or
+a genuinely hot or cold game can reinforce a total you already lean — almost never
+disqualify one, and never create one. Ordinary "hitter-friendly" or "pitcher-friendly"
+labels are not a reason for anything.
+
+  TEMPERATURE is on the card now. It moves carry in the direction you would expect and
+  the effect is real but modest — a 90°F game and a 55°F game are a meaningful fraction
+  of a run apart, not a run. Treat it as Tier 3 alongside the park factor: a tiebreaker
+  on a total you already lean, never the case for one. The same goes for the elevation
+  line on the handful of parks that carry one.
+
 Rain risk and the "NO STATS" mark are disqualifiers rather than weights; both are stated
 once, in Section 8.
 
@@ -666,40 +807,64 @@ rather than about the game, delete it.
 ═══════════════════════════════════════════════════════════════════
 
 A game's card may carry a SITUATIONAL TRENDS block, printed separately from FLAGS at the
-end of the card. These are short-term situational spots the rate stats do not capture —
-weigh them as TIER 2 evidence: real, but never the sole reason for a bet, and never
-enough to override what Tier 1 already tells you.
+end of the card. The card states what happened; this section is where it is weighed.
 
-  • JUST GOT SWEPT — a team that just lost every game of its last series is a classic
-    bounce-back spot. A mild lean toward that team's side, stronger when Tier 1 does not
-    already argue against them.
-  • ALREADY DOWN 0-N IN THE CURRENT SERIES AND TODAY IS THE LAST GAME — a team facing a
-    sweep has extra motivation to avoid one. Same direction and weight as above.
-  • WAS SHUT OUT LAST TIME OUT — an offense held to zero is likely to see some
-    regression toward its real level. A mild lean toward that team scoring more — their
-    side or team total over — unless Tier 1 argues otherwise.
-  • LOST THE LAST GAME 1-0 — THIS ONE IS UNUSUALLY STRONG, not a minor nudge. A 1-0 loss
-    means the offense was one bloop hit or one bounce from a completely different
-    result. Do not read it as evidence the team or its bats are struggling — weight it
-    close to a Tier 1 signal when it lines up with the rest of the card, and say so
-    plainly in the reason if it factors into a pick.
-  • DIVISIONAL GAME — familiarity between division rivals tends to narrow the talent
-    gap slightly. A mild reason an underdog in a divisional game may carry a bit more
-    value than the price suggests — never enough on its own to justify a bet.
+READ THIS BEFORE THE BULLETS. These are the WEAKEST evidence on the card, weaker than
+anything in Tier 2. Every effect named below is small, and several are small enough that
+honest people argue about whether they exist. They can break a tie between two readings
+you already hold. They cannot create a bet, they cannot outweigh a Tier 1 matchup, and a
+pick whose case rests on one is not a pick.
+
+  • A RECENT BAD RESULT IS NOT A REASON TO EXPECT A GOOD ONE. A club that was swept, shut
+    out, or beaten 1-0 has not become more likely to win today because it is "due" — that
+    is not how independent games work. What a bad result IS good for is a warning against
+    over-reading it in the other direction: a lineup held to zero once has not become a
+    bad lineup, and a 1-0 loss says almost nothing about an offense at all. The correction
+    you would draw from either is already in the last-6 and last-12 numbers on the offense
+    line, so do not count it a second time here. The trap this bullet exists to stop is
+    reading "shut out yesterday" as evidence a lineup is cold.
+  • FACING A SWEEP IN THE LAST GAME OF A SERIES — a marginal motivation argument. Note it
+    if you like; it is not worth a cent on its own.
+  • DIVISIONAL GAME — familiarity between rivals may narrow the talent gap very slightly.
+    This applies to roughly two of every five games on a slate, which is a good reason not
+    to let it move anything.
+  • THE MIRROR CASES ARE JUST AS REAL AND JUST AS SMALL. A club coming off a sweep of its
+    own, or off a 12-run game, is subject to exactly the same regression toward its true
+    level — downward. If you would not bet the bounce-back, do not bet the letdown either.
+    A section whose every entry pointed the same way would be a standing lean rather than
+    a set of situational reads, and that is not what this is.
 
 ═══════════════════════════════════════════════════════════════════
 12. CONFIDENCE
 ═══════════════════════════════════════════════════════════════════
 
-Every pick carries "high" or "medium". These describe the strength of the MISPRICING, not
-how likely the bet is to win — a -180 favourite you expect to win 70% of the time is a
-medium-confidence bet if the price is roughly fair, and a coin flip at +140 is a high one
-if you think it is closer to even.
+WRITE YOUR ESTIMATE DOWN FIRST. Every pick carries two numeric fields alongside the
+confidence label, and they are what make "the price is wrong" a claim rather than a
+feeling:
 
-  • HIGH — Tier 1 points one way without contradiction, the head-to-head or the second
-    offense window corroborates it, and you can name the specific thing the market has
-    wrong. Rare. Most slates have none, and a slate with more than one or two is a slate
-    where "high" has stopped meaning anything.
+  • "projection" — the number you actually expect, on the same scale as the bet. Runs for
+    a total ("8.2 total runs", "4.6 for CLE"), strikeouts for a K prop, outs for an outs
+    prop, your win probability for a side. One number, your central estimate, not a range.
+  • "win_probability" — how often you think THE SIDE YOU ARE TAKING wins, 0-100. For a
+    total at 8.5 where you project 8.2 runs, the under does not win 100% of the time; it
+    wins somewhat more than half. Be honest about the spread around your projection.
+
+Derive the confidence label from those two against the card's no-vig price:
+
+  edge = your win_probability − the no-vig probability for that side
+
+Under 4 points, there is no pick (Section 4). Both fields are published as-is, so a
+projection you would not defend is a projection you should not submit.
+
+CONFIDENCE describes the strength of the MISPRICING, not how likely the bet is to win —
+a -180 favourite you expect to win 70% of the time is a medium-confidence bet if the price
+is roughly fair, and a coin flip at +140 is a high one if you think it is closer to even.
+
+  • HIGH — your edge over the no-vig price is roughly 8 points or better, Tier 1 points
+    one way without contradiction, the second offense window or the head-to-head
+    corroborates it, and you can name the specific thing the market has wrong. Rare. Most
+    slates have none, and a slate with more than one or two is a slate where "high" has
+    stopped meaning anything.
   • MEDIUM — everything else you are willing to publish. A real edge you can defend, with
     something on the other side of it. This is the default and should be most picks.
 
@@ -765,6 +930,15 @@ other than the main line is normal and correct, and a price quoted from that blo
 quoted from the card. Check the rung against the block before calling any figure invented,
 and never reject a pick for being at a non-main number.
 
+MORE OF THE CARD IS REAL THAN YOU MAY EXPECT. Check 2 rejects figures that are not on the
+card, so know what is: the temperature and any elevation on the Weather line; each
+bullpen's K%/BB%/HH% and its "2d stress" innings; the starter's K-BB%; the OVER/UNDER
+HISTORY block, which is graded outcomes rather than projections; the SEASON SERIES line;
+and the "[no-vig NN% / NN%]" figures beside each market, which are the two posted prices
+with the book's margin divided out. All of those are quotable. The analyst also submits a
+projection and a win probability of its own — those are estimates, not card figures, and
+are not subject to check 2.
+
 ═══════════════════════════════════════════════════════════════════
 REJECT if ANY of the following is true
 ═══════════════════════════════════════════════════════════════════
@@ -800,21 +974,19 @@ REJECT if ANY of the following is true
    rationale about Team A attached to a bet on Team B, or a rationale about the starters
    attached to a full-game bet whose case depends on the bullpens.
 
-4. PRICE VIOLATION. Anything priced worse than -200 is an automatic REJECT, in every
-   market, on main and alternate lines alike. Between -150 and -200 the rationale must say
-   what the juice is buying; REJECT if it never engages with the price at all.
+4. THE JUICE IS NOT EXPLAINED. Between -150 and -200 the rationale must say what the
+   price is buying; REJECT if it never engages with the price at all.
    Do NOT reject a bet merely for being juiced inside that range. A short alternate number
-   at -175 is a legitimate bet and this check is not a juice filter.
+   at -175 is a legitimate bet and this check is not a juice filter. You do not need to
+   check the -200 floor, whether the quoted price appears on the card, or whether the
+   stated edge clears its minimum — all three are enforced in code before a pick reaches
+   you, so anything you are looking at has already passed them.
 
 5. NO PRICING ARGUMENT AT ALL. The rationale handicaps the game but never says what the
    market has wrong. "Team A is better" is not a bet. If there is no claim of a
    mispricing, REJECT.
 
-6. DISQUALIFIED SETUP. A pitcher prop OVER when the card shows meaningful rain risk (a
-   delay shortens the outing, which cuts against an over and supports an under — do not
-   reject a rain-risk UNDER on these grounds), or any bet on a pitcher marked "NO STATS."
-
-7. K PROP FIGHTING THE LINEUP. The opponent's K% (last 6 vs that hand) is the strongest
+6. K PROP FIGHTING THE LINEUP. The opponent's K% (last 6 vs that hand) is the strongest
    input on a strikeout prop, and the two signals must agree.
      • REJECT: a K OVER into a lineup that does not strike out, unless the rationale
        explicitly confronts the low K% and explains why the number is beatable anyway.
@@ -828,13 +1000,13 @@ REJECT if ANY of the following is true
    A prop where both signals align, or where one is middling and the rationale accounts
    for it, is fine — do not reject those.
 
-8. K OVER WITH NO INNINGS TO GET THERE. A strikeout total is rate × length. If the card
+7. K OVER WITH NO INNINGS TO GET THERE. A strikeout total is rate × length. If the card
    posts an outs line of roughly 15.5 or below and the pick is a K OVER, the rationale
    must say why he pitches deeper than the market expects. REJECT if it never engages
    with the short outing at all. Do not apply this where the card posts no outs line, and
    do not reject a K UNDER on these grounds — a short outs line supports an under.
 
-9. THE RATIONALE'S OWN EVIDENCE ARGUES AGAINST THE BET. Not a judgment that the bet is
+8. THE RATIONALE'S OWN EVIDENCE ARGUES AGAINST THE BET. Not a judgment that the bet is
    thin — a rationale that states a fact and then bets the other way from it.
      • REJECT: a K OVER supported by a hot strikeout streak where the rationale itself
        notes, or the card plainly shows, that those totals came against HIGHER-K lineups
@@ -860,14 +1032,13 @@ disagree with is an ACCEPT. Reserve REJECT for genuine breakage.
 
 Do not reject for style, brevity, or missing detail that does not change the conclusion.
 
-A pick built primarily on a starter's history VS THIS OPPONENT or AT THIS PARK is a
-legitimate read, not thin reasoning — that split is a top-weighted input, and a rationale
-resting on a consistent multi-meeting pattern is an ACCEPT even where it cuts against the
-starter's overall xERA or the lineup's wRC+. Two conditions still apply: the meeting count
-must be stated and must match the card, and a case built on a SINGLE meeting is not a
-consistent pattern — REJECT that one, as a number doing more work than it can carry. (That
-is a weighting failure, not a misquote; do not file it under check 2, whose subject is
-figures that disagree with the card.)
+A starter's history VS THIS OPPONENT or AT THIS PARK is supporting evidence, not a
+top-weighted input — up to three meetings is a sample small enough that the rate stats
+computed over everything else usually win a conflict. Cited alongside a Tier 1 case it is
+fine. Standing alone as the whole case it is not, and neither is a case resting on a
+SINGLE meeting: REJECT both, as a number doing more work than it can carry. (That is a
+weighting failure, not a misquote; do not file it under check 2, whose subject is figures
+that disagree with the card.) The meeting count must be stated and must match the card.
 
 When rejecting, state the specific flaw in one or two sentences — quote the offending
 phrase from the rationale so the prompt can be fixed later. On ACCEPT, no reason needed.
@@ -895,6 +1066,170 @@ _VERIFY_TOOL = {
         "required": ["verdict"],
     },
 }
+
+
+# ── Mechanical validation ─────────────────────────────────────────────────────
+#
+# Everything here used to be enforced by asking a model nicely. The -200 floor was a
+# sentence in Section 5 and a check in the audit prompt, and both of those are the model
+# reading its own homework: nothing ever compared a submitted price against the card. The
+# rejection log has the failure in it — a pick citing "an 18.5 outs line" against a card
+# posting 17.5 — caught that time by an auditor reading carefully, which is not a control.
+# These checks are deterministic, free, and run before the audit call, so the paid pass
+# only ever sees picks whose numbers are real.
+
+PRICE_FLOOR = -200          # Section 5, in every market, main and alternate alike
+MIN_EDGE_PTS = 4.0          # Section 4, over the card's own no-vig price
+
+
+def _prop_for(pick: dict, g: dict, market: str):
+    """The posted prop dict for whichever starter this pick names, or None.
+
+    team_side is null on props, so the pitcher is identified the way picks.py already
+    identifies him: by his name appearing in the bet text.
+    """
+    od = g.get("odds") or {}
+    bet = (pick.get("bet") or "").lower()
+    for side in ("away", "home"):
+        name = ((g.get(f"{side}_sp") or {}).get("name") or "").lower()
+        if not name:
+            continue
+        last = name.split()[-1]
+        if name in bet or (len(last) > 3 and last in bet):
+            return od.get(f"{side}_{market}")
+    return None
+
+
+def _posted_prices(pick: dict, g: dict) -> Optional[list]:
+    """Every price the card posts for this exact (market, line, side), or None.
+
+    None means "could not identify the market" and is NOT a rejection — an unrecognised
+    shape fails open, same as the audit pass does on an API error. An empty list means
+    the market was found and this line/side is not on it.
+    """
+    od   = g.get("odds") or {}
+    bt   = pick.get("bet_type") or ""
+    side = pick.get("team_side")
+    line = pick.get("line")
+    bet  = (pick.get("bet") or "").lower()
+
+    def px(*keys):
+        return [price_from(od.get(k)) for k in keys if price_from(od.get(k)) is not None]
+
+    def at_line(key):
+        """Price for a lined market, only if the posted line matches the pick's."""
+        posted = od.get(key)
+        if not posted or posted == "—":
+            return []
+        pt = point_from(posted)
+        if line is None or pt is None or abs(pt) != abs(float(line)):
+            return []
+        p = price_from(posted)
+        return [p] if p is not None else []
+
+    if bt == "ML":
+        return px("away_ml") if side == "away" else px("home_ml")
+    if bt == "F5_ML":
+        return px("away_f5_ml") if side == "away" else px("home_f5_ml")
+    if bt == "Spread":
+        return at_line("away_spread" if side == "away" else "home_spread")
+    if bt == "F5_Spread":
+        return at_line("away_f5_spread" if side == "away" else "home_f5_spread")
+    if bt == "Total":
+        return at_line("over" if side == "over" else "under")
+    if bt == "F5_Total":
+        return at_line("f5_over" if side == "over" else "f5_under")
+    if bt == "Team_Total":
+        if not side or "_" not in side:
+            return None
+        club, direction = side.split("_", 1)
+        period = pick.get("period") or "full_game"
+        prefix = f"{club}_f5tt" if period == "f5" else f"{club}_tt"
+        found  = at_line(f"{prefix}_{direction}")
+        if found:
+            return found
+        # The ladder is real bettable pricing too, so a non-main rung is not invented.
+        rungs = od.get(f"{club}_tt_alts") or [] if period != "f5" else []
+        return [r[direction] for r in rungs
+                if line is not None and r.get("point") == float(line)
+                and r.get(direction) is not None]
+    if bt in ("Pitcher_Ks", "Pitcher_Outs"):
+        market = "k" if bt == "Pitcher_Ks" else "outs"
+        direction = "over" if "over" in bet else ("under" if "under" in bet else None)
+        if direction is None:
+            return None
+        prop = _prop_for(pick, g, market)
+        out = []
+        if prop and line is not None and prop.get("point") == float(line):
+            if prop.get(direction) is not None:
+                out.append(prop[direction])
+        if market == "k":
+            for sp_side in ("away", "home"):
+                name = ((g.get(f"{sp_side}_sp") or {}).get("name") or "").lower()
+                last = name.split()[-1] if name else ""
+                if not name or not (name in bet or (len(last) > 3 and last in bet)):
+                    continue
+                for r in (od.get(f"{sp_side}_k_alts") or []):
+                    if line is not None and r.get("point") == float(line) \
+                       and r.get(direction) is not None:
+                        out.append(r[direction])
+        return out
+    return None
+
+
+def _validate_pick(pick: dict, g: dict) -> Optional[str]:
+    """Deterministic pre-audit checks. Returns a rejection reason, or None to pass."""
+    bt = pick.get("bet_type") or ""
+
+    # 1. The price floor is an `if` now, not a sentence in two prompts.
+    odds_num = pick.get("odds_num")
+    if odds_num is None:
+        from picks import _odds_num as _parse
+        odds_num = _parse(pick)
+    if odds_num is None:
+        return "no usable price on the pick (odds and odds_num both unparseable)"
+    if odds_num < PRICE_FLOOR:
+        return f"price {odds_num} is worse than the {PRICE_FLOOR} floor (Section 5)"
+
+    # 2. The two disqualifiers from Section 8, which never needed a model to check.
+    #    These describe the setup rather than the number, so they report before the
+    #    price check — a rain-risk over rejected for a stale price would put the wrong
+    #    cause in the rejection log, which is what that log is read for.
+    if bt in ("Pitcher_Ks", "Pitcher_Outs"):
+        bet_l = (pick.get("bet") or "").lower()
+        if "over" in bet_l and (g.get("wx") or {}).get("precip_risk_during_game"):
+            return "pitcher OVER into meaningful rain risk (Section 8 disqualifier)"
+        for sp_side in ("away", "home"):
+            sp = g.get(f"{sp_side}_sp") or {}
+            name = (sp.get("name") or "").lower()
+            last = name.split()[-1] if name else ""
+            if name and (name in bet_l or (len(last) > 3 and last in bet_l)) \
+               and not sp.get("has_stats"):
+                return f"{sp.get('name')} is marked NO STATS (Section 8 disqualifier)"
+
+    # 3. The quoted price must be one the card actually posts for this line and side.
+    posted = _posted_prices(pick, g)
+    if posted is None:
+        print(f"[validate] {pick.get('game')} | {pick.get('bet')}: market not recognised "
+              f"— keeping unvalidated", file=sys.stderr)
+    elif not posted:
+        return (f"the card posts no {bt} at {pick.get('line')} on "
+                f"{pick.get('team_side') or 'that side'}")
+    elif odds_num not in posted:
+        # dict.fromkeys rather than set(): the main rung is merged into the ladder, so
+        # the same price legitimately appears twice, and the message reads badly with it.
+        shown = "/".join(str(x) for x in dict.fromkeys(posted))
+        return f"quoted {odds_num} but the card posts {shown} for that line and side"
+
+    # 4. Section 4's edge threshold, computed rather than asserted.
+    wp, mp = pick.get("win_probability"), pick.get("market_probability")
+    if wp is not None and mp is not None:
+        edge = float(wp) - float(mp)
+        if edge < MIN_EDGE_PTS:
+            return (f"stated edge is {edge:.1f} points over the no-vig price, "
+                    f"under the {MIN_EDGE_PTS:.0f}-point minimum (Section 4)")
+
+    return None
 
 
 def _verify_pick(client, pick: dict, game_block: str) -> tuple[bool, str]:
@@ -1003,7 +1338,21 @@ def _serialize_game_for_ai(g: dict) -> str:
         apf_s = f", APF {apf:.0f}" if apf else ""
         venue_tag = f"Open Air{apf_s}"
 
+    # Temperature was fetched, rendered on the HTML weather badge, and dropped here —
+    # so a 96°F afternoon and a 54°F night both serialized as "Clear/Calm". It is one of
+    # the larger day-to-day swings in run environment there is, and §6 asks the model to
+    # build one on every game. Elevation rides along for the handful of parks where it
+    # is the story; humidity only when it is extreme enough to matter for carry.
     wx_parts = []
+    temp = wx.get("temperature")
+    if temp is not None:
+        wx_parts.append(f"{temp:.0f}°F")
+    hum = wx.get("humidity")
+    if hum is not None and (hum >= 75 or hum <= 25):
+        wx_parts.append(f"{hum:.0f}% humidity")
+    elev = wx.get("elevation_ft")
+    if elev is not None and elev >= 3000:
+        wx_parts.append(f"{elev:,.0f} ft elevation")
     if wx.get("precip_risk_during_game"):
         prob = wx.get("precip_probability")
         wx_parts.append(f"RAIN RISK {prob:.0f}%" if prob else "RAIN RISK")
@@ -1014,7 +1363,7 @@ def _serialize_game_for_ai(g: dict) -> str:
     if wind_lbl and wind_lbl not in ("Calm", "Indoor", ""):
         mph = f" {wind_mph:.0f}mph" if wind_mph else ""
         wx_parts.append(f"Wind: {wind_lbl}{mph}")
-    wx_s = ", ".join(wx_parts) if wx_parts else "Clear/Calm"
+    wx_s = ", ".join(wx_parts) if wx_parts else "No weather data"
 
     # extract_outings() returns NEWEST first, so the three most recent starts are the
     # leading slice — not the trailing one. Reversed below for chronological display.
@@ -1076,7 +1425,8 @@ def _serialize_game_for_ai(g: dict) -> str:
             parts.append(f"xERA {sp['xera_s']} ({sp['label']})")
         else:
             parts.append(f"xERA {sp['xera_s']}")
-        for key, lbl in [("k", "K%"), ("whiff", "Whiff%"), ("hard", "HH%"), ("bb", "BB%"), ("barrel", "Barrel%"), ("era_s", "ERA")]:
+        for key, lbl in [("k", "K%"), ("whiff", "Whiff%"), ("hard", "HH%"), ("bb", "BB%"),
+                         ("kbb_s", "K-BB%"), ("barrel", "Barrel%"), ("era_s", "ERA")]:
             val = sp.get(key)
             if val not in ("?", "—", None):
                 parts.append(f"{lbl} {val}")
@@ -1121,13 +1471,54 @@ def _serialize_game_for_ai(g: dict) -> str:
         return f"  {team} {split}: " + ", ".join(parts)
 
     def _bp_line(team, bp):
+        # Stress used to reach the card only through a flag that fired on three of five
+        # labels, so on 56% of team-games (Normal, or no recent games) the model was
+        # asked by §2 and §8 to weigh a factor with no line on the card at all. It is
+        # printed for every team now, label included, and the flag covers only the
+        # exceptional readings. K%/BB%/HH% were computed and dropped the same way; the
+        # card was showing two of six numbers on a unit that decides most totals.
         if not bp:
             return f"  {team}: No data"
         parts = [f"xERA {bp.get('xera_s', '?')}"]
         era_s = bp.get("era_s")
         if era_s not in ("?", "N/A", None):
             parts.append(f"ERA {era_s}")
+        for lbl, key in (("K%", "k"), ("BB%", "bb"), ("HH%", "hard")):
+            val = bp.get(key)
+            if val not in ("?", "—", "N/A", None):
+                parts.append(f"{lbl} {val}")
+        s_ip, s_lbl = bp.get("stress_ip"), bp.get("stress_label") or ""
+        if s_ip is not None and s_lbl and s_lbl != "No recent games":
+            parts.append(f"2d stress {s_ip:.1f} IP over {bp.get('stress_games', 0)}g ({s_lbl})")
+        else:
+            parts.append("2d stress: no games in the past 2 days")
         return f"  {team}: " + ", ".join(parts)
+
+    def _ou_line(team, ou):
+        """Graded over/under records across four slices of real history.
+
+        ou_trends() has always built these and render_html.py has always shown them; the
+        AI card never carried them. They are the only place on the card where totals are
+        measured by how they actually RESOLVED rather than by inputs, which is the one
+        thing §6 has no other source for. Slices below their sample floor are already
+        dropped upstream, so anything printed here has a usable n.
+        """
+        if not ou:
+            return f"  {team}: no graded history"
+        side = "home" if ou.get("is_home") else "away"
+        parts = []
+        for key, tail in (
+            ("last10",        "last {n}"),
+            ("last10_side",   "last {n} " + side),
+            ("sp_last5",      "last {n} behind this SP"),
+            ("sp_last3_side", "last {n} behind this SP at " + side),
+        ):
+            rec = ou.get(key)
+            if not rec:
+                continue
+            over, under = rec
+            parts.append(f"{over}-{under} O/U over the " + tail.format(n=ou.get(f"n_{key}", over + under)))
+        return f"  {team}: " + (", ".join(parts) if parts else "no graded history")
 
     def _trend_line(team, tr):
         if not tr:
@@ -1170,23 +1561,35 @@ def _serialize_game_for_ai(g: dict) -> str:
         ("F5 Team Total",  "has_f5tt", "away_f5tt_over", "away_f5tt_under", "away"),
         ("F5 Team Total",  "has_f5tt", "home_f5tt_over", "home_f5tt_under", "home"),
     )
+    def _nv(key_a, key_b):
+        """The market's two prices with the book's margin divided out.
+
+        Both halves are already on the card, so this is arithmetic on data the model
+        can see rather than a new input. It exists because §5 asks whether the price is
+        wrong for the chance, and §8A quotes break-evens, while the card carried no
+        probability to check either claim against.
+        """
+        pair = no_vig_pair(od.get(key_a), od.get(key_b))
+        return f"  [no-vig {pair[0]*100:.0f}% / {pair[1]*100:.0f}%]" if pair else ""
+
     odds_lines = []
     for label, gate, key_a, key_b, shape in _ODDS_ROWS:
         if gate and not od.get(gate):
             continue
         if not _o(od.get(key_a)):
             continue
+        nv = _nv(key_a, key_b)
         if shape is True:          # one price per club
-            odds_lines.append(f"  {label}: {away} {od[key_a]} / {home} {od[key_b]}")
+            odds_lines.append(f"  {label}: {away} {od[key_a]} / {home} {od[key_b]}{nv}")
         elif shape is False:       # over/under on a shared number
-            odds_lines.append(f"  {label}: {od[key_a]} / {od[key_b]}")
+            odds_lines.append(f"  {label}: {od[key_a]} / {od[key_b]}{nv}")
         else:                      # one club's own over/under
             club = away if shape == "away" else home
-            odds_lines.append(f"  {club} {label}: {od[key_a]} / {od[key_b]}")
-    k_a  = fmt_k_line(od.get("away_k"))
-    k_h  = fmt_k_line(od.get("home_k"))
-    ou_a = fmt_outs_line(od.get("away_outs"))
-    ou_h = fmt_outs_line(od.get("home_outs"))
+            odds_lines.append(f"  {club} {label}: {od[key_a]} / {od[key_b]}{nv}")
+    k_a  = fmt_k_line(od.get("away_k"), no_vig=True)
+    k_h  = fmt_k_line(od.get("home_k"), no_vig=True)
+    ou_a = fmt_outs_line(od.get("away_outs"), no_vig=True)
+    ou_h = fmt_outs_line(od.get("home_outs"), no_vig=True)
     prop_parts = []
     if k_a or ou_a:
         prop_parts.append(f"{sp_a['name']} ({away}): {', '.join(p for p in [k_a, ou_a] if p)}")
@@ -1299,13 +1702,56 @@ def _serialize_game_for_ai(g: dict) -> str:
     lines.append("TEAM TRENDS (in this starter's recent starts):")
     lines.append(_trend_line(away, tr_a))
     lines.append(_trend_line(home, tr_h))
+    lines.append(
+        "OVER/UNDER HISTORY — how the GAME TOTAL actually resolved in these teams' "
+        "graded games. These are outcomes, not inputs; a lopsided record is a starting "
+        "question, not an edge on its own:"
+    )
+    lines.append(_ou_line(away, g.get("away_ou")))
+    lines.append(_ou_line(home, g.get("home_ou")))
+    lu = g.get("lineups")
+    sides = g.get("bat_sides") or {}
+    if lu:
+        def _lineup_line(team, players, opp_hand):
+            cells, counts = [], {"L": 0, "R": 0, "S": 0}
+            for i, pl in enumerate(players, 1):
+                bs = sides.get(pl["id"], "?")
+                counts[bs] = counts.get(bs, 0) + 1
+                cells.append(f"{i}. {pl['name']} ({bs}, {pl['pos']})")
+            # Switch hitters bat opposite the arm, so they count on the platoon-
+            # advantage side of an opposing starter, not against it.
+            adv = counts.get("S", 0) + counts.get("L" if opp_hand == "R" else "R", 0)
+            head = (f"  {team} ({adv} of {len(players)} bat with the platoon advantage "
+                    f"vs {opp_hand}HP): ")
+            return head + "; ".join(cells)
+        lines.append(
+            "POSTED LINEUP — today's actual batting order. The offense numbers above are "
+            "TEAM figures over the last 6 games and know nothing about who is in the box "
+            "today, so this is the one place a missing regular or an unusual platoon "
+            "arrangement is visible:"
+        )
+        lines.append(_lineup_line(away, lu["away"], hand_h))
+        lines.append(_lineup_line(home, lu["home"], hand_a))
+    else:
+        lines.append(
+            "POSTED LINEUP: not yet posted (MLB releases these 1-2 hours before first "
+            "pitch). The team offense figures above are all there is — do not treat the "
+            "absence as information about either club."
+        )
+    h2h = g.get("h2h") or {}
+    if h2h.get("total", 0) >= 2:
+        lines.append(
+            f"SEASON SERIES: {away} {h2h['away_wins']}-{h2h['home_wins']} {home} "
+            f"({h2h['total']} games played this season)"
+        )
     situational = [f[len("TREND: "):] for f in flags if f.startswith("TREND: ")]
     other_flags = [f for f in flags if not f.startswith("TREND: ")]
     if other_flags:
         lines.append("FLAGS:")
         lines.extend(f"  {f}" for f in other_flags)
     if situational:
-        lines.append("SITUATIONAL TRENDS (see Section 11 — weigh these, do not bury them):")
+        lines.append("SITUATIONAL TRENDS (facts about recent results; Section 11 sets "
+                     "what they are worth, which is very little):")
         lines.extend(f"  {f}" for f in situational)
     return "\n".join(lines)
 
@@ -1439,6 +1885,37 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                             "odds":        {"type": "string", "description": "American odds string, e.g. '-110' or '+145'"},
                             "odds_num":    {"type": "integer", "description": "Same odds as an integer, e.g. -110 or 145. Must match the odds string."},
                             "confidence":  {"type": "string", "enum": ["high", "medium"]},
+                            # These three turn "the price is wrong" into a claim that can
+                            # be graded after the fact. Before them the prompt asked the
+                            # model to compare its estimate against the price without ever
+                            # writing the estimate down, which made the mispricing
+                            # unfalsifiable and the break-even table decorative.
+                            "projection":  {
+                                "type": "number",
+                                "description": (
+                                    "Your central estimate on the same scale as the bet: total "
+                                    "runs for a total, that club's runs for a team total, "
+                                    "strikeouts for a K prop, outs for an outs prop, your win "
+                                    "probability 0-100 for a side."
+                                ),
+                            },
+                            "win_probability": {
+                                "type": "number",
+                                "description": (
+                                    "How often THE SIDE YOU ARE TAKING wins, 0-100. Not how "
+                                    "confident you feel — the actual frequency implied by your "
+                                    "projection and the spread around it."
+                                ),
+                            },
+                            "market_probability": {
+                                "type": "number",
+                                "description": (
+                                    "The no-vig probability the card prints for the side you are "
+                                    "taking, 0-100, copied from the [no-vig …] figure on that "
+                                    "market's line. win_probability minus this is your edge and "
+                                    "must be at least 4 points."
+                                ),
+                            },
                             "reason":      {
                                 "type": "string",
                                 "description": (
@@ -1458,8 +1935,16 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                             },
                             "line_warning":   {"type": "boolean"},
                             "alt_suggestion": {"type": ["string", "null"]},
+                            "rung_rejected":  {
+                                "type": ["string", "null"],
+                                "description": (
+                                    "When the card posts an ALT LINES ladder for this market: the "
+                                    "other rung you considered and rejected, with its price, e.g. "
+                                    "'3.5 over at +120'. Null when the market has no ladder."
+                                ),
+                            },
                         },
-                        "required": ["game", "bet_type", "bet", "team_side", "line", "period", "odds", "odds_num", "confidence", "reason"],
+                        "required": ["game", "bet_type", "bet", "team_side", "line", "period", "odds", "odds_num", "confidence", "reason", "projection", "win_probability", "market_probability"],
                     },
                 },
                 "pass_reasons": {
@@ -1528,6 +2013,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
     if picks:
         blocks_by_game = {f"{g['away']} @ {g['home']}": b
                           for g, b in zip(unstarted, serialized)}
+        games_by_key   = {f"{g['away']} @ {g['home']}": g for g in unstarted}
         kept, rejections = [], []
         for pick in picks:
             game = pick.get("game", "")
@@ -1536,6 +2022,23 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                 # Can't audit what we can't match — keep it rather than drop blind.
                 print(f"[verify] no card for '{game}' — keeping unaudited", file=sys.stderr)
                 kept.append(pick)
+                continue
+            # Deterministic checks first: a pick quoting a price the card does not post
+            # should never reach the paid audit call, let alone the page.
+            why = _validate_pick(pick, games_by_key[game])
+            if why:
+                print(f"[validate] REJECT {game} | {pick.get('bet')} — {why}", file=sys.stderr)
+                rejections.append({
+                    "date":          date_str,
+                    "game":          game,
+                    "bet_type":      pick.get("bet_type", ""),
+                    "bet":           pick.get("bet", ""),
+                    "odds":          pick.get("odds", ""),
+                    "confidence":    pick.get("confidence", ""),
+                    "reason":        pick.get("reason", ""),
+                    "reject_reason": f"[mechanical] {why}",
+                    "rejected_at":   datetime.now(timezone.utc).isoformat(),
+                })
                 continue
             ok, why = _verify_pick(client, pick, block)
             if ok:
@@ -1555,7 +2058,9 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                 })
         result["picks"] = kept
         _log_rejections(rejections, rej_dir, date_str)
-        print(f"[verify] {len(kept)} kept, {len(rejections)} rejected of {len(picks)}",
+        n_mech = sum(1 for r in rejections if r["reject_reason"].startswith("[mechanical]"))
+        print(f"[verify] {len(kept)} kept, {len(rejections)} rejected of {len(picks)} "
+              f"({n_mech} mechanically, {len(rejections) - n_mech} by audit)",
               file=sys.stderr)
 
     try:

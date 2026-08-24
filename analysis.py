@@ -369,11 +369,9 @@ def team_whiff_k_flag(off: Optional[dict]) -> Optional[str]:
     whiff_tier = _pct_tier(whiff, (18, 21, 25, 28))
     gap = k_tier - whiff_tier
     if gap >= 2:
-        return (f"K% {k:.1f} (last 6) is well above what Whiff% {whiff:.1f} supports "
-                "— strikeout rate looks due for positive regression (fewer Ks)")
+        return f"K% {k:.1f} (last 6) runs well above what Whiff% {whiff:.1f} supports"
     if gap <= -2:
-        return (f"Whiff% {whiff:.1f} (last 6) is well above what K% {k:.1f} shows "
-                "— strikeout rate may be undervalued, more Ks could be due")
+        return f"Whiff% {whiff:.1f} (last 6) runs well above what K% {k:.1f} shows"
     return None
 
 
@@ -390,11 +388,11 @@ def pitcher_whiff_k_flag(sp: dict) -> Optional[str]:
     whiff_tier = _pct_tier(whiff, (12, 17, 23, 28))
     gap = k_tier - whiff_tier
     if gap >= 2:
-        return (f"K% {k:.1f} (last 3 starts) is well above what Whiff% {whiff:.1f} "
-                "supports — his strikeout rate may be inflated and due to come back down")
+        return (f"K% {k:.1f} (last 3 starts) runs well above what Whiff% "
+                f"{whiff:.1f} supports")
     if gap <= -2:
-        return (f"Whiff% {whiff:.1f} (last 3 starts) is well above what K% {k:.1f} "
-                "shows — his strikeout rate looks undervalued, more Ks may be due")
+        return (f"Whiff% {whiff:.1f} (last 3 starts) runs well above what K% "
+                f"{k:.1f} shows")
     return None
 
 
@@ -413,12 +411,12 @@ def pitcher_csv_flags(row: dict) -> list[str]:
         return flags
 
     if ip is not None and ip < 9:
-        flags.append(f"small sample ({ip:.1f} IP over 3 starts) — stats may not reflect true ability")
+        flags.append(f"small sample: {ip:.1f} IP over 3 starts")
 
     ogs    = flt(row.get("Outs/GS"))
 
     if ogs    is not None and (ogs / 3) < 4.0:
-        flags.append(f"avg {ogs/3:.1f} IP/gs — short outings, bullpen likely needed early")
+        flags.append(f"avg {ogs/3:.1f} IP/gs over his last 3")
 
     return flags
 
@@ -427,9 +425,7 @@ def bullpen_flags(row: dict) -> list[str]:
     flags = []
     xera = flt(row.get("xERA"))
     if xera is not None and xera > 5.0:
-        flags.append(
-            f"bullpen xERA {xera:.2f} — bullpen performing well below average by expected ERA"
-        )
+        flags.append(f"bullpen xERA {xera:.2f} over its last 12")
     return flags
 
 
@@ -452,18 +448,16 @@ def team_situational_flags(
     if not completed:
         return flags
 
+    # These state the result and stop. "due for some offensive regression" put
+    # gambler's-fallacy phrasing in the data layer, and worse, double-counted: a
+    # lineup's pull back toward its true level is exactly what the last-6/last-12 pair
+    # on the offense line already measures. §11 assigns the weight.
     last = completed[-1]
     if not last["won"] and last["runs_scored"] == 0:
         if last["runs_allowed"] == 1:
-            flags.append(
-                "lost the last game 1-0 — decided by a single run; a shutout loss this "
-                "close says little about the offense, don't treat it as a slump"
-            )
+            flags.append(f"lost the last game 1-0 ({last['date']})")
         else:
-            flags.append(
-                f"was shut out {last['runs_allowed']}-0 last time out — due for some "
-                "offensive regression"
-            )
+            flags.append(f"was shut out {last['runs_allowed']}-0 last time out ({last['date']})")
 
     # Trailing run of consecutive completed games against one opponent, ending at `last`.
     # This is the current (or just-finished) series, series length not being a field the
@@ -478,7 +472,7 @@ def team_situational_flags(
     all_losses = bool(block) and all(not g["won"] for g in block)
 
     if opp and all_losses and len(block) >= 2:
-        flags.append(f"just got swept by {opp} ({len(block)} games) — classic bounce-back spot")
+        flags.append(f"just got swept by {opp} ({len(block)} games)")
     elif (
         opp and all_losses and opp == opp_abbr_today
         and series_game_number and games_in_series
@@ -486,8 +480,8 @@ def team_situational_flags(
         and len(block) == series_game_number - 1
     ):
         flags.append(
-            f"already dropped all {len(block)} game(s) of this series vs {opp} — a loss "
-            "today completes the sweep, extra motivation to avoid it"
+            f"already dropped all {len(block)} game(s) of this series vs {opp}; "
+            f"a loss today completes the sweep"
         )
 
     return flags
@@ -532,27 +526,34 @@ def weather_flags(wx: dict, neutral_site: bool = False) -> list[str]:
         prob_s = f" {precip_prob:.0f}%" if precip_prob is not None else ""
         flags.append(f"rain risk{prob_s}{roof_caveat} — game delay or conditions may affect performance")
     elif precip_prob is not None and precip_prob >= 30:
-        flags.append(f"rain chance {precip_prob:.0f}%{roof_caveat} — monitor for delays")
+        flags.append(f"rain chance {precip_prob:.0f}%{roof_caveat}")
 
     if wind_lbl and wind_lbl not in ("Calm", "Indoor", ""):
         speed_s = f" {wind_speed:.0f} mph" if wind_speed is not None else ""
         dir_s   = wx.get("wind_direction_label") or ""
         from_s  = f" from the {dir_s}" if dir_s else ""
-        # Direction is now real (measured against the park's azimuth), so say what it
-        # means rather than the old catch-all. The previous code labelled any wind
-        # over 15 mph as "Out" without consulting direction at all.
-        phrase, meaning = {
-            "Out":   ("blowing OUT",  "supports the over and HR props"),
-            "In":    ("blowing IN",   "suppresses the over and HR props"),
-            "Cross": ("across the field", "little effect on carry either way"),
-        }.get(wind_lbl, (wind_lbl, "factor into total and HR expectations"))
-        flags.append(f"wind {phrase}{speed_s}{from_s}{roof_caveat} — {meaning}")
+        # Direction is now real (measured against the park's azimuth). The flag states
+        # the direction and stops there: a card line that names a side ("supports the
+        # over") is a betting verdict sitting in the data layer, and it outweighs the
+        # prompt's own weighting rules because it is specific to this game. §9 decides
+        # what a wind reading is worth; this only reports it. The previous code labelled
+        # any wind over 15 mph as "Out" without consulting direction at all.
+        phrase = {
+            "Out":   "blowing OUT",
+            "In":    "blowing IN",
+            "Cross": "blowing ACROSS the field",
+        }.get(wind_lbl, wind_lbl)
+        flags.append(f"wind {phrase}{speed_s}{from_s}{roof_caveat}")
 
     if apf is not None and not neutral_site:
+        # No "favor the over" tail. §9 of the prompt says in as many words that an
+        # ordinary hitter-friendly/pitcher-friendly label "is not a reason for
+        # anything" — a card line telling the model to favor a side contradicted the
+        # rule it was supposed to be governed by, and the card wins that argument.
         if apf >= 108:
-            flags.append(f"hitter-friendly park (APF {apf:.0f}) — park boosts offense, favor the over and HR props")
+            flags.append(f"hitter-friendly park (APF {apf:.0f})")
         elif apf <= 92:
-            flags.append(f"pitcher-friendly park (APF {apf:.0f}) — park suppresses offense, favor the under")
+            flags.append(f"pitcher-friendly park (APF {apf:.0f})")
 
     return flags
 
@@ -590,8 +591,7 @@ def pitcher_history_flags(
             days = (today - last_dt).days
             if days > 10:
                 flags.append(
-                    f"{days} days since last start ({_raw_date(start_entries[-1])}) "
-                    "— may not be fully stretched out"
+                    f"{days} days since last start ({_raw_date(start_entries[-1])})"
                 )
 
     # Recent relief appearances
@@ -603,7 +603,6 @@ def pitcher_history_flags(
         flags.append(
             "recent bullpen appearance: "
             + ", ".join(sorted(relief_dates, reverse=True)[:2])
-            + " — may affect pitch count or availability"
         )
 
     # Pitch count on last start
@@ -612,10 +611,12 @@ def pitcher_history_flags(
         pc = last_stat.get("numberOfPitches")
         if pc is not None:
             pc = int(pc)
-            if pc < 80:
-                flags.append(f"last start: {pc} pitches — short outing, possible injury concern or early hook")
-            elif pc > 100:
-                flags.append(f"last start: {pc} pitches — high pitch count, may be on shorter leash today")
+            # Reported at both ends without a reading attached. "high pitch count, may be
+            # on shorter leash today" and "possible injury concern or early hook" were
+            # both conclusions, and §8 is where a pitch count gets turned into one.
+            if pc < 80 or pc > 100:
+                ip = flt(last_stat.get("inningsPitched")) or 0
+                flags.append(f"last start: {pc} pitches over {ip:.1f} IP")
 
     # One rough outing skewing the 3-game ERA
     if len(recent_3) >= 2:
@@ -636,8 +637,9 @@ def pitcher_history_flags(
                     + (f" (ERA equiv {worst['era_eq']:.0f})" if worst["ip"] >= 2.0 else "")
                 )
                 flags.append(
-                    f"{worst['date']}: {outing_str} skewing 3-game ERA "
-                    "— other starts look better, don't overweight the ERA"
+                    f"{worst['date']}: {outing_str}; the other "
+                    f"{len(others)} start(s) in the 3-game window average "
+                    f"{avg_other:.2f} ERA equivalent"
                 )
 
     # K outlier in last 3 starts
@@ -650,9 +652,9 @@ def pitcher_history_flags(
         avg_k = sum(k for k, _ in k_pairs) / len(k_pairs)
         for k, d in k_pairs:
             if k >= max(avg_k * 1.75, 9) and k >= avg_k + 3:
-                flags.append(f"high-K outing {d} ({k} Ks vs avg {avg_k:.1f}) — stuff can dominate; may not repeat")
+                flags.append(f"high-K outing {d} ({k} Ks vs avg {avg_k:.1f} over his last 3)")
             elif avg_k >= 5 and k <= avg_k * 0.4 and k <= avg_k - 3:
-                flags.append(f"low-K outing {d} ({k} Ks vs avg {avg_k:.1f}) — stuff was flat that day")
+                flags.append(f"low-K outing {d} ({k} Ks vs avg {avg_k:.1f} over his last 3)")
 
     # Opponent K-rate context
     opp_pool = lhp_pool if hand == "L" else rhp_pool
@@ -671,10 +673,10 @@ def pitcher_history_flags(
         low_k  = [(t, k) for t, k in opp_ks if k < 19]
         if len(high_k) >= 2:
             detail = ", ".join(f"{t} {k:.0f}%" for t, k in high_k)
-            flags.append(f"recent opponents high-K: {detail} — K stats may be inflated vs strikeout-prone lineups")
+            flags.append(f"recent opponents high-K: {detail}")
         elif len(low_k) >= 2:
             detail = ", ".join(f"{t} {k:.0f}%" for t, k in low_k)
-            flags.append(f"recent opponents low-K: {detail} — recent opponents make less contact; today's lineup may be tougher")
+            flags.append(f"recent opponents low-K: {detail}")
 
     return flags
 
@@ -1203,20 +1205,19 @@ def analyze_game(
         for f in bullpen_flags(b):
             flags.append(f"{team} bullpen: {f}")
     for team, bp_d in [(away_team, away_bp), (home_team, home_bp)]:
+        # Stress used to arrive with a verdict attached ("lean SP K/outs OVER" /
+        # "...UNDER"). That was the lever behind the outs skew: §8 was rewritten to say
+        # both sides of an outs prop are live, and the card went on telling the model
+        # which one to take, in imperative form, next to the numbers. Outs picks over
+        # the following weeks ran 9 unders to 1 over. The innings are the fact; §8
+        # decides what they mean. The number itself now also rides on the bullpen line
+        # for every team (see _bp_line), so this flag is only the exceptional cases.
         slabel = bp_d.get("stress_label", "")
-        if slabel in ("Elevated", "Stressed"):
+        if slabel in ("Elevated", "Stressed", "Fresh"):
             ip    = bp_d.get("stress_ip", 0)
             g_cnt = bp_d.get("stress_games", 0)
             flags.append(
-                f"{team} bullpen {slabel.lower()} ({ip:.1f} IP over {g_cnt}g) "
-                "— manager likely leaves starter in longer; lean SP K/outs OVER"
-            )
-        elif slabel == "Fresh":
-            ip    = bp_d.get("stress_ip", 0)
-            g_cnt = bp_d.get("stress_games", 0)
-            flags.append(
-                f"{team} bullpen fresh ({ip:.1f} IP over {g_cnt}g) "
-                "— manager may hook starter early; lean SP K/outs UNDER"
+                f"{team} bullpen {slabel.lower()} ({ip:.1f} IP over {g_cnt}g)"
             )
     hist_cur_map = {away_team: away_hist_cur, home_team: home_hist_cur}
     for team, p in [(away_team, p_away), (home_team, p_home)]:
@@ -1237,11 +1238,10 @@ def analyze_game(
 
     away_div, home_div = division(away_team), division(home_team)
     if away_div and away_div == home_div:
-        flags.append(
-            f"TREND: DIVISIONAL GAME ({away_div}) — familiarity between rivals tends to "
-            "narrow the talent gap; the underdog can carry a bit more value than the "
-            "price suggests"
-        )
+        # The reasoning tail lived here AND in §11, so a weak-to-nonexistent effect was
+        # asserted twice per game — once as a rule, once as a fact about this game — on
+        # roughly two of every five games on a slate. §11 carries it once now.
+        flags.append(f"TREND: DIVISIONAL GAME ({away_div})")
 
     # A neutral site invalidates anything derived from the home club's usual park —
     # most importantly the park factor, which the prompt uses as a total tiebreaker.
@@ -1289,4 +1289,9 @@ def analyze_game(
         "away_trends":      away_trends,
         "home_trends":      home_trends,
         "h2h":              h2h,
+        # Posted an hour or two before first pitch; absent on the early runs and on the
+        # tomorrow page. Passed straight through — nothing here derives from it, it only
+        # reaches the AI card.
+        "lineups":          mlb_info.get("lineups"),
+        "bat_sides":        mlb_info.get("bat_sides") or {},
     }

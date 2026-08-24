@@ -378,7 +378,7 @@ def _fetch_game_results(target_date: date) -> dict:
                 "sportId": 1,
                 "date": target_date.isoformat(),
                 "gameType": GAME_TYPES,
-                "hydrate": "linescore,team",
+                "hydrate": "linescore,team,officials",
             },
             timeout=15,
         )
@@ -428,6 +428,10 @@ def _fetch_game_results(target_date: date) -> dict:
                     "away_f5_score": away_f5,
                     "home_f5_score": home_f5,
                     "pitcher_stats": pitcher_stats,
+                    "hp_umpire":     next(
+                        (o.get("official", {}).get("fullName")
+                         for o in (g.get("officials") or [])
+                         if o.get("officialType") == "Home Plate"), None),
                     "game_time":     game_time,
                 })
 
@@ -524,6 +528,9 @@ def annotate_results(history_dir: Path, target_date: date) -> int:
         rec["away_score"]        = away_score
         rec["home_score"]        = home_score
         rec["total_runs"]        = total_runs
+        # Recorded so an umpire ledger accrues; nothing reads it yet, and nothing should
+        # until it clears the noise test in CLAUDE.md ("Umpires — measured, not shipped").
+        rec["hp_umpire"]         = result.get("hp_umpire")
         rec["home_win"]          = home_score > away_score
         rec["over_hit"]          = _over_under(total_runs, rec.get("total_line"))
         rec["spread_away_covered"] = _covers(away_score, rec.get("spread_away_line"), home_score)

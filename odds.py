@@ -1,6 +1,7 @@
 """Odds API parsing — extract best prices from bookmaker data, format for display."""
 
 import json
+import re as _re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
@@ -241,6 +242,72 @@ def fmt_ladder(rungs: list, main_point=None) -> str:
 
 # ── Formatting helpers ────────────────────────────────────────────────────────
 
+_PRICE_RE = _re.compile(r"[+-]\d{2,5}")
+
+
+def price_from(text) -> Optional[int]:
+    """Pull the American price out of anything this module formats.
+
+    fmt_ml gives "-150", fmt_spread "-1.5 (+105)", fmt_total "O8.5 (-110)". The price
+    is always the last signed integer in the string, and the line — when there is one —
+    is written without a sign or with a leading +/- and a decimal point, so requiring
+    two-plus digits and no decimal picks the price out unambiguously.
+    """
+    if text is None:
+        return None
+    if isinstance(text, (int, float)):
+        return int(text)
+    hits = [m for m in _PRICE_RE.findall(str(text)) if "." not in m]
+    return int(hits[-1]) if hits else None
+
+
+_POINT_RE = _re.compile(r"^[OU]?\s*([+-]?\d+(?:\.\d+)?)")
+
+
+def point_from(text) -> Optional[float]:
+    """Pull the LINE out of anything this module formats.
+
+    fmt_total gives "O8.5 (-110)", fmt_spread "-1.5 (+105)". The line is the leading
+    number, before the parenthesised price; a bare moneyline has none. Used to check a
+    submitted pick against the number actually posted.
+    """
+    if text is None:
+        return None
+    m = _POINT_RE.match(str(text).strip())
+    if not m:
+        return None
+    try:
+        return float(m.group(1))
+    except ValueError:
+        return None
+
+
+def implied_prob(price) -> Optional[float]:
+    """American price → implied probability, vig included. 0..1."""
+    p = price_from(price)
+    if p is None or p == 0:
+        return None
+    return (-p) / ((-p) + 100) if p < 0 else 100 / (p + 100)
+
+
+def no_vig_pair(price_a, price_b) -> Optional[tuple]:
+    """The two sides of one market, with the book's margin divided out proportionally.
+
+    §5 asks the model to decide whether a price is wrong for the chance it believes in,
+    and §8A hands it a break-even table — but the card never carried a probability to
+    compare against, so "the price is wrong" was asserted in every reason and computed
+    in none. Both prices are already on the card; this is arithmetic on them, not new
+    data. Returns (p_a, p_b) summing to 1.0, or None if either side is unpriced.
+    """
+    a, b = implied_prob(price_a), implied_prob(price_b)
+    if a is None or b is None:
+        return None
+    total = a + b
+    if total <= 0:
+        return None
+    return a / total, b / total
+
+
 def fmt_ml(price) -> str:
     if price is None:
         return "—"
@@ -275,22 +342,32 @@ def fmt_total_ou(point, over_price, under_price) -> str:
     return f"{point} ({fmt_ml(over_price)}/{fmt_ml(under_price)})"
 
 
-def _fmt_prop_ou(prop: Optional[dict], market: str) -> str:
-    """Format a pitcher prop as '<market> O/U 5.5 (-115 / -105)', or '' if unposted."""
+def _fmt_prop_ou(prop: Optional[dict], market: str, no_vig: bool = False) -> str:
+    """Format a pitcher prop as '<market> O/U 5.5 (-115 / -105)', or '' if unposted.
+
+    `no_vig` appends the margin-free probabilities. It is off for the HTML card, whose
+    reader can see both prices, and on for the AI card, where §5 and §8A both reason
+    about whether a price matches a chance.
+    """
     if not prop or prop.get("point") is None:
         return ""
-    return (f"{market} O/U {prop['point']} "
+    base = (f"{market} O/U {prop['point']} "
             f"({fmt_ml(prop.get('over'))} / {fmt_ml(prop.get('under'))})")
+    if no_vig:
+        pair = no_vig_pair(prop.get("over"), prop.get("under"))
+        if pair:
+            base += f" [no-vig {pair[0]*100:.0f}%/{pair[1]*100:.0f}%]"
+    return base
 
 
-def fmt_k_line(k: Optional[dict]) -> str:
+def fmt_k_line(k: Optional[dict], no_vig: bool = False) -> str:
     """Format pitcher K O/U as 'K O/U 5.5 (-115 / -105)'."""
-    return _fmt_prop_ou(k, "K")
+    return _fmt_prop_ou(k, "K", no_vig)
 
 
-def fmt_outs_line(o: Optional[dict]) -> str:
+def fmt_outs_line(o: Optional[dict], no_vig: bool = False) -> str:
     """Format pitcher outs O/U as 'Outs O/U 17.5 (-120 / +100)'."""
-    return _fmt_prop_ou(o, "Outs")
+    return _fmt_prop_ou(o, "Outs", no_vig)
 
 
 # ── Game-level odds assembly ──────────────────────────────────────────────────

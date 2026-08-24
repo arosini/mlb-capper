@@ -272,6 +272,14 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
             "reason":        pick.get("reason", ""),
             "line_warning":  pick.get("line_warning", False),
             "alt_suggestion": pick.get("alt_suggestion"),
+            # Persisted so the picks log can be regressed against outcomes later. W-L
+            # needs ~1000 bets to say anything; a stated projection can be scored against
+            # the actual result on every single pick, which is the whole reason these
+            # fields exist. Dropping them here would waste that.
+            "projection":         pick.get("projection"),
+            "win_probability":    pick.get("win_probability"),
+            "market_probability": pick.get("market_probability"),
+            "rung_rejected":      pick.get("rung_rejected"),
             "found_at":      found_at,
             "result":        None,
             "away_score_final": None,

@@ -30,6 +30,7 @@ from mlb_api import (
     HAS_REQUESTS,
     get_mlb_schedule, get_bullpen_stress, get_pitch_hands,
     get_recent_starts, get_team_schedule, get_weather,
+    get_lineups, get_bat_sides,
 )
 from analysis import (
     analyze_game, build_games, resolve_pitchers, pitcher_ids_to_check, ou_trends,
@@ -123,6 +124,8 @@ def main():
     bp_stress:   dict = {}
     home_venues: dict = {}
     pitch_hands: dict = {}
+    lineups:     dict = {}
+    bat_sides:   dict = {}
     # Game logs, keyed by MLB player id, shared across every game on the slate. A
     # doubleheader or a mid-slate trade can put the same pitcher in two lookups.
     sp_logs:     dict = {}
@@ -149,6 +152,17 @@ def main():
             for pid in (info.get("home_pid"), info.get("away_pid"))
         )
         _log(f"Pitch hands: {len(pitch_hands)} probables")
+        # Posted an hour or two before first pitch, so the early runs get nothing and
+        # the card says so rather than going silent. Two calls for the whole slate.
+        lineups = get_lineups(target_date)
+        if lineups:
+            bat_sides = get_bat_sides(
+                pl["id"] for lu in lineups.values()
+                for side in ("away", "home") for pl in lu[side]
+            )
+            _log(f"Lineups: {len(lineups)} posted, {len(bat_sides)} bat sides")
+        else:
+            _log("Lineups: none posted yet")
 
     games = build_games(starters)
 
@@ -222,6 +236,10 @@ def main():
         key = (frozenset([t1_mlb, t2_mlb]), gn)
 
         mlb_info = mlb_schedule.get(key, {})
+        lu = lineups.get(key)
+        if lu:
+            mlb_info["lineups"] = lu
+            mlb_info["bat_sides"] = bat_sides
 
         # Skip games not on today's MLB schedule (catches stale Handigraphs starters)
         if mlb_schedule and not mlb_info:
