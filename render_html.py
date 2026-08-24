@@ -1,6 +1,5 @@
 """HTML page renderer — _html_game(), render_html_page(), CSS, and JS."""
 
-import html
 import re
 from collections import namedtuple
 from datetime import date, datetime
@@ -12,7 +11,7 @@ from teams import logo_img
 from analysis import flt, wrc_label, xera_label
 from odds import fmt_k_line, fmt_outs_line
 from suggestions import (
-    _pick_summary_title, _render_suggestions_html,
+    _h, _pick_summary_title, _render_suggestions_html,
     _ai_game_map, _lookup_ai_for_game,
 )
 
@@ -30,17 +29,6 @@ def in_season(target_date) -> bool:
         return _season_has_games(target_date, Path("./data"))
     except Exception:
         return True
-
-
-def _h(text) -> str:
-    """Escape a value for HTML text content.
-
-    quote=False matches what this replaced character for character. Note that _h is
-    also used inside double-quoted attributes, where a quote in the value would not be
-    escaped — safe for what currently flows through (team codes, pitcher names, ISO
-    timestamps, generated ids), but not a general-purpose attribute escaper.
-    """
-    return html.escape(str(text), quote=False)
 
 
 def _news_link(pitcher_name: str) -> str:

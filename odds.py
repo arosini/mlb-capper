@@ -26,10 +26,14 @@ def load_odds(data_dir: Path, target_date: date) -> dict:
     return result
 
 
-def pick_odds_by_time(candidates: list, game_time_utc: str) -> Optional[dict]:
-    """Disambiguate doubleheader legs: pick the candidate whose commence_time is
-    closest to game_time_utc. Falls back to the first candidate if there's no
-    usable time to compare against.
+def pick_odds_by_time(candidates: list, game_time_utc: str,
+                      time_key: str = "commence_time") -> Optional[dict]:
+    """Disambiguate doubleheader legs: pick the candidate whose time is closest to
+    game_time_utc. Falls back to the first candidate if there's no usable time to
+    compare against.
+
+    `time_key` names the timestamp field on the candidates — Odds API rows carry
+    `commence_time`, MLB result rows carry `game_time`. history.py passes the latter.
     """
     if not candidates:
         return None
@@ -43,7 +47,7 @@ def pick_odds_by_time(candidates: list, game_time_utc: str) -> Optional[dict]:
     def _dist(c):
         try:
             return abs((datetime.fromisoformat(
-                c.get("commence_time", "").replace("Z", "+00:00")) - target
+                c.get(time_key, "").replace("Z", "+00:00")) - target
             ).total_seconds())
         except Exception:
             return float("inf")

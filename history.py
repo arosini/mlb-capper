@@ -19,7 +19,7 @@ from season import GAME_TYPES, resolve_cli_date
 MLB_API = "https://statsapi.mlb.com/api/v1"
 
 from teams import MLB_NAME_TO_CODE as _NAME_TO_CODE, _MLB_MAP as _TO_MLB_ABBR, normalize_name
-from odds import _best_price, _best_spread, _best_total, best_outcome
+from odds import _best_price, _best_spread, _best_total, best_outcome, pick_odds_by_time
 
 
 def _read_json(path: Path):
@@ -34,28 +34,6 @@ def _read_json(path: Path):
 def _write_json(path: Path, data) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2))
-
-
-def _pick_best_result(candidates: list, game_time_utc: str) -> dict:
-    """For doubleheaders: pick the result whose game_time is closest to game_time_utc."""
-    if len(candidates) == 1:
-        return candidates[0]
-    if not game_time_utc:
-        return candidates[0]
-    try:
-        target = datetime.fromisoformat(game_time_utc.replace("Z", "+00:00"))
-    except Exception:
-        return candidates[0]
-
-    def _dist(c):
-        try:
-            return abs((datetime.fromisoformat(
-                c.get("game_time", "").replace("Z", "+00:00")) - target
-            ).total_seconds())
-        except Exception:
-            return float("inf")
-
-    return min(candidates, key=_dist)
 
 
 # ---------------------------------------------------------------------------
@@ -524,7 +502,8 @@ def annotate_results(history_dir: Path, target_date: date) -> int:
         if not candidates:
             continue
 
-        result = _pick_best_result(candidates, rec.get("game_time_utc", ""))
+        result = pick_odds_by_time(candidates, rec.get("game_time_utc", ""),
+                                  time_key="game_time")
 
         # Postponed / cancelled / suspended
         if result.get("status"):
