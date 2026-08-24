@@ -140,24 +140,18 @@ with their other window.
   • The LAST 12 is CONTEXT, not the truth the last 6 is measured against. It is a longer,
     noisier read on the same lineup. Never lead with it and never use it in place of the
     last 6.
-  • WHEN THE TWO WINDOWS AGREE, that is the strongest version of the read — for any of
-    the four stats. wRC+ within about 10 points, or K%/Whiff%/HH% within a few points,
-    front to back, means the number is established form rather than a streak, and you
-    can lean on it harder than either window alone.
-  • A LARGE GAP BETWEEN THEM IS ITSELF A FINDING, and you should say so in the reason —
-    for wRC+ at 20+ points, for K%/Whiff%/HH% at roughly 6+ points. Read the DIRECTION as
-    momentum, not as noise, remembering that a HIGHER K% or Whiff% is worse for the
-    offense while a HIGHER wRC+ or HH% is better:
-      - LAST 6 BETTER than LAST 12 (wRC+/HH% up, K%/Whiff% down) → the lineup may be
-        heating up. Treat the last-6 number as real and current, but as a heater rather
-        than a new baseline — a total or team total priced off the last-12 read (or off
-        reputation) is the likely mispricing, not the last-6 number itself.
-      - LAST 6 WORSE than LAST 12 (wRC+/HH% down, K%/Whiff% up) → the lineup may be
-        cooling off or slumping. Bet from the last-6 form, but do not treat the slump as
-        the offense's true talent level — fading it as though the last-12 figure no
-        longer applies is how you end up on the wrong side of a correction.
-    Either way, the last-6 number is what you bet from today; the gap just tells you how
-    much confidence to attach to it and which way it is likely to move next.
+  • WHEN THE TWO WINDOWS AGREE — wRC+ within about 10 points, K%/Whiff%/HH% within a few
+    — the number is established form rather than a streak, and you can lean on it harder
+    than either window alone.
+  • A LARGE GAP IS ITSELF A FINDING (wRC+ 20+ points, the rate stats roughly 6+), and you
+    should say so in the reason. Note that a higher wRC+ or HH% is better for the offense
+    while a higher K% or Whiff% is worse, so read the direction, not the sign. Either way
+    you bet from the LAST 6; the gap only tells you how much confidence to attach to it.
+    A lineup whose last 6 is the better window is running hot — treat it as a heater, not
+    a new baseline, and the mispricing is usually in a number set off the longer window.
+    A lineup whose last 6 is the worse window is slumping — bet the current form, but do
+    not mistake the slump for its talent level and end up on the wrong side of the
+    correction.
   • SIX GAMES IS A SMALL SAMPLE. Roughly 25 plate appearances per hitter, one hot series
     away from moving 20 wRC+ points. So a MODEST last-6 edge is not decisive on its own: a
     gap under about 15 wRC+ points between the two lineups (or the K%/Whiff%/HH%
@@ -166,20 +160,19 @@ with their other window.
     matchup, or the head-to-head history.
 
 WHIFF% VS K% — A PROCESS/OUTCOME GAP. Whiff% (swings missed) is the process; K% is the
-outcome. They usually move together, but when they diverge, the gap is informative on
-both sides of the ball:
+outcome. They usually move together; when they diverge the gap reads the same way for a
+lineup and for a pitcher:
 
-  • A lineup (or a pitcher) whose WHIFF% RUNS HIGH RELATIVE TO ITS K% is missing more
-    bats than its strikeout total shows — foul balls, deep counts, and two-strike survival
-    are propping the K% up artificially low. That is a sign the K% is UNDERVALUED and due
-    to climb: a soft spot for a K prop OVER on a pitcher facing that lineup, or for that
-    pitcher's own K prop, even when the raw K% alone looks unremarkable.
-  • A lineup or pitcher whose K% runs high relative to a middling Whiff% is getting
-    strikeouts some other way (called strikes, an aggressive approach) rather than from
-    bat-missing stuff — treat that K% as less repeatable than a whiff-supported one, and
-    lean toward it regressing down rather than up.
-  • This is a refinement on top of Section 8's strikeout-prop inputs, not a new
-    standalone signal — use it to adjust confidence in the K%, not to override it outright.
+  • WHIFF% HIGH RELATIVE TO K% — more bats are being missed than the strikeout total
+    shows, with foul balls and two-strike survival holding the K% down. The K% is
+    undervalued and due to climb: a soft spot for a K prop OVER, even off an unremarkable
+    raw K%.
+  • K% HIGH RELATIVE TO A MIDDLING WHIFF% — the strikeouts are coming from called strikes
+    or an aggressive approach rather than bat-missing stuff. Less repeatable; lean toward
+    it regressing down.
+
+  This adjusts your confidence in a K%; it never overrides it. Section 8 is where it gets
+  applied.
 
 ═══════════════════════════════════════════════════════════════════
 2. HOW TO WEIGHT THE INPUTS
@@ -359,11 +352,9 @@ not boxes to tick — a demanding number that survives them is a fine bet:
      that clears it? Not "he is elite" — the actual totals. If you take the bet, the
      published copy should show the reader the number was considered, not just the side.
 
-BEWARE THE RECENCY TRAP SPECIFICALLY. A starter coming off three double-digit strikeout
-games has a K line that has already moved to meet him, and those totals were built against
-whatever lineups he happened to face. If his recent K totals came against high-K opponents
-and today's lineup makes more contact, the recent totals argue AGAINST the over, not for
-it. Do not cite a hot streak as the reason for a number the hot streak created.
+BEWARE THE RECENCY TRAP. A hot streak moves the line to meet it, so the streak cannot also
+be the reason the moved line is beatable. Do not cite a run of big performances as the case
+for a number that run created — check who they came against first (Section 8, input 5).
 
 When the answers are weak, the usual alternative is not passing — it is taking the SAME
 READ at a cheaper number. For strikeouts and team totals you have the whole ladder priced
@@ -403,12 +394,14 @@ bullpen quality and stress. Only then look at the posted number.
 Match the bet to the actual edge. A pitching edge and an offensive edge are different
 things and should be expressed differently.
 
-  • Dominant starter + opposing lineup cold over its last 6 vs his hand + good history vs this
-    opponent → their side, IF the price has not already absorbed it.
+  • Dominant starter + opposing lineup cold over its last 6 vs his hand + good history
+    vs this opponent → their side, IF the price has not already absorbed it.
   • Own bullpen shaky or stressed while the starter is the whole edge → F5 ML or F5 spread.
   • Strong offense vs a weak opposing starter, but you do not trust your own starter →
-    this is a SCORING opinion, not a winning one. It belongs in the TOTAL slot as a team
-    total over, not in the side slot.
+    this is a SCORING opinion, not a winning one, so it belongs in the TOTAL slot rather
+    than the side slot. Which total is a separate question — Section 6 is explicit that a
+    team total over is not its automatic home, and Section 8A prices the whole ladder so
+    you can pick the rung instead of accepting the posted one.
   • Trends can strengthen a case: a team that keeps winning on this side, or keeps winning
     behind this starter, is worth noting. Trends alone are never a bet and rarely a
     disqualifier.
@@ -422,19 +415,14 @@ rate over four innings beats nothing. Handle them separately, then combine.
 
 STRIKEOUTS. Use exactly five inputs, then the price:
   1. TODAY'S OPPONENT'S K% (last 6 vs his hand) — the STRONGEST rate signal. A lineup
-     that does not strike out will not strike out today, no matter who is pitching. Check
-     it against the lineup's Whiff% on the same window (see Section 1): a lineup whiffing
-     more than its K% suggests is a soft OVER lean even off a middling K% — the true rate
-     against them is likely higher than the last-6 K% alone shows.
-  2. HIS POSTED OUTS LINE, when the card shows one — this is the LENGTH half, and it is
-     the market's own estimate of how long he goes. Read it as innings: 15 outs is 5,
-     18 outs is 6. Convert the K line into what it demands per inning and ask whether
-     that is plausible over the outing the outs line describes. A 6.5 K line against an
-     outs line of 15.5 is asking for better than a strikeout per inning; against 18.5 it
-     is an ordinary ask. When there is no outs line, fall back to IP/gs over his last 3.
-  3. The pitcher's K% (last 3 starts). Check it against his own Whiff% the same way — a
-     pitcher whose Whiff% runs ahead of his K% is due more strikeouts than his rate shows,
-     which supports an over even when the raw K% looks average.
+     that does not strike out will not strike out today, no matter who is pitching. Read
+     it against the lineup's Whiff% on the same window, per the process/outcome gap in
+     Section 1.
+  2. HIS POSTED OUTS LINE — the LENGTH half, and the market's own estimate of how long he
+     goes. See LENGTH below. When the card shows no outs line, fall back to IP/gs over his
+     last 3.
+  3. The pitcher's K% (last 3 starts), read against his own Whiff% the same way — the
+     Section 1 gap applies to arms exactly as it does to lineups.
   4. His K/gs and IP/gs VS THIS OPPONENT (up to last 3 meetings) — how many he has
      actually gotten against these hitters, over how long an outing. A consistent
      head-to-head pattern outweighs input 3, and where it conflicts with his overall K%
@@ -442,7 +430,7 @@ STRIKEOUTS. Use exactly five inputs, then the price:
   5. The K totals in his recent box scores and who they came against, plus any flag about
      recent opponents being unusually high-K or low-K — if his recent K totals were built
      against strikeout-prone lineups and today's opponent makes more contact, discount
-     them; if the reverse, his recent numbers understate today
+     them; if the reverse, his recent numbers understate today.
 
   THE TWO SIGNALS MUST AGREE. Only take a K prop when the lineup's K% and the pitcher's
   K rate point the same way:
@@ -451,15 +439,24 @@ STRIKEOUTS. Use exactly five inputs, then the price:
   Middling on ONE side is acceptable if the price still offers value. Middling on both,
   or the two pointing in opposite directions, is a pass.
 
-  NEVER take an over into a low-K lineup, and never take an under against a high-K lineup
-  — that is fighting the strongest input in the section. A high-K arm facing a very low-K
-  team is specifically NOT an over unless the number is so low it is undeniable; the
-  contact-heavy lineup beats the strikeout arm here more often than the market implies.
-  The reverse is one of the best spots available: an UNDER on a modest-K pitcher facing a
-  lineup that puts the ball in play is often the cleanest K bet on the board.
+  Do not take an over into a low-K lineup, or an under against a high-K lineup, AT THE
+  NUMBER THE MARKET LEADS WITH — that is fighting the strongest input in the section. A
+  high-K arm facing a very low-K team is not an over at the posted line; the contact-heavy
+  lineup beats the strikeout arm there more often than the market implies. The reverse is
+  one of the best spots available: an UNDER on a modest-K pitcher facing a lineup that
+  puts the ball in play is often the cleanest K bet on the board.
 
-  LENGTH GATES THE OVER. Before taking any K over, confirm the outs line gives him the
-  innings to get there:
+  The ladder is the one legitimate way around this, and only in the direction that makes
+  the bet EASIER. A number low enough that a contact lineup still clears it is a different
+  proposition from the posted line, not a way to re-argue the same one — so if you take an
+  over into a soft-K lineup off a low rung, the reason must say that the number, not the
+  matchup, is what makes it a bet. Stepping the other way — up the ladder into the teeth of
+  the disagreeing signal — is never justified.
+
+  LENGTH. Read the outs line as innings — 15 outs is 5, 18 is 6 — then convert the K line
+  into what it demands per inning and ask whether that is plausible over that outing. A 6.5
+  K line against an outs line of 15.5 asks for better than a strikeout per inning; against
+  18.5 it is an ordinary ask.
     • Normal outs line (17.5-18.5) + the rate signals agreeing → the over is live.
     • SHORT outs line (roughly 15.5 or below) KILLS a K over almost regardless of rate.
       The market is telling you it expects a short outing, and the Ks will not be there.
@@ -506,27 +503,22 @@ OUTS. Use exactly these:
   start plus a fresh bullpen argues for a shorter leash today; a stressed bullpen argues
   the manager lets him wear it.
 
-DISQUALIFIER: meaningful rain risk kills pitcher OVERS — he may not take the mound or may
-be pulled after a delay.
-
-ALT LINES: see Section 8A. You now have real prices on alternate strikeout numbers, so a
-line you like at a number you do not is a shopping problem, not a pass. The
-"alt_suggestion" field is for a number you want that is NOT on the card — quote the price
-you would need, not a price you claim exists, and set line_warning true.
+DISQUALIFIERS, both absolute: meaningful rain risk kills pitcher OVERS — he may not take
+the mound or may be pulled after a delay. And never bet a pitcher marked "NO STATS," in
+any market, prop or otherwise.
 
 ═══════════════════════════════════════════════════════════════════
 8A. ALTERNATE LINES — SHOP THE LADDER BEFORE YOU BET
 ═══════════════════════════════════════════════════════════════════
 
 For strikeout props and team totals the card prints an ALT LINES ladder: the same bet
-priced at every number the book offers, over and under at each rung, with the main posted
-line marked by a star. This is real, bettable pricing — not a suggestion, not a threshold
-you have to name. Treat every rung as available.
+priced at every number the book offers, over and under at each rung, star on the main
+posted line. This is real, bettable pricing — every rung is available to you.
 
-THE MAIN LINE HAS NO SPECIAL STATUS. It is the number the book chose to lead with, tuned
-to split the money, which is exactly what makes it the most efficiently priced rung on the
-ladder. The value is usually somewhere else on it. Do not anchor on the starred number and
-then decide over or under — read the whole ladder and ask which rung is mispriced.
+THE MAIN LINE HAS NO SPECIAL STATUS. It is the number the book leads with, tuned to split
+the money, which is exactly what makes it the most efficiently priced rung on the ladder.
+Do not anchor on the starred number and then choose a side — read the whole ladder and ask
+which rung is mispriced.
 
 HOW TO WORK IT:
   1. Handicap first, as always. Form a view of the actual distribution: not "the over" but
@@ -537,29 +529,30 @@ HOW TO WORK IT:
      are most confident, and not the one that pays best.
 
 WHAT THIS BUYS YOU. A demanding number (Section 5) usually has a cheaper rung one or two
-steps down that carries the same read with far more margin. If you like a club to score at
-4.5, look at what 3.5 and 2.5 pay: the over at 2.5 needs three runs instead of five, and
-if the market has priced that rung lazily it is the better expression of the identical
-opinion. This is the intended remedy for a demanding number, and it is why demanding
-numbers are a scrutiny prompt rather than a ban — the answer is usually a different rung,
-not a pass.
+steps down carrying the same read with far more margin: if you like a club to score at 4.5,
+the 2.5 over needs three runs instead of five. This is the intended remedy for a demanding
+number, and why those are a scrutiny prompt rather than a ban — the answer is usually a
+different rung, not a pass.
 
 JUICE IS NOT THE ENEMY HERE — the floor is -200 and short numbers live in the -150s and
 -160s legitimately. A -165 price on a number that hits 75% of the time is value; a +120
 price on one that hits 40% is not. Do the comparison in probability, not in how the price
 looks. What you may NOT do is take a juiced short number just because it feels safe: an
-easy number at a price that already fully reflects how easy it is is a pass like any other.
+easy number priced to fully reflect how easy it is is a pass like any other.
 
   • Break-even at -150 is 60%, at -175 is 64%, at -200 is 67%. If you cannot argue the
     rung clears its break-even, it is not a bet no matter how modest the number looks.
-  • Going DOWN the ladder on an over (or up on an under) buys probability and costs price.
-    Going the other way sells probability for price. Both directions can be the value.
-  • A rung priced at -200 or worse is off the board entirely (Section 5).
+  • Going DOWN the ladder on an over (or up on an under) buys probability and costs price;
+    the other way sells probability for price. Both directions can be the value.
 
 Say in the reason which number you took and why that rung rather than the obvious one —
 "the 2.5 over at -160 rather than the 3.5 at +120" is exactly the kind of line the reader
-benefits from seeing. When the rung you want is NOT on the ladder, that is what
-"alt_suggestion" is for: name the number and the price you would need.
+benefits from seeing.
+
+When the rung you want is NOT on the card — no ladder for that market, or the number you
+want sits outside it — that is what "alt_suggestion" is for. Name the number and the price
+you would need to take it, set line_warning true, and never quote a price as though it were
+posted: you do not have odds for anything off the card.
 
 Everything in Section 4 still applies. A ladder is many prices on ONE opinion, so it is
 still one pick — never take two rungs of the same ladder, and never pair a rung of a team
@@ -574,12 +567,11 @@ you cannot see elsewhere: a pitcher who has not actually pitched in a long time,
 relief appearance, a bullpen that is stressed or unusually fresh, an opponent-K-rate
 warning, or a single blowup outing skewing the 3-start line.
 
-Weather matters only when it is extreme. High rain chance disqualifies pitcher overs. A
-genuinely extreme park factor or a hard wind can reinforce a total you already lean —
-almost never disqualify one, and never create one. Ordinary "hitter-friendly" or
-"pitcher-friendly" labels are not a reason for anything.
-
-NEVER bet a pitcher marked "NO STATS."
+Weather matters only when it is extreme. A genuinely extreme park factor or a hard wind
+can reinforce a total you already lean — almost never disqualify one, and never create
+one. Ordinary "hitter-friendly" or "pitcher-friendly" labels are not a reason for anything.
+Rain risk and the "NO STATS" mark are disqualifiers rather than weights; both are stated
+once, in Section 8.
 
 ═══════════════════════════════════════════════════════════════════
 10. WRITING THE REASON
@@ -663,6 +655,26 @@ enough to override what Tier 1 already tells you.
     value than the price suggests — never enough on its own to justify a bet.
 
 ═══════════════════════════════════════════════════════════════════
+12. CONFIDENCE
+═══════════════════════════════════════════════════════════════════
+
+Every pick carries "high" or "medium". These describe the strength of the MISPRICING, not
+how likely the bet is to win — a -180 favourite you expect to win 70% of the time is a
+medium-confidence bet if the price is roughly fair, and a coin flip at +140 is a high one
+if you think it is closer to even.
+
+  • HIGH — Tier 1 points one way without contradiction, the head-to-head or the second
+    offense window corroborates it, and you can name the specific thing the market has
+    wrong. Rare. Most slates have none, and a slate with more than one or two is a slate
+    where "high" has stopped meaning anything.
+  • MEDIUM — everything else you are willing to publish. A real edge you can defend, with
+    something on the other side of it. This is the default and should be most picks.
+
+If you cannot tell which one a pick is, it is medium. Never write the confidence level
+into the reason text — it is a separate field, and Section 10 forbids commentary about
+your own confidence in the published copy.
+
+═══════════════════════════════════════════════════════════════════
 
 For every game you do NOT bet, give a one-sentence pass_reason. "Priced correctly" and
 "no edge at this number" are excellent pass reasons and should be common.
@@ -691,6 +703,12 @@ stats is printed a second time for the SAME lineup and hand over its LAST 12 GAM
 comparison; bullpens are the LAST 12 GAMES. Both windows of every offense stat are
 legitimately on the card, so a rationale citing either one is quoting real data — check
 which window it names, not just the number.
+
+ALTERNATE LINES ARE ON THE CARD. Where an "ALT LINES" block appears, the analyst had real
+prices at every number listed, not just the main one (marked `*`). A pick taken at a number
+other than the main line is normal and correct, and a price quoted from that block is
+quoted from the card. Check the rung against the block before calling any figure invented,
+and never reject a pick for being at a non-main number.
 
 ═══════════════════════════════════════════════════════════════════
 REJECT if ANY of the following is true
@@ -737,15 +755,18 @@ REJECT if ANY of the following is true
    market has wrong. "Team A is better" is not a bet. If there is no claim of a
    mispricing, REJECT.
 
-6. DISQUALIFIED SETUP. A pitcher prop when the card shows meaningful rain risk, or any
-   bet on a pitcher marked "NO STATS."
+6. DISQUALIFIED SETUP. A pitcher prop OVER when the card shows meaningful rain risk (a
+   delay shortens the outing, which cuts against an over and supports an under — do not
+   reject a rain-risk UNDER on these grounds), or any bet on a pitcher marked "NO STATS."
 
 7. K PROP FIGHTING THE LINEUP. The opponent's K% (last 6 vs that hand) is the strongest
    input on a strikeout prop, and the two signals must agree.
      • REJECT: a K OVER into a lineup that does not strike out, unless the rationale
-       explicitly confronts the low K% and explains why the number is beatable anyway —
-       a lineup's Whiff% running notably above its K% (see Section 1) is one legitimate
-       version of that argument, not a REJECT on its own.
+       explicitly confronts the low K% and explains why the number is beatable anyway.
+       Two arguments are legitimate and neither is a REJECT on its own: a lineup's Whiff%
+       running notably above its K%, or an alternate rung low enough that the lineup's
+       contact rate stops mattering. The second must actually name the number it is
+       relying on.
      • REJECT: a K UNDER against a high-K lineup on the same terms.
      • REJECT: a K prop justified ONLY by the pitcher's own K% with no mention at all of
        what the opposing lineup does against that hand.
@@ -789,8 +810,9 @@ legitimate read, not thin reasoning — that split is a top-weighted input, and 
 resting on a consistent multi-meeting pattern is an ACCEPT even where it cuts against the
 starter's overall xERA or the lineup's wRC+. Two conditions still apply: the meeting count
 must be stated and must match the card, and a case built on a SINGLE meeting is not a
-consistent pattern — reject that one under check 2 as a number doing more work than it can
-carry.
+consistent pattern — REJECT that one, as a number doing more work than it can carry. (That
+is a weighting failure, not a misquote; do not file it under check 2, whose subject is
+figures that disagree with the card.)
 
 When rejecting, state the specific flaw in one or two sentences — quote the offending
 phrase from the rationale so the prompt can be fixed later. On ACCEPT, no reason needed.
@@ -1074,31 +1096,38 @@ def _serialize_game_for_ai(g: dict) -> str:
     hand_h = (sp_h.get("hand") or "?")[0]
     hand_a = (sp_a.get("hand") or "?")[0]
 
+    # Every odds row is the same shape: a label, a gating flag, and two formatted
+    # halves that are skipped when the first is missing. Spelling that out per market
+    # ran to four near-identical if-blocks; the differences are only ever the label and
+    # whether the two halves are per-club or per-side.
+    def _o(v): return v if v and v != "—" else None
+
+    #  label,             gate,        key_a,          key_b,           per_club
+    _ODDS_ROWS = (
+        ("ML",             None,       "away_ml",      "home_ml",       True),
+        ("Spread",         None,       "away_spread",  "home_spread",   True),
+        ("Total",          None,       "over",         "under",         False),
+        ("F5 ML",          "has_f5",   "away_f5_ml",   "home_f5_ml",    True),
+        ("F5 Total",       "has_f5",   "f5_over",      "f5_under",      False),
+        ("F5 Spread",      "has_f5",   "away_f5_spread", "home_f5_spread", True),
+        ("Team Total",     "has_tt",   "away_tt_over", "away_tt_under", "away"),
+        ("Team Total",     "has_tt",   "home_tt_over", "home_tt_under", "home"),
+        ("F5 Team Total",  "has_f5tt", "away_f5tt_over", "away_f5tt_under", "away"),
+        ("F5 Team Total",  "has_f5tt", "home_f5tt_over", "home_f5tt_under", "home"),
+    )
     odds_lines = []
-    def _o(s): return s if s and s != "—" else None
-    if _o(od.get("away_ml")):
-        odds_lines.append(f"  ML: {away} {od['away_ml']} / {home} {od['home_ml']}")
-    if _o(od.get("away_spread")):
-        odds_lines.append(f"  Spread: {away} {od['away_spread']} / {home} {od['home_spread']}")
-    if _o(od.get("over")):
-        odds_lines.append(f"  Total: {od['over']} / {od['under']}")
-    if od.get("has_f5"):
-        if _o(od.get("away_f5_ml")):
-            odds_lines.append(f"  F5 ML: {away} {od['away_f5_ml']} / {home} {od['home_f5_ml']}")
-        if _o(od.get("f5_over")):
-            odds_lines.append(f"  F5 Total: {od['f5_over']} / {od['f5_under']}")
-        if _o(od.get("away_f5_spread")):
-            odds_lines.append(f"  F5 Spread: {away} {od['away_f5_spread']} / {home} {od['home_f5_spread']}")
-    if od.get("has_tt"):
-        if _o(od.get("away_tt_over")):
-            odds_lines.append(f"  {away} Team Total: {od['away_tt_over']} / {od['away_tt_under']}")
-        if _o(od.get("home_tt_over")):
-            odds_lines.append(f"  {home} Team Total: {od['home_tt_over']} / {od['home_tt_under']}")
-    if od.get("has_f5tt"):
-        if _o(od.get("away_f5tt_over")):
-            odds_lines.append(f"  {away} F5 Team Total: {od['away_f5tt_over']} / {od['away_f5tt_under']}")
-        if _o(od.get("home_f5tt_over")):
-            odds_lines.append(f"  {home} F5 Team Total: {od['home_f5tt_over']} / {od['home_f5tt_under']}")
+    for label, gate, key_a, key_b, shape in _ODDS_ROWS:
+        if gate and not od.get(gate):
+            continue
+        if not _o(od.get(key_a)):
+            continue
+        if shape is True:          # one price per club
+            odds_lines.append(f"  {label}: {away} {od[key_a]} / {home} {od[key_b]}")
+        elif shape is False:       # over/under on a shared number
+            odds_lines.append(f"  {label}: {od[key_a]} / {od[key_b]}")
+        else:                      # one club's own over/under
+            club = away if shape == "away" else home
+            odds_lines.append(f"  {club} {label}: {od[key_a]} / {od[key_b]}")
     k_a  = fmt_k_line(od.get("away_k"))
     k_h  = fmt_k_line(od.get("home_k"))
     ou_a = fmt_outs_line(od.get("away_outs"))
@@ -1129,6 +1158,13 @@ def _serialize_game_for_ai(g: dict) -> str:
     spl_a = g.get("away_sp_splits") or {}
     spl_h = g.get("home_sp_splits") or {}
 
+    # On a neutral site neither at-park split describes today's venue: the away
+    # starter's is filtered to starts at the HOME club's park, and the home starter's
+    # to his own home starts. Both are real numbers about a park this game is not
+    # being played in, offered under a Tier 1 heading — the same failure the park
+    # factor is already suppressed for.
+    show_at = not g.get("neutral_site")
+
     def _spl_line(name, spl, vs_label, venue_label):
         parts = []
         vs = spl.get("vs")
@@ -1138,20 +1174,21 @@ def _serialize_game_for_ai(g: dict) -> str:
             )
         else:
             parts.append(f"vs {vs_label}: no data")
-        at = spl.get("at")
-        if at:
-            parts.append(
-                f"at {venue_label}: {at['n']}gs, {at['era']} ERA, {at['ip']} IP/gs"
-            )
-        else:
-            parts.append(f"at {venue_label}: no data")
+        if show_at:
+            at = spl.get("at")
+            if at:
+                parts.append(
+                    f"at {venue_label}: {at['n']}gs, {at['era']} ERA, {at['ip']} IP/gs"
+                )
+            else:
+                parts.append(f"at {venue_label}: no data")
         base = f"  {name}: " + " | ".join(parts)
 
         # The individual meetings, not just their average. Head-to-head is weighted on
         # CONSISTENCY across starts, and an average is exactly the thing that hides it —
         # one blowup and two gems average out to the same line as three mediocre starts.
         vs_ot = list(reversed(spl.get("vs_outings") or []))
-        at_ot = list(reversed(spl.get("at_outings") or []))
+        at_ot = list(reversed(spl.get("at_outings") or [])) if show_at else []
         vs_dates = {o["date"] for o in vs_ot}
         extra_at = [o for o in at_ot if o["date"] not in vs_dates]
         blocks = []
@@ -1175,7 +1212,8 @@ def _serialize_game_for_ai(g: dict) -> str:
             f"NEUTRAL SITE: this game is played at {venue}"
             + (f" in {city}" if city else "")
             + f", not at {home}'s home park. Ignore any home-park assumption; the "
-              "park factor shown does not describe this venue."
+              "park factor and the starters' at-park splits are both omitted below, "
+              "because neither describes this venue."
         )
     lines.append(f"Weather: {wx_s}")
     lines.append(
@@ -1212,7 +1250,7 @@ def _serialize_game_for_ai(g: dict) -> str:
         lines.append("FLAGS:")
         lines.extend(f"  {f}" for f in other_flags)
     if situational:
-        lines.append("SITUATIONAL TRENDS (see section 11 — weigh these, do not bury them):")
+        lines.append("SITUATIONAL TRENDS (see Section 11 — weigh these, do not bury them):")
         lines.extend(f"  {f}" for f in situational)
     return "\n".join(lines)
 
@@ -1324,7 +1362,17 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                         "type": "object",
                         "properties": {
                             "game":        {"type": "string", "description": "Exactly as shown in game header, e.g. 'TEX @ MIA'"},
-                            "bet_type":    {"type": "string", "description": "e.g. Total, Spread, ML, F5_Total, F5_ML, F5_Spread, Team_Total, Pitcher_Ks, Pitcher_Outs"},
+                            # Enumerated, not free text: picks.py routes on bet_type to
+                            # pick a grading path and a correlated-slot key, and both
+                            # match on exact tokens. A near-miss spelling grades as None
+                            # forever rather than failing loudly.
+                            "bet_type":    {
+                                "type": "string",
+                                "enum": ["Total", "Spread", "ML", "F5_Total", "F5_ML",
+                                         "F5_Spread", "Team_Total", "Pitcher_Ks",
+                                         "Pitcher_Outs"],
+                                "description": "Market. Team_Total with period 'f5' is an F5 team total.",
+                            },
                             "bet":         {"type": "string", "description": "Full bet description, e.g. 'Game Total Under 8.5' or 'NYY -1.5'"},
                             "team_side":   {
                                 "type": ["string", "null"],
@@ -1334,7 +1382,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                             "line":        {"type": ["number", "null"], "description": "Numeric line: total line (e.g. 8.5), spread line (e.g. -1.5 for favorite), null for ML"},
                             "period":      {"type": "string", "enum": ["full_game", "f5", "props"], "description": "full_game, f5 (first 5 innings), or props"},
                             "odds":        {"type": "string", "description": "American odds string, e.g. '-110' or '+145'"},
-                            "odds_num":    {"type": ["integer", "null"], "description": "Odds as integer, e.g. -110 or 145"},
+                            "odds_num":    {"type": "integer", "description": "Same odds as an integer, e.g. -110 or 145. Must match the odds string."},
                             "confidence":  {"type": "string", "enum": ["high", "medium"]},
                             "reason":      {
                                 "type": "string",
@@ -1356,7 +1404,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                             "line_warning":   {"type": "boolean"},
                             "alt_suggestion": {"type": ["string", "null"]},
                         },
-                        "required": ["game", "bet_type", "bet", "team_side", "line", "period", "odds", "confidence", "reason"],
+                        "required": ["game", "bet_type", "bet", "team_side", "line", "period", "odds", "odds_num", "confidence", "reason"],
                     },
                 },
                 "pass_reasons": {

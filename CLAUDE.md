@@ -526,6 +526,50 @@ makes them safe.
 **Cost**: +2 credits per per-event call, ~16,000/month against a 20,000 plan. See
 API Budget above before adding a third alternate market.
 
+## Prompt Audit — 2026-08-23
+
+A full consistency and simplification pass over `_AI_SYSTEM_PROMPT`, `_VERIFY_SYSTEM_PROMPT`,
+the tool schema, and `_serialize_game_for_ai`. What it found, so the same ground is not
+re-walked:
+
+**Real defects, now fixed:**
+
+| Defect | Effect |
+|---|---|
+| `odds_num` was optional in the tool schema | 7 of 197 current picks had a good `odds` string and a null `odds_num`. Nothing errored — they were silently absent from every ROI number. `picks._odds_num()` now parses the string, and the field is required. |
+| At-park splits on a NEUTRAL SITE | The away starter's "at" split is his starts at the HOME club's park; the home starter's is his own home starts. On a neutral site neither describes today's venue, and both were printed under a Tier 1 heading. Now suppressed, with the neutral-site header saying so — same reasoning that already suppresses the park factor. |
+| Auditor check 6 rejected *every* pitcher prop on rain risk | §8 disqualifies pitcher OVERS only; a delay shortens the outing, which supports an under. The auditor was throwing out good unders. |
+| Auditor had no idea alt lines exist | Check 2 rejects figures not on the card. A pick quoting "the 2.5 over at -160" would read as an invented price. The preamble now states that the ALT LINES block is real card data and a non-main rung is normal. |
+| `bet_type` was a free-text string | `picks.py` routes on exact tokens for both grading and slot dedup; a near-miss spelling grades as `None` forever rather than failing loudly. Now an enum, and every value is verified to route to a real slot. |
+| `confidence` was a required enum with no guidance anywhere in the prompt | Nothing told the model what "high" meant. New §12 defines it as the strength of the *mispricing*, not the chance of winning, and makes high rare. |
+
+**Contradictions introduced by the alt-line and demanding-number work, now reconciled:**
+
+- §7 routed "strong offense, weak opposing starter" straight into a team total over — the
+  exact bet §5 and §6 had just been rewritten to discourage. It now hands off to §6/§8A.
+- §8's absolutes ("NEVER take an over into a low-K lineup") predate ladders, which make
+  "unless the number is so low it is undeniable" a thing you can now *choose*. Scoped to
+  the posted line, with the ladder named as the one legitimate way around it — in the
+  direction that makes the bet easier only. Auditor check 7 matches.
+- The auditor's tail routed a single-meeting head-to-head case to check 2 (numbers not
+  matching the card). It is a weighting failure, not a misquote; check 2's subject is
+  figures that disagree with the card.
+
+**Duplication removed** (the prompt lost ~1.7KB net despite gaining §12): the rain and
+"NO STATS" disqualifiers were stated in both §8 and §9; the Whiff%/K% process-outcome gap
+was explained in full in §1 and restated twice inside §8's numbered inputs; the outs-line
+length rule was stated in input 2 and again under LENGTH GATES THE OVER; `alt_suggestion`
+was explained in both §8 and §8A. Each now has exactly one home, with pointers.
+
+**`_serialize_game_for_ai` odds block** was four near-identical if-blocks per market; it is
+now one `_ODDS_ROWS` table. Verified byte-identical to the old code over 4,000 randomized
+inputs before replacing it.
+
+**Known, not fixed:** `picks._extract_picks()` still carries a `best_bet`/`other_bets`
+branch for a schema the tool can no longer produce, so `is_best` is dead — `True` on 1 of
+737 picks ever, from the pre-`picks[]` era. Left alone because old cached suggestion files
+still parse through it; delete it with the archive, not on its own.
+
 ## Grading Pitcher Props
 
 Prop picks grade off `history/{date}.json` → `pitchers[]`, which is built from **posted

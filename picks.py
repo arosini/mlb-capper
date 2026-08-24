@@ -109,6 +109,24 @@ def _build_game_info(history: list, date_str: str) -> dict:
     return best
 
 
+def _odds_num(pick: dict):
+    """The pick's odds as a number, parsed from the odds string when the model omits it.
+
+    `odds_num` is not something the model can be relied on to fill in: 7 of 197 picks
+    over 2026-08-08..23 carried a perfectly good `odds` string ("-105") and a null
+    `odds_num`. Nothing errored — those picks simply vanished from every P&L number,
+    because ROI is computed from `odds_num` alone. The string is the value the reader
+    sees, so it is the one to trust when the two disagree.
+    """
+    raw = (pick.get("odds") or "").strip().replace("+", "")
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        pass
+    num = pick.get("odds_num")
+    return int(num) if isinstance(num, (int, float)) else None
+
+
 def _canon_pick_key(pick: dict) -> tuple:
     """
     Canonical dedup key. Once a market group is picked for a game, the whole group is
@@ -248,7 +266,7 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
             "line":          pick.get("line"),
             "period":        pick.get("period", "full_game"),
             "odds":          pick.get("odds", ""),
-            "odds_num":      pick.get("odds_num"),
+            "odds_num":      _odds_num(pick),
             "is_best":       bool(pick.get("is_best")),
             "confidence":    pick.get("confidence", ""),
             "reason":        pick.get("reason", ""),
