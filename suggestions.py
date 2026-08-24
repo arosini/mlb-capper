@@ -561,6 +561,12 @@ Use exactly five inputs, then the price:
   Middling on ONE side is acceptable if the price still offers value. Middling on both,
   or the two pointing in opposite directions, is a pass.
 
+  NAME BOTH HALVES IN THE REASON. Every K prop reason must state today's opponent's K%
+  (last 6 vs his hand) and the posted outs line, with their windows. If either one points
+  against the side you are taking — a high opponent K% under an UNDER, a short outs line
+  under an OVER — the reason must say why the bet clears it anyway. A K prop reason built
+  only on the pitcher's own K% and Whiff% has not made the case.
+
   Do not take an over into a low-K lineup, or an under against a high-K lineup, AT THE
   NUMBER THE MARKET LEADS WITH — that is fighting the strongest input in the section. A
   high-K arm facing a very low-K team is not an over at the posted line; the contact-heavy
