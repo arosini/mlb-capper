@@ -104,11 +104,12 @@ jobs:
           # runs fetch Handigraphs data only and leave the metered Odds API alone.
           #
           # This is also the single biggest line on the Odds API bill. Billing is per
-          # market x region, and a per-event props call covers 7 markets: fetching
-          # tomorrow's props on all four daily runs was 4 x 15 games x 7 = 420 credits
-          # a day, 57% of total spend, for a preview page nobody reads before evening.
-          # Once a day instead of four takes that to 105 and drops the daily total from
-          # roughly 735 to 420 — from over a 20k/month plan to comfortably inside it.
+          # market x region, and a per-event props call covers 9 markets: fetching
+          # tomorrow's props on all four daily runs was 4 x 15 games x 9 = 540 credits
+          # a day for a preview page nobody reads before evening. Once a day instead of
+          # four takes that to 135 and keeps the daily total near 534 — inside a
+          # 20k/month plan with roughly 20% to spare. See "API Budget" in CLAUDE.md;
+          # the market count here moves whenever that URL changes.
           ET_HOUR=$(python3 -c "import season, datetime; print(datetime.datetime.now(season.ET).hour)")
           if [ "$ET_HOUR" -lt 17 ]; then
             echo "[tomorrow] ${ET_HOUR}:00 ET — before the 5 PM cutoff, skipping the Odds API"
@@ -120,7 +121,7 @@ jobs:
             python3 download.py --date tomorrow --force-odds
           else
             # Manual runs after 5 PM: throttled, so repeated dispatches don't re-buy
-            # the same board at ~108 credits a time.
+            # the same board at ~140 credits a time.
             python3 download.py --date tomorrow
           fi
 
