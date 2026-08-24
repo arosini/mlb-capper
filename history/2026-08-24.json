@@ -418,7 +418,7 @@
       }
     ],
     "odds_recorded_at": "2026-08-24T20:23:18.714415+00:00",
-    "odds_final": false,
+    "odds_final": true,
     "away_score": null,
     "home_score": null,
     "total_runs": null,
@@ -509,7 +509,7 @@
       }
     ],
     "odds_recorded_at": "2026-08-24T20:23:18.714415+00:00",
-    "odds_final": false,
+    "odds_final": true,
     "away_score": null,
     "home_score": null,
     "total_runs": null,
@@ -600,7 +600,7 @@
       }
     ],
     "odds_recorded_at": "2026-08-24T20:23:18.714415+00:00",
-    "odds_final": false,
+    "odds_final": true,
     "away_score": null,
     "home_score": null,
     "total_runs": null,
