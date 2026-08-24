@@ -20,7 +20,7 @@ DATE is "today" (default), "tomorrow", or YYYY-MM-DD.
 import argparse
 import json
 import sys
-from datetime import date, timedelta, timezone
+from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

@@ -3,7 +3,7 @@
 import csv
 import json
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -101,70 +101,70 @@ def _load_starters_json(path: Path) -> list[dict]:
     return [r for r in result if r.get("Name")]
 
 
-def _load_team_stats_json(path: Path) -> dict:
-    raw = json.loads(path.read_text())
-    rows = raw if isinstance(raw, list) else raw.get("data", [])
+def _by_team(rows: list, build) -> dict:
+    """Index rows by club code, filed under both the feed's code and to_stats()'s.
+
+    Handigraphs spells a handful of clubs differently from the stats feed (KCR/KC,
+    TBR/TB, …). Storing each row under both spellings means a caller can look up with
+    whichever code it happens to be holding and never has to normalize first.
+    """
     result = {}
     for r in rows:
         team = r.get("team", "")
         if not team:
             continue
-        entry = {
-            "Team":     team,
-            "wRC+":     r.get("wrc_plus"),
-            "wOBA":     r.get("woba"),
-            "BABIP":    r.get("babip"),
-            "OPS":      r.get("ops"),
-            "ISO":      r.get("iso"),
-            "GB/FB":    r.get("gb_fb"),
-            "K%":       r.get("k_perc") or r.get("k_pct"),
-            "BB%":      r.get("bb_perc") or r.get("bb_pct"),
-            "HardHit%": r.get("hard_perc"),
-            # Feed gives contact rate, not whiff rate — they're complements.
-            "Whiff%":   (100 - r["contact_perc"]) if r.get("contact_perc") is not None else None,
-            "FB%":      r.get("fb_perc"),
-            "LD%":      r.get("ld_perc"),
-            "GB%":      r.get("gb_perc"),
-        }
+        entry = build(r, team)
         result[team] = entry
         norm = to_stats(team)
         if norm != team:
             result[norm] = entry
     return result
+
+
+def _load_team_stats_json(path: Path) -> dict:
+    raw = json.loads(path.read_text())
+    rows = raw if isinstance(raw, list) else raw.get("data", [])
+    return _by_team(rows, lambda r, team: {
+        "Team":     team,
+        "wRC+":     r.get("wrc_plus"),
+        "wOBA":     r.get("woba"),
+        "BABIP":    r.get("babip"),
+        "OPS":      r.get("ops"),
+        "ISO":      r.get("iso"),
+        "GB/FB":    r.get("gb_fb"),
+        "K%":       r.get("k_perc") or r.get("k_pct"),
+        "BB%":      r.get("bb_perc") or r.get("bb_pct"),
+        "HardHit%": r.get("hard_perc"),
+        # Feed gives contact rate, not whiff rate — they're complements.
+        "Whiff%":   (100 - r["contact_perc"]) if r.get("contact_perc") is not None else None,
+        "FB%":      r.get("fb_perc"),
+        "LD%":      r.get("ld_perc"),
+        "GB%":      r.get("gb_perc"),
+    })
 
 
 def _load_bullpen_json(path: Path) -> dict:
     raw = json.loads(path.read_text())
     rows = raw if isinstance(raw, list) else raw.get("data", [])
-    result = {}
-    for r in rows:
-        team = r.get("team", "")
-        if not team:
-            continue
-        entry = {
-            "Team":    team,
-            "ERA":     r.get("era"),
-            "xERA":    r.get("xera"),
-            "FIP":     r.get("fip"),
-            "xFIP":    r.get("xfip"),
-            "K%":      r.get("k_perc") or r.get("k_pct"),
-            "BB%":     r.get("bb_perc") or r.get("bb_pct"),
-            "BABIP":   r.get("babip"),
-            "wOBA":    r.get("woba"),
-            "SwStr%":  r.get("swstr_pct"),
-            "CSW%":    r.get("csw_pct"),
-            "Hard%":   r.get("hard_hit_pct") or r.get("hard_contact_pct"),
-            "Barrel%": r.get("barrel_pct"),
-            "GB%":     r.get("gb_pct") or r.get("ground_ball_pct"),
-            "FB%":     r.get("fb_pct") or r.get("fly_ball_pct"),
-            "LD%":     r.get("ld_pct") or r.get("line_drive_pct"),
-            "HR/9":    r.get("hr_per_9") or r.get("hr_per_nine"),
-        }
-        result[team] = entry
-        norm = to_stats(team)
-        if norm != team:
-            result[norm] = entry
-    return result
+    return _by_team(rows, lambda r, team: {
+        "Team":    team,
+        "ERA":     r.get("era"),
+        "xERA":    r.get("xera"),
+        "FIP":     r.get("fip"),
+        "xFIP":    r.get("xfip"),
+        "K%":      r.get("k_perc") or r.get("k_pct"),
+        "BB%":     r.get("bb_perc") or r.get("bb_pct"),
+        "BABIP":   r.get("babip"),
+        "wOBA":    r.get("woba"),
+        "SwStr%":  r.get("swstr_pct"),
+        "CSW%":    r.get("csw_pct"),
+        "Hard%":   r.get("hard_hit_pct") or r.get("hard_contact_pct"),
+        "Barrel%": r.get("barrel_pct"),
+        "GB%":     r.get("gb_pct") or r.get("ground_ball_pct"),
+        "FB%":     r.get("fb_pct") or r.get("fly_ball_pct"),
+        "LD%":     r.get("ld_pct") or r.get("line_drive_pct"),
+        "HR/9":    r.get("hr_per_9") or r.get("hr_per_nine"),
+    })
 
 
 # ── Public loaders ────────────────────────────────────────────────────────────

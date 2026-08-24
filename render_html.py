@@ -1,16 +1,18 @@
 """HTML page renderer — _html_game(), render_html_page(), CSS, and JS."""
 
+import html
 import re
-from datetime import date, datetime, timedelta, timezone
+from collections import namedtuple
+from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote_plus
 
-from teams import _LOGO, logo_img
+from teams import logo_img
 from analysis import flt, wrc_label, xera_label
 from odds import fmt_k_line, fmt_outs_line
 from suggestions import (
-    _pick_dom_id, _pick_summary_title, _render_suggestions_html,
+    _pick_summary_title, _render_suggestions_html,
     _ai_game_map, _lookup_ai_for_game,
 )
 
@@ -31,7 +33,14 @@ def in_season(target_date) -> bool:
 
 
 def _h(text) -> str:
-    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    """Escape a value for HTML text content.
+
+    quote=False matches what this replaced character for character. Note that _h is
+    also used inside double-quoted attributes, where a quote in the value would not be
+    escaped — safe for what currently flows through (team codes, pitcher names, ISO
+    timestamps, generated ids), but not a general-purpose attribute escaper.
+    """
+    return html.escape(str(text), quote=False)
 
 
 def _news_link(pitcher_name: str) -> str:
@@ -246,175 +255,79 @@ header{background:#030712}
 }
 """
 
-# ── CSS class helpers ─────────────────────────────────────────────────────────
+# ── Stat scales ───────────────────────────────────────────────────────────────
+#
+# Every graded number on a card resolves to one of five quality tiers, rendered in one
+# of two palettes: `era-*` for pitching, `wrc-*` for offense. A value we do not have
+# keeps each family's own neutral — era- shows a grey chip, wrc- simply goes unstyled.
+
+_Family = namedtuple("_Family", "classes labels none_cls")
+_Scale  = namedtuple("_Scale", "cuts op family high_is_good")
+
+_ERA = _Family(("era-elite", "era-good", "era-avg", "era-below", "era-poor"),
+               ("elite", "good", "avg", "below avg", "poor"), "era-na")
+_WRC = _Family(("wrc-elite", "wrc-above", "wrc-avg", "wrc-below", "wrc-poor"),
+               ("elite", "above avg", "avg", "below avg", "poor"), "")
+
+# Cut points are listed in the order they are tested — starting at whichever end of the
+# range the comparison reaches first — so the first one a value clears fixes its tier.
+# `high_is_good=False` runs the same tiers in reverse: a lineup that strikes out a lot
+# lands in the WORST tier, not the best.
+#
+# analysis._pct_tier() mirrors the k_sp/whiff_sp and k_bat/whiff_bat cuts for the
+# whiff-vs-K% flags. It cannot import this module (wrong direction in the module order),
+# so those four are kept in step by hand — change one, change both.
+_SCALES = {
+    "k_sp":      _Scale((28, 23, 17, 12), "ge", _ERA, True),
+    # Pitcher Whiff% and K% span a similar range across a slate, so they share cuts.
+    "whiff_sp":  _Scale((28, 23, 17, 12), "ge", _ERA, True),
+    "bb_sp":     _Scale((5, 7, 10, 13),   "le", _ERA, True),   # low BB% = good command
+    "hh_sp":     _Scale((30, 35, 40, 45), "le", _ERA, True),   # low HH% allowed = good
+    "barrel_sp": _Scale((5, 8, 11, 15),   "le", _ERA, True),   # low Barrel% allowed = good
+    "hh_bat":    _Scale((45, 40, 35, 30), "ge", _WRC, True),   # hitting it hard is good
+    "k_bat":     _Scale((28, 24, 20, 16), "ge", _WRC, False),  # striking out is not
+    # Team Whiff% is derived as 100 − contact%, so it sits well below a pitcher's
+    # per-swing rate. Cuts come off the observed spread across all 30 clubs x both hands
+    # (min 15.5, median 22.6, p90 29.7); a pitcher scale would call nearly every lineup
+    # "elite".
+    "whiff_bat": _Scale((28, 25, 21, 18), "ge", _WRC, False),
+}
+
+_ERA_CLS_BY_LBL = dict(zip(_ERA.labels, _ERA.classes))
+_WRC_CLS_BY_LBL = dict(zip(_WRC.labels, _WRC.classes))
+
 
 def _era_cls(label: str) -> str:
-    return {"elite": "era-elite", "good": "era-good", "avg": "era-avg",
-            "below avg": "era-below", "poor": "era-poor"}.get(label, "era-na")
+    """Pitching palette class for a label from analysis.xera_label()."""
+    return _ERA_CLS_BY_LBL.get(label, _ERA.none_cls)
 
 
 def _wrc_cls(label: str) -> str:
-    return {"elite": "wrc-elite", "above avg": "wrc-above", "avg": "wrc-avg",
-            "below avg": "wrc-below", "poor": "wrc-poor"}.get(label, "")
+    """Offense palette class for a label from analysis.wrc_label()."""
+    return _WRC_CLS_BY_LBL.get(label, _WRC.none_cls)
 
 
-def _k_sp_cls(v):
-    if v is None: return "era-na"
-    if v >= 28: return "era-elite"
-    if v >= 23: return "era-good"
-    if v >= 17: return "era-avg"
-    if v >= 12: return "era-below"
-    return "era-poor"
+def _tier(scale: str, v) -> Optional[int]:
+    """Quality tier for a value on a named scale — 0 best, 4 worst, None if absent."""
+    if v is None:
+        return None
+    s = _SCALES[scale]
+    hit = next((i for i, c in enumerate(s.cuts)
+                if (v >= c if s.op == "ge" else v <= c)), 4)
+    return hit if s.high_is_good else 4 - hit
 
 
-def _k_sp_lbl(v):
-    if v is None: return ""
-    if v >= 28: return "elite"
-    if v >= 23: return "good"
-    if v >= 17: return "avg"
-    if v >= 12: return "below avg"
-    return "poor"
+def _scale_cls(scale: str, v) -> str:
+    """CSS class for a value on a named scale."""
+    t = _tier(scale, v)
+    fam = _SCALES[scale].family
+    return fam.none_cls if t is None else fam.classes[t]
 
 
-def _k_bat_cls(v):
-    """High lineup K% = more strikeouts = bad for offense."""
-    if v is None: return ""
-    if v >= 28: return "wrc-poor"
-    if v >= 24: return "wrc-below"
-    if v >= 20: return "wrc-avg"
-    if v >= 16: return "wrc-above"
-    return "wrc-elite"
-
-
-def _k_bat_lbl(v):
-    if v is None: return ""
-    if v >= 28: return "poor"
-    if v >= 24: return "below avg"
-    if v >= 20: return "avg"
-    if v >= 16: return "above avg"
-    return "elite"
-
-
-def _bb_sp_cls(v):
-    """Low BB% = good command = good for pitcher."""
-    if v is None: return "era-na"
-    if v <= 5:  return "era-elite"
-    if v <= 7:  return "era-good"
-    if v <= 10: return "era-avg"
-    if v <= 13: return "era-below"
-    return "era-poor"
-
-
-def _bb_sp_lbl(v):
-    if v is None: return ""
-    if v <= 5:  return "elite"
-    if v <= 7:  return "good"
-    if v <= 10: return "avg"
-    if v <= 13: return "below avg"
-    return "poor"
-
-
-def _hh_sp_cls(v):
-    """Low HH% allowed = good for pitcher."""
-    if v is None: return "era-na"
-    if v <= 30: return "era-elite"
-    if v <= 35: return "era-good"
-    if v <= 40: return "era-avg"
-    if v <= 45: return "era-below"
-    return "era-poor"
-
-
-def _hh_sp_lbl(v):
-    if v is None: return ""
-    if v <= 30: return "elite"
-    if v <= 35: return "good"
-    if v <= 40: return "avg"
-    if v <= 45: return "below avg"
-    return "poor"
-
-
-def _hh_bat_cls(v):
-    """High HH% = good for offense (they hit the ball hard)."""
-    if v is None: return ""
-    if v >= 45: return "wrc-elite"
-    if v >= 40: return "wrc-above"
-    if v >= 35: return "wrc-avg"
-    if v >= 30: return "wrc-below"
-    return "wrc-poor"
-
-
-def _whiff_bat_cls(v):
-    """High lineup Whiff% = more swing-and-miss = bad for offense.
-
-    Team Whiff% is derived as 100 − contact%, so it sits well below a pitcher's
-    per-swing whiff rate. Cut points are set off the observed spread across all 30
-    clubs × both hands (min 15.5, median 22.6, p90 29.7) rather than a pitcher scale,
-    which would have painted nearly every lineup "elite".
-    """
-    if v is None: return ""
-    if v >= 28: return "wrc-poor"
-    if v >= 25: return "wrc-below"
-    if v >= 21: return "wrc-avg"
-    if v >= 18: return "wrc-above"
-    return "wrc-elite"
-
-
-def _whiff_bat_lbl(v):
-    """Mirror of _whiff_bat_cls — same cut points, see its docstring for why."""
-    if v is None: return ""
-    if v >= 28: return "poor"
-    if v >= 25: return "below avg"
-    if v >= 21: return "avg"
-    if v >= 18: return "above avg"
-    return "elite"
-
-
-def _hh_bat_lbl(v):
-    if v is None: return ""
-    if v >= 45: return "elite"
-    if v >= 40: return "above avg"
-    if v >= 35: return "avg"
-    if v >= 30: return "below avg"
-    return "poor"
-
-
-def _whiff_sp_cls(v):
-    """High Whiff% = more swing-and-miss stuff = good for pitcher. Same cut points as
-    _k_sp_cls: pitcher Whiff% and K% run over a similar range across the slate."""
-    if v is None: return "era-na"
-    if v >= 28: return "era-elite"
-    if v >= 23: return "era-good"
-    if v >= 17: return "era-avg"
-    if v >= 12: return "era-below"
-    return "era-poor"
-
-
-def _whiff_sp_lbl(v):
-    if v is None: return ""
-    if v >= 28: return "elite"
-    if v >= 23: return "good"
-    if v >= 17: return "avg"
-    if v >= 12: return "below avg"
-    return "poor"
-
-
-def _barrel_sp_cls(v):
-    """Low Barrel% allowed = good for pitcher."""
-    if v is None: return "era-na"
-    if v <= 5:  return "era-elite"
-    if v <= 8:  return "era-good"
-    if v <= 11: return "era-avg"
-    if v <= 15: return "era-below"
-    return "era-poor"
-
-
-def _barrel_sp_lbl(v):
-    if v is None: return ""
-    if v <= 5:  return "elite"
-    if v <= 8:  return "good"
-    if v <= 11: return "avg"
-    if v <= 15: return "below avg"
-    return "poor"
+def _scale_lbl(scale: str, v) -> str:
+    """Qualitative descriptor for a value on a named scale."""
+    t = _tier(scale, v)
+    return "" if t is None else _SCALES[scale].family.labels[t]
 
 
 def _short_lbl(lbl: str) -> str:
@@ -676,6 +589,253 @@ def _ts_span(iso: str) -> str:
     return f'<span class="local-ts" data-utc="{_h(iso)}">{_h(fallback)}</span>'
 
 
+# ── Matchup card pieces ───────────────────────────────────────────────────────
+#
+# These are pure functions of the values handed to them. They live at module level
+# rather than nested inside _html_game() so that function reads as the page structure
+# it is, and so each piece can be exercised on its own.
+
+def _row(lbl, val_s, cls="", lbl_txt=""):
+    """One label/value pair in a two-column matchup card."""
+    if val_s == "?":
+        return f'<span class="mu-lbl">{_h(lbl)}</span><span class="dim">?</span>'
+    lbl_part = f' <span class="mu-q">({_h(_short_lbl(lbl_txt))})</span>' if lbl_txt else ""
+    cls_attr = f' class="mu-v {cls}"' if cls else ' class="mu-v"'
+    return f'<span class="mu-lbl">{_h(lbl)}</span><span{cls_attr}>{_h(val_s)}{lbl_part}</span>'
+
+
+def _scaled_row(lbl, val_s, scale):
+    """A row whose colour and descriptor both come from the same graded scale."""
+    v = flt(val_s)
+    return _row(lbl, val_s, _scale_cls(scale, v), _scale_lbl(scale, v))
+
+
+def _outing_avg(outings, key, n=3):
+    """Mean of one stat over the n most recent outings, or None if never recorded."""
+    vals = [o[key] for o in outings[:n] if o.get(key) is not None]
+    return f"{sum(vals)/len(vals):.0f}" if vals else None
+
+
+def _sp_card(sp, pc_avg=None, sec_id=""):
+    """Starting-pitcher card. Headline four stay visible; peripherals go behind
+    "More Stats", which is only rendered when there is an id to persist it under."""
+    rows  = _row("xERA", sp["xera_s"], _era_cls(sp["label"]), sp["label"])
+    era_lbl = xera_label(sp.get("era"))
+    rows += _row("ERA", sp["era_s"], _era_cls(era_lbl), era_lbl)
+    rows += _scaled_row("K%",     sp["k"],     "k_sp")
+    rows += _scaled_row("Whiff%", sp["whiff"], "whiff_sp")
+
+    more  = _scaled_row("HH%",     sp["hard"],   "hh_sp")
+    more += _scaled_row("Barrel%", sp["barrel"], "barrel_sp")
+    more += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
+    more += f'<span class="mu-lbl">H/gs</span><span class="dim">{_h(sp["h_per_gs"])}</span>'
+    pc_display = pc_avg if (pc_avg and sp.get("has_stats")) else "?"
+    more += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_display)}</span>'
+    more += _scaled_row("BB%", sp["bb"], "bb_sp")
+    more_html = (
+        f'<details class="sec sec-nested" id="{_h(sec_id)}">'
+        f'<summary class="sec-sum">More Stats</summary>'
+        f'<div class="mu-2c">{more}</div>'
+        f'</details>'
+    ) if sec_id else ""
+
+    hb = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
+    return (f'<div class="mu-card"><div class="mu-card-hd">{_h(sp["name"])} {hb}</div>'
+            f'<div class="mu-2c">{rows}</div>{more_html}</div>')
+
+
+# The two offense windows carry the same four stats under the same four labels — the
+# group header is what tells you which window you are reading, not the row text. Keyed
+# off analysis._off()'s field names:
+#   (header, wRC+ display, precomputed-label key or None, wRC+ raw, K%, Whiff%, HH%)
+# The primary window arrives with its descriptor already computed; the comparison
+# window has none, so its label is derived here from the same wrc_label() ladder.
+_OFF_WINDOWS = (
+    ("L6",  "wrc_s",     "label", "wrc",     "k",     "whiff",     "hard"),
+    ("L12", "wrc_ctx_s", None,    "wrc_ctx", "k_ctx", "whiff_ctx", "hard_ctx"),
+)
+
+
+def _bat_card(team, off):
+    """Team-offense card — the primary window and its longer comparison window."""
+    if not off:
+        return (f'<div class="mu-card"><div class="mu-card-hd">'
+                f'{_h(team)} <span class="dim" style="font-weight:400"></span></div>'
+                f'<div class="mu-2c"><span class="dim" '
+                f'style="grid-column:1/-1;font-size:.8rem">No data</span></div></div>')
+
+    # Whiff% is absent for a club with no qualifying row; when it is missing from the
+    # primary window it is suppressed in both, so the two groups stay row-for-row
+    # comparable rather than one silently gaining a line the other lacks.
+    has_whiff = bool(off.get("whiff")) and off["whiff"] != "?"
+
+    body = ""
+    for header, wrc_s_key, lbl_key, wrc_key, k_key, whiff_key, hh_key in _OFF_WINDOWS:
+        lbl = off.get(lbl_key, "") if lbl_key else wrc_label(off.get(wrc_key))
+        rows  = _row("wRC+", off.get(wrc_s_key, "N/A"), _wrc_cls(lbl), lbl)
+        rows += _scaled_row("K%", off.get(k_key, "?"), "k_bat")
+        if has_whiff:
+            rows += _scaled_row("Whiff%", off.get(whiff_key, "?"), "whiff_bat")
+        rows += _scaled_row("HH%", off.get(hh_key, "?"), "hh_bat")
+        body += f'<div class="mu-grp-hd">{header}</div><div class="mu-2c">{rows}</div>'
+
+    return (f'<div class="mu-card"><div class="mu-card-hd">'
+            f'{_h(team)} <span class="dim" style="font-weight:400">'
+            f'{_h("vs " + off["vs_hand"])}</span></div>'
+            f'{body}</div>')
+
+
+def _outing_table(outings):
+    """Box-score table for a run of outings. Relief appearances are marked with *."""
+    if not outings:
+        return ""
+    def _v(v): return "—" if v is None else str(v)
+    hdr = ('<div class="ot-row ot-hd">'
+           '<span>Date</span><span>Opp</span><span>Res</span>'
+           '<span>IP</span><span>PC</span><span>K</span><span>H</span><span>BB</span><span>ER</span><span>R</span>'
+           '</div>')
+    rows = ""
+    for o in outings:
+        rc  = "ot-w" if o["result"] == "W" else "ot-l" if o["result"] == "L" else "ot-nd"
+        pfx = "@" if o["ha"] == "@" else "vs"
+        opp_logo = logo_img(o["opp"], size="sm")
+        ip_s = (_v(o["ip"]) + "*") if o.get("is_relief") else _v(o["ip"])
+        rows += (f'<div class="ot-row">'
+                 f'<span class="dim">{_h(o["date"])}</span>'
+                 f'<span class="dim">{pfx} {opp_logo}</span>'
+                 f'<span class="{rc}">{_h(o["result"])}</span>'
+                 f'<span>{_h(ip_s)}</span>'
+                 f'<span class="dim">{_h(_v(o["pc"]))}</span>'
+                 f'<span>{_h(_v(o["k"]))}</span>'
+                 f'<span class="dim">{_h(_v(o["h"]))}</span>'
+                 f'<span class="dim">{_h(_v(o["bb"]))}</span>'
+                 f'<span>{_h(_v(o["er"]))}</span>'
+                 f'<span class="dim">{_h(_v(o["r"]))}</span>'
+                 f'</div>')
+    return f'<div class="ot-wrap">{hdr}{rows}</div>'
+
+
+def _bp_row(team, bp):
+    """One club's bullpen line: xERA, ERA, and recent workload.
+
+    ERA is graded on the same scale as the xERA beside it, matching how _sp_card treats
+    a starter's two ERA figures. Unscored, it was the one number on the card whose
+    colour said nothing — and the pair only reads as a regression signal if both halves
+    are graded the same way.
+    """
+    lbl = f' <span class="dim">({_h(_short_lbl(bp["label"]))})</span>' if bp["label"] else ""
+    era_lbl = xera_label(bp.get("era")) if bp.get("era") is not None else ""
+    era_cls = _era_cls(era_lbl) if era_lbl else ""
+    era_q = f' <span class="dim">({_h(_short_lbl(era_lbl))})</span>' if era_lbl else ""
+    stress_html = ""
+    if bp.get("stress_label") and bp["stress_label"] != "No recent games":
+        ip = bp.get("stress_ip")
+        games = bp.get("stress_games", 0)
+        ip_s = f"{ip:.1f} IP" if ip is not None else ""
+        games_s = f"/{games}g" if games > 0 else ""
+        stress_html = (
+            f'<span class="{bp["stress_css"]}"><b>2d stress</b> {_h(bp["stress_label"])}'
+            f'<span class="dim"> ({ip_s}{games_s})</span></span>'
+        )
+    return (f'<div class="bp-row">'
+            f'<span class="tm">{_h(team)}</span>'
+            f'<div class="bp-body stats">'
+            f'<span class="xr {_era_cls(bp["label"])}"><b>xERA</b> {_h(bp["xera_s"])}{lbl}</span>'
+            f'<span class="{era_cls}"><b>ERA</b> {_h(bp["era_s"])}{era_q}</span>'
+            f'{stress_html}'
+            f'</div></div>')
+
+
+# ── SP situational splits and over/under records ──────────────────────────────
+
+_SPL_HDR = ('<div class="spl-row spl-hd">'
+            '<span></span><span>IP</span><span>ERA</span>'
+            '<span>K</span><span>H</span><span>BB</span><span></span>'
+            '</div>')
+
+
+def _spl_row(ctx: str, stats: Optional[dict]) -> str:
+    """One situational-split line: the averaged stat line for a context, or a dash."""
+    if not stats:
+        return (f'<div class="spl-row">'
+                f'<span class="spl-ctx dim">{_h(ctx)}</span>'
+                f'<span class="dim" style="grid-column:2/-1">—</span>'
+                f'</div>')
+    era_f = stats.get("era_f")
+    era_lbl = xera_label(era_f) if era_f is not None else ""
+    ec = _era_cls(era_lbl) if era_f is not None else "era-na"
+    # Already a 7-column grid at 375px, so the descriptor stacks under the number
+    # instead of sitting beside it. It inherits the row's era- colour, which is the
+    # point — it names the colour it is in.
+    era_q = f'<span class="spl-q">{_h(_short_lbl(era_lbl))}</span>' if era_lbl else ""
+    return (
+        f'<div class="spl-row">'
+        f'<span class="spl-ctx">{_h(ctx)}</span>'
+        f'<span class="spl-val">{_h(stats["ip"])}</span>'
+        f'<span class="spl-val {ec}">{_h(stats["era"])}{era_q}</span>'
+        f'<span class="spl-val">{_h(stats["k"])}</span>'
+        f'<span class="spl-val">{_h(stats["h"])}</span>'
+        f'<span class="spl-val">{_h(stats["bb"])}</span>'
+        f'<span class="spl-n">({stats["n"]})</span>'
+        f'</div>'
+    )
+
+
+def _spl_ot(outings) -> str:
+    return f'<div class="spl-ot">{_outing_table(outings)}</div>' if outings else ""
+
+
+def _spl_block(sp_name: str, spl: dict, vs_lbl: str, at_lbl: str,
+               merge: bool = False) -> str:
+    """Situational splits for one starter, with the outings behind them.
+
+    `merge` collapses both rows onto a single deduped table. That is right for the
+    AWAY starter, whose at-park starts are by definition a subset of his meetings
+    with this club — two tables there would repeat the same rows. The HOME starter's
+    splits are genuinely different populations (this club anywhere vs every club at
+    home), so each row keeps its own table and any overlap between them is real.
+    """
+    if not spl.get("vs") and not spl.get("at"):
+        return ""
+    head = f'<div class="spl-sp-hd">{_h(sp_name)}</div>' + _SPL_HDR
+    if merge:
+        return (head
+                + _spl_row(vs_lbl, spl.get("vs"))
+                + _spl_row(at_lbl, spl.get("at"))
+                + _spl_ot(spl.get("outings") or []))
+    return (head
+            + _spl_row(vs_lbl, spl.get("vs"))
+            + _spl_ot(spl.get("vs_outings") or [])
+            + _spl_row(at_lbl, spl.get("at"))
+            + _spl_ot(spl.get("at_outings") or []))
+
+
+def _ou_block(team: str, sp_name: str, ou: Optional[dict]) -> str:
+    """Over/under records — rendered as a second list under the W/L trends."""
+    if not ou:
+        return ""
+    side_lbl = "home" if ou["is_home"] else "away"
+
+    def _ou_s(o, u):
+        return f'<span class="tw">{o}</span>-<span class="tl">{u}</span>'
+
+    # (key, sentence tail) — each slice is omitted entirely when ou_trends() dropped it
+    # for being below its sample floor, so a thin record shows nothing rather than a
+    # number that reads as a trend.
+    slices = (
+        ("last10",        lambda n: f"their last {n} games."),
+        ("last10_side",   lambda n: f"their last {n} {side_lbl} games."),
+        ("sp_last5",      lambda n: f"{_h(sp_name)}'s last {n} starts."),
+        ("sp_last3_side", lambda n: f"{_h(sp_name)}'s last {n} {side_lbl} starts."),
+    )
+    lines = [f'{_h(team)} are {_ou_s(*ou[key])} to the over in {tail(ou[f"n_{key}"])}'
+             for key, tail in slices if key in ou]
+    if not lines:
+        return ""
+    items = "".join(f"<li>{ln}</li>" for ln in lines)
+    return f'<div class="trends-hd">Over / Under</div><ul class="trends">{items}</ul>'
+
+
 # ── Per-game card ─────────────────────────────────────────────────────────────
 
 def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
@@ -740,147 +900,6 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
                      if effective_wx_lbl else "")
     venue_html = (f'<span class="gs-venue">{_h("  ·  ".join(venue_parts))}{wx_badge_html}</span>'
                   if venue_parts else "")
-
-    def _row(lbl, val_s, cls="", lbl_txt=""):
-        if val_s == "?":
-            return f'<span class="mu-lbl">{_h(lbl)}</span><span class="dim">?</span>'
-        lbl_part = f' <span class="mu-q">({_h(_short_lbl(lbl_txt))})</span>' if lbl_txt else ""
-        cls_attr = f' class="mu-v {cls}"' if cls else ' class="mu-v"'
-        return f'<span class="mu-lbl">{_h(lbl)}</span><span{cls_attr}>{_h(val_s)}{lbl_part}</span>'
-
-    def _outing_avg(outings, key, n=3):
-        vals = [o[key] for o in outings[:n] if o.get(key) is not None]
-        return f"{sum(vals)/len(vals):.0f}" if vals else None
-
-    def _sp_card(sp, pc_avg=None, sec_id=""):
-        # Headline four stay visible; the peripherals live behind "More Stats".
-        ec = _era_cls(sp["label"])
-        rows  = _row("xERA",    sp["xera_s"], ec,             sp["label"])
-        era_lbl = xera_label(sp.get("era"))
-        rows += _row("ERA",     sp["era_s"], _era_cls(era_lbl), era_lbl)
-        k_v   = flt(sp["k"])
-        rows += _row("K%",      sp["k"],      _k_sp_cls(k_v),  _k_sp_lbl(k_v))
-        wf_v  = flt(sp["whiff"])
-        rows += _row("Whiff%",  sp["whiff"],  _whiff_sp_cls(wf_v), _whiff_sp_lbl(wf_v))
-
-        hh_v  = flt(sp["hard"])
-        more  = _row("HH%",     sp["hard"],   _hh_sp_cls(hh_v), _hh_sp_lbl(hh_v))
-        bv = flt(sp["barrel"])
-        more += _row("Barrel%", sp["barrel"], _barrel_sp_cls(bv), _barrel_sp_lbl(bv))
-        more += f'<span class="mu-lbl">IP/gs</span><span class="dim">{_h(sp["depth"])}</span>'
-        more += f'<span class="mu-lbl">H/gs</span><span class="dim">{_h(sp["h_per_gs"])}</span>'
-        pc_display = pc_avg if (pc_avg and sp.get("has_stats")) else "?"
-        more += f'<span class="mu-lbl">PC/gs</span><span class="dim">{_h(pc_display)}</span>'
-        bb_v = flt(sp["bb"])
-        more += _row("BB%", sp["bb"], _bb_sp_cls(bb_v), _bb_sp_lbl(bb_v))
-        more_html = (
-            f'<details class="sec sec-nested" id="{_h(sec_id)}">'
-            f'<summary class="sec-sum">More Stats</summary>'
-            f'<div class="mu-2c">{more}</div>'
-            f'</details>'
-        ) if sec_id else ""
-
-        hb = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
-        return (f'<div class="mu-card"><div class="mu-card-hd">{_h(sp["name"])} {hb}</div>'
-                f'<div class="mu-2c">{rows}</div>{more_html}</div>')
-
-    def _bat_card(team, off):
-        # The window (L6 vs L12) lives on its own group header now, not on individual
-        # rows or the card subtitle, so wRC+/K%/Whiff%/HH% carry identical labels in
-        # both groups — position tells you the window, not the text.
-        if off:
-            wc = _wrc_cls(off["label"])
-            l6  = _row("wRC+", off["wrc_s"], wc, off["label"])
-            k_v = flt(off["k"])
-            l6 += _row("K%",  off["k"],   _k_bat_cls(k_v),  _k_bat_lbl(k_v))
-            has_whiff = off.get("whiff") and off["whiff"] != "?"
-            if has_whiff:
-                wf_v = flt(off["whiff"])
-                l6 += _row("Whiff%", off["whiff"], _whiff_bat_cls(wf_v), _whiff_bat_lbl(wf_v))
-            hh_v = flt(off["hard"])
-            l6 += _row("HH%", off["hard"], _hh_bat_cls(hh_v), _hh_bat_lbl(hh_v))
-
-            ctx_lbl = wrc_label(off.get("wrc_ctx"))
-            l12  = _row("wRC+", off.get("wrc_ctx_s", "N/A"), _wrc_cls(ctx_lbl), ctx_lbl)
-            k_ctx_v = flt(off.get("k_ctx"))
-            l12 += _row("K%", off.get("k_ctx", "?"), _k_bat_cls(k_ctx_v), _k_bat_lbl(k_ctx_v))
-            if has_whiff:
-                wf_ctx_v = flt(off.get("whiff_ctx"))
-                l12 += _row("Whiff%", off.get("whiff_ctx", "?"),
-                             _whiff_bat_cls(wf_ctx_v), _whiff_bat_lbl(wf_ctx_v))
-            hh_ctx_v = flt(off.get("hard_ctx"))
-            l12 += _row("HH%", off.get("hard_ctx", "?"), _hh_bat_cls(hh_ctx_v), _hh_bat_lbl(hh_ctx_v))
-
-            body = (f'<div class="mu-grp-hd">L6</div><div class="mu-2c">{l6}</div>'
-                    f'<div class="mu-grp-hd">L12</div><div class="mu-2c">{l12}</div>')
-            vs = f'vs {off["vs_hand"]}'
-        else:
-            body = (f'<div class="mu-2c"><span class="dim" '
-                     'style="grid-column:1/-1;font-size:.8rem">No data</span></div>')
-            vs = ""
-        return (f'<div class="mu-card"><div class="mu-card-hd">'
-                f'{_h(team)} <span class="dim" style="font-weight:400">{_h(vs)}</span></div>'
-                f'{body}</div>')
-
-    def _outing_table(outings):
-        if not outings:
-            return ""
-        def _v(v): return "—" if v is None else str(v)
-        hdr = ('<div class="ot-row ot-hd">'
-               '<span>Date</span><span>Opp</span><span>Res</span>'
-               '<span>IP</span><span>PC</span><span>K</span><span>H</span><span>BB</span><span>ER</span><span>R</span>'
-               '</div>')
-        rows = ""
-        for o in outings:
-            rc  = "ot-w" if o["result"] == "W" else "ot-l" if o["result"] == "L" else "ot-nd"
-            pfx = "@" if o["ha"] == "@" else "vs"
-            opp_code = o["opp"]
-            opp_slug = _LOGO.get(opp_code, opp_code.lower())
-            opp_url  = f"https://a.espncdn.com/combiner/i?img=/i/teamlogos/mlb/500/{opp_slug}.png&h=28&w=28"
-            opp_logo = f'<img src="{opp_url}" class="tm-logo-sm" alt="{_h(opp_code)}" onerror="this.style.display=\'none\'">'
-            ip_s = (_v(o["ip"]) + "*") if o.get("is_relief") else _v(o["ip"])
-            rows += (f'<div class="ot-row">'
-                     f'<span class="dim">{_h(o["date"])}</span>'
-                     f'<span class="dim">{pfx} {opp_logo}</span>'
-                     f'<span class="{rc}">{_h(o["result"])}</span>'
-                     f'<span>{_h(ip_s)}</span>'
-                     f'<span class="dim">{_h(_v(o["pc"]))}</span>'
-                     f'<span>{_h(_v(o["k"]))}</span>'
-                     f'<span class="dim">{_h(_v(o["h"]))}</span>'
-                     f'<span class="dim">{_h(_v(o["bb"]))}</span>'
-                     f'<span>{_h(_v(o["er"]))}</span>'
-                     f'<span class="dim">{_h(_v(o["r"]))}</span>'
-                     f'</div>')
-        return f'<div class="ot-wrap">{hdr}{rows}</div>'
-
-    def _bp_row(team, bp):
-        ec = _era_cls(bp["label"])
-        lbl = f' <span class="dim">({_h(_short_lbl(bp["label"]))})</span>' if bp["label"] else ""
-        # ERA on the same scale as the xERA beside it, matching how _sp_card treats a
-        # starter's two ERA figures. Unscored, it was the one number on the card whose
-        # colour said nothing — and the pair only reads as a regression signal if both
-        # halves are graded the same way.
-        era_lbl = xera_label(bp.get("era")) if bp.get("era") is not None else ""
-        era_cls = _era_cls(era_lbl) if era_lbl else ""
-        era_q = f' <span class="dim">({_h(_short_lbl(era_lbl))})</span>' if era_lbl else ""
-        stress_html = ""
-        if bp.get("stress_label") and bp["stress_label"] != "No recent games":
-            sc = bp["stress_css"]
-            ip = bp.get("stress_ip")
-            games = bp.get("stress_games", 0)
-            ip_s = f"{ip:.1f} IP" if ip is not None else ""
-            games_s = f"/{games}g" if games > 0 else ""
-            stress_html = (
-                f'<span class="{sc}"><b>2d stress</b> {_h(bp["stress_label"])}'
-                f'<span class="dim"> ({ip_s}{games_s})</span></span>'
-            )
-        return (f'<div class="bp-row">'
-                f'<span class="tm">{_h(team)}</span>'
-                f'<div class="bp-body stats">'
-                f'<span class="xr {ec}"><b>xERA</b> {_h(bp["xera_s"])}{lbl}</span>'
-                f'<span class="{era_cls}"><b>ERA</b> {_h(bp["era_s"])}{era_q}</span>'
-                f'{stress_html}'
-                f'</div></div>')
 
     gn = g.get("game_number") or 1
     g_id = f"{_h(away)}-{_h(home)}" + (f"-g{gn}" if gn != 1 else "")
@@ -1057,71 +1076,13 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
             f'</details>'
         )
 
-    def _spl_row(ctx: str, stats: Optional[dict]) -> str:
-        if not stats:
-            return (f'<div class="spl-row">'
-                    f'<span class="spl-ctx dim">{_h(ctx)}</span>'
-                    f'<span class="dim" style="grid-column:2/-1">—</span>'
-                    f'</div>')
-        era_f = stats.get("era_f")
-        era_lbl = xera_label(era_f) if era_f is not None else ""
-        ec = _era_cls(era_lbl) if era_f is not None else "era-na"
-        # This is a 7-column grid already at the width of a 375px screen, so the
-        # descriptor stacks under the number instead of sitting beside it. It inherits
-        # the row's era- colour, which is the point — it names the colour it is in.
-        era_q = f'<span class="spl-q">{_h(_short_lbl(era_lbl))}</span>' if era_lbl else ""
-        return (
-            f'<div class="spl-row">'
-            f'<span class="spl-ctx">{_h(ctx)}</span>'
-            f'<span class="spl-val">{_h(stats["ip"])}</span>'
-            f'<span class="spl-val {ec}">{_h(stats["era"])}{era_q}</span>'
-            f'<span class="spl-val">{_h(stats["k"])}</span>'
-            f'<span class="spl-val">{_h(stats["h"])}</span>'
-            f'<span class="spl-val">{_h(stats["bb"])}</span>'
-            f'<span class="spl-n">({stats["n"]})</span>'
-            f'</div>'
-        )
-
-    def _spl_hdr() -> str:
-        return (
-            '<div class="spl-row spl-hd">'
-            '<span></span><span>IP</span><span>ERA</span>'
-            '<span>K</span><span>H</span><span>BB</span><span></span>'
-            '</div>'
-        )
-
-    def _spl_ot(outings) -> str:
-        return f'<div class="spl-ot">{_outing_table(outings)}</div>' if outings else ""
-
-    def _spl_block(sp_name: str, spl: dict, vs_lbl: str, at_lbl: str,
-                   merge: bool = False) -> str:
-        """Situational splits for one starter, with the outings behind them.
-
-        `merge` collapses both rows onto a single deduped table. That is right for the
-        AWAY starter, whose at-park starts are by definition a subset of his meetings
-        with this club — two tables there would repeat the same rows. The HOME starter's
-        splits are genuinely different populations (this club anywhere vs every club at
-        home), so each row keeps its own table and any overlap between them is real.
-        """
-        if not spl.get("vs") and not spl.get("at"):
-            return ""
-        head = f'<div class="spl-sp-hd">{_h(sp_name)}</div>' + _spl_hdr()
-        if merge:
-            return (head
-                    + _spl_row(vs_lbl, spl.get("vs"))
-                    + _spl_row(at_lbl, spl.get("at"))
-                    + _spl_ot(spl.get("outings") or []))
-        return (head
-                + _spl_row(vs_lbl, spl.get("vs"))
-                + _spl_ot(spl.get("vs_outings") or [])
-                + _spl_row(at_lbl, spl.get("at"))
-                + _spl_ot(spl.get("at_outings") or []))
-
-    away_spl = g.get("away_sp_splits", {})
-    home_spl = g.get("home_sp_splits", {})
+    # The away starter's at-park starts are a subset of his meetings with this club, so
+    # his two rows share one deduped table; the home starter's are separate populations.
     splits_inner = (
-        _spl_block(sp_a["name"], away_spl, f"vs {home}", f"at {home}", merge=True)
-        + _spl_block(sp_h["name"], home_spl, f"vs {away}", "home starts")
+        _spl_block(sp_a["name"], g.get("away_sp_splits", {}),
+                   f"vs {home}", f"at {home}", merge=True)
+        + _spl_block(sp_h["name"], g.get("home_sp_splits", {}),
+                     f"vs {away}", "home starts")
     )
     splits_html = (
         f'<details class="sec" id="{g_id}-splits">'
@@ -1129,33 +1090,6 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
         f'<div class="sec-body">{splits_inner}</div>'
         f'</details>'
     ) if splits_inner.strip() else ""
-
-    def _ou_block(team: str, sp_name: str, ou: Optional[dict]) -> str:
-        """Over/under records — rendered as a second list under the W/L trends."""
-        if not ou:
-            return ""
-        side_lbl = "home" if ou["is_home"] else "away"
-
-        def _ou_s(o, u):
-            return f'<span class="tw">{o}</span>-<span class="tl">{u}</span>'
-
-        lines = []
-        if "last10" in ou:
-            lines.append(f'{_h(team)} are {_ou_s(*ou["last10"])} to the over in their '
-                         f'last {ou["n_last10"]} games.')
-        if "last10_side" in ou:
-            lines.append(f'{_h(team)} are {_ou_s(*ou["last10_side"])} to the over in their '
-                         f'last {ou["n_last10_side"]} {side_lbl} games.')
-        if "sp_last5" in ou:
-            lines.append(f'{_h(team)} are {_ou_s(*ou["sp_last5"])} to the over in '
-                         f'{_h(sp_name)}\'s last {ou["n_sp_last5"]} starts.')
-        if "sp_last3_side" in ou:
-            lines.append(f'{_h(team)} are {_ou_s(*ou["sp_last3_side"])} to the over in '
-                         f'{_h(sp_name)}\'s last {ou["n_sp_last3_side"]} {side_lbl} starts.')
-        if not lines:
-            return ""
-        items = "".join(f"<li>{ln}</li>" for ln in lines)
-        return f'<div class="trends-hd">Over / Under</div><ul class="trends">{items}</ul>'
 
     def _trend_block(team: str, sp_name: str, tr: Optional[dict], is_away: bool) -> str:
         if not tr:

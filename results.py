@@ -15,7 +15,7 @@ Usage:
 """
 import json
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from render_html import _CSS, _SWIPE_SCRIPT, _h

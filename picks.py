@@ -9,11 +9,10 @@ Usage:
   python picks.py --annotate [--date YYYY-MM-DD]   # fill won/lost from history/ scores
 """
 import json
-import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
-from season import ET as _ET
+from season import ET as _ET, resolve_cli_date
 
 from teams import ODDS_TEAM as _CODE_TO_FULL, MLB_NAME_TO_CODE as _NAME_TO_CODE, normalize_name
 
@@ -312,28 +311,6 @@ def load_all_picks(picks_dir: Path, target_date: date) -> list:
     return _read_json(picks_path) or []
 
 
-def load_valid_picks(picks_dir: Path, target_date: date, now: datetime = None) -> list:
-    """Return picks for games that haven't started yet (still actionable)."""
-    date_str = target_date.strftime("%Y-%m-%d")
-    picks_path = picks_dir / f"{date_str}.json"
-    records = _read_json(picks_path) or []
-    if now is None:
-        now = datetime.now(timezone.utc)
-    valid = []
-    for p in records:
-        gt = p.get("game_time_utc", "")
-        if not gt:
-            valid.append(p)
-            continue
-        try:
-            gt_dt = datetime.fromisoformat(gt.replace("Z", "+00:00"))
-            if gt_dt > now:
-                valid.append(p)
-        except Exception:
-            valid.append(p)
-    return valid
-
-
 def annotate_picks(picks_dir: Path, history_dir: Path, target_date: date) -> int:
     """Fill in result (won/lost/push) for all pick types using enriched history/."""
     date_str = target_date.strftime("%Y-%m-%d")
@@ -422,6 +399,15 @@ def _ou(actual, line) -> str | None:
     return "push"
 
 
+def _invert(result: str | None) -> str | None:
+    """Flip an over-side grade onto the under side.
+
+    _ou() always grades as if the bet were the over, so every under is that answer
+    turned around. A push is a push either way, and an ungraded pick stays ungraded.
+    """
+    return {"won": "lost", "lost": "won"}.get(result, result)
+
+
 def _ml_or_spread(team_score, line, opponent_score) -> str | None:
     """won/lost/push for ML (line=None) or spread. team_score is the bet side."""
     if team_score is None or opponent_score is None:
@@ -462,18 +448,13 @@ def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
             score = away if side.startswith("away") else home
             if score is None or line is None:
                 return None
-            raw = _ou(score, line)   # "won"=over, "lost"=under, "push"
-            if side.endswith("under"):
-                if raw == "won":   return "lost"
-                if raw == "lost":  return "won"
-            return raw
+            raw = _ou(score, line)   # graded as if it were the over
+            return _invert(raw) if side.endswith("under") else raw
         if side in ("over", "under"):
             if away is None or home is None or line is None:
                 return None
-            raw = _ou(away + home, line)  # "won"=over hit
-            return raw if side == "over" else (
-                "won" if raw == "lost" else "lost" if raw == "won" else "push"
-            )
+            raw = _ou(away + home, line)  # graded as if it were the over
+            return raw if side == "over" else _invert(raw)
         if side == "away":
             return _ml_or_spread(away, line, home)
         if side == "home":
@@ -494,18 +475,13 @@ def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
             score = af5 if side.startswith("away") else hf5
             if line is None:
                 return None
-            raw = _ou(score, line)   # "won" = over
-            if side.endswith("under"):
-                if raw == "won":   return "lost"
-                if raw == "lost":  return "won"
-            return raw
+            raw = _ou(score, line)   # graded as if it were the over
+            return _invert(raw) if side.endswith("under") else raw
         if bt in ("f5total", "total"):
             if line is None:
                 return None
-            raw = _ou(af5 + hf5, line)
-            return raw if side == "over" else (
-                "won" if raw == "lost" else "lost" if raw == "won" else "push"
-            )
+            raw = _ou(af5 + hf5, line)  # graded as if it were the over
+            return raw if side == "over" else _invert(raw)
         if side == "away":
             return _ml_or_spread(af5, line, hf5)
         if side == "home":
@@ -541,10 +517,8 @@ def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
             p_line = line
         if actual is None or p_line is None:
             return None
-        raw = _ou(actual, p_line)  # "won"=over hit
-        return raw if is_over else (
-            "won" if raw == "lost" else "lost" if raw == "won" else "push"
-        )
+        raw = _ou(actual, p_line)  # graded as if it were the over
+        return raw if is_over else _invert(raw)
 
     return None
 
@@ -566,16 +540,7 @@ if __name__ == "__main__":
     if not args.save and not args.annotate and not args.fix_times:
         ap.error("Specify --save, --annotate or --fix-times")
 
-    today_et = datetime.now(_ET).date()
-    if args.date == "today":
-        target = today_et
-    elif args.date == "yesterday":
-        target = today_et - timedelta(days=1)
-    else:
-        try:
-            target = datetime.strptime(args.date, "%Y-%m-%d").date()
-        except ValueError:
-            sys.exit(f"Invalid date: {args.date}")
+    target = resolve_cli_date(args.date)
 
     if args.save:
         save_picks(Path(args.data_dir), Path(args.picks_dir), target, Path(args.history_dir))

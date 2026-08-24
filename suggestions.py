@@ -1,9 +1,10 @@
 """AI betting suggestions — generate, cache, and render Claude-powered picks."""
 
+import html
 import json
 import re
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -15,7 +16,14 @@ from season import ET as _ET
 
 
 def _h(text) -> str:
-    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    """Escape a value for HTML text content.
+
+    quote=False matches what this replaced character for character. Note that _h is
+    also used inside double-quoted attributes, where a quote in the value would not be
+    escaped — safe for what currently flows through (team codes, pitcher names, ISO
+    timestamps, generated ids), but not a general-purpose attribute escaper.
+    """
+    return html.escape(str(text), quote=False)
 
 
 # ── DOM / title helpers ───────────────────────────────────────────────────────
@@ -843,20 +851,17 @@ def _serialize_game_for_ai(g: dict) -> str:
         if not off:
             return f"  {team} vs {vs_hand}HP: No data"
         lbl = f" ({off['label']})" if off.get("label") else ""
-        parts = [f"wRC+ last 6: {off.get('wrc_s', '?')}{lbl}"]
-        parts.append(f"wRC+ last 12: {off.get('wrc_ctx_s', 'N/A')}")
-        if off.get("k") not in ("?", None):
-            parts.append(f"K% last 6: {off['k']}")
-            if off.get("k_ctx") not in ("?", None):
-                parts.append(f"K% last 12: {off['k_ctx']}")
-        if off.get("whiff") not in ("?", None):
-            parts.append(f"Whiff% last 6: {off['whiff']}")
-            if off.get("whiff_ctx") not in ("?", None):
-                parts.append(f"Whiff% last 12: {off['whiff_ctx']}")
-        if off.get("hard") not in ("?", None):
-            parts.append(f"HH% last 6: {off['hard']}")
-            if off.get("hard_ctx") not in ("?", None):
-                parts.append(f"HH% last 12: {off['hard_ctx']}")
+        parts = [f"wRC+ last 6: {off.get('wrc_s', '?')}{lbl}",
+                 f"wRC+ last 12: {off.get('wrc_ctx_s', 'N/A')}"]
+        # The longer window is only ever quoted alongside the primary one, so a stat
+        # missing from the last 6 drops both halves rather than presenting a bare
+        # last-12 figure the model would have no primary number to weigh it against.
+        for stat, key in (("K%", "k"), ("Whiff%", "whiff"), ("HH%", "hard")):
+            if off.get(key) in ("?", None):
+                continue
+            parts.append(f"{stat} last 6: {off[key]}")
+            if off.get(f"{key}_ctx") not in ("?", None):
+                parts.append(f"{stat} last 12: {off[f'{key}_ctx']}")
         return f"  {team} vs {vs_hand}HP: " + ", ".join(parts)
 
     def _bp_line(team, bp):

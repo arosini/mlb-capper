@@ -11,15 +11,15 @@ Usage:
 
 import json
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
-from season import ET as _ET, GAME_TYPES
+from season import GAME_TYPES, resolve_cli_date
 
 MLB_API = "https://statsapi.mlb.com/api/v1"
 
 from teams import MLB_NAME_TO_CODE as _NAME_TO_CODE, _MLB_MAP as _TO_MLB_ABBR, normalize_name
-from odds import _best_price, _best_spread, _best_total
+from odds import _best_price, _best_spread, _best_total, best_outcome
 
 
 def _read_json(path: Path):
@@ -62,27 +62,6 @@ def _pick_best_result(candidates: list, game_time_utc: str) -> dict:
 # Odds helper functions
 # ---------------------------------------------------------------------------
 
-def _prop_best(bookmakers: list, market_key: str, outcome_name: str, description: str = None):
-    """
-    Best price + point across bookmakers for a props market outcome.
-    description filters by outcome['description'] (used for team totals, pitcher props).
-    """
-    best_price, best_point = None, None
-    for bk in bookmakers:
-        for mkt in bk.get("markets", []):
-            if mkt["key"] != market_key:
-                continue
-            for oc in mkt.get("outcomes", []):
-                if oc.get("name") != outcome_name:
-                    continue
-                if description is not None and oc.get("description", "") != description:
-                    continue
-                p, pt = oc.get("price"), oc.get("point")
-                if p is not None and (best_price is None or p > best_price):
-                    best_price, best_point = p, pt
-    return best_point, best_price
-
-
 def _pitcher_names_in_props(bookmakers: list) -> list:
     """Return unique pitcher names appearing in pitcher_strikeouts or pitcher_outs markets."""
     names = set()
@@ -106,10 +85,10 @@ def _build_pitcher_props(bookmakers: list, existing_by_name: dict) -> list:
     seen = set()
     for name in _pitcher_names_in_props(bookmakers):
         seen.add(normalize_name(name))
-        k_line,    k_over_pr  = _prop_best(bookmakers, "pitcher_strikeouts", "Over",  name)
-        _,         k_under_pr = _prop_best(bookmakers, "pitcher_strikeouts", "Under", name)
-        outs_line, outs_ov_pr = _prop_best(bookmakers, "pitcher_outs",       "Over",  name)
-        _,         outs_un_pr = _prop_best(bookmakers, "pitcher_outs",       "Under", name)
+        k_line,    k_over_pr  = best_outcome(bookmakers, "pitcher_strikeouts", "Over",  name)
+        _,         k_under_pr = best_outcome(bookmakers, "pitcher_strikeouts", "Under", name)
+        outs_line, outs_ov_pr = best_outcome(bookmakers, "pitcher_outs",       "Over",  name)
+        _,         outs_un_pr = best_outcome(bookmakers, "pitcher_outs",       "Under", name)
         existing = existing_by_name.get(normalize_name(name), {})
         pitchers.append({
             "name":            name,
@@ -247,8 +226,8 @@ def save_odds_history(data_dir: Path, history_dir: Path, target_date: date) -> i
         pbks: list = props_game.get("bookmakers", []) if isinstance(props_game, dict) else []
 
         # F5 ML
-        f5_ml_away = _prop_best(pbks, "h2h_1st_5_innings", away_name)[1]
-        f5_ml_home = _prop_best(pbks, "h2h_1st_5_innings", home_name)[1]
+        f5_ml_away = best_outcome(pbks, "h2h_1st_5_innings", away_name)[1]
+        f5_ml_home = best_outcome(pbks, "h2h_1st_5_innings", home_name)[1]
 
         # F5 spread
         f5_sp_away_pt, f5_sp_away_pr = _best_spread(pbks, away_name, "spreads_1st_5_innings")
@@ -259,16 +238,16 @@ def save_odds_history(data_dir: Path, history_dir: Path, target_date: date) -> i
         _,           f5_under_pr = _best_total(pbks, "Under", "totals_1st_5_innings")
 
         # Team totals (full game)
-        tt_away_pt, tt_away_ov_pr = _prop_best(pbks, "team_totals", "Over",  away_name)
-        _,          tt_away_un_pr = _prop_best(pbks, "team_totals", "Under", away_name)
-        tt_home_pt, tt_home_ov_pr = _prop_best(pbks, "team_totals", "Over",  home_name)
-        _,          tt_home_un_pr = _prop_best(pbks, "team_totals", "Under", home_name)
+        tt_away_pt, tt_away_ov_pr = best_outcome(pbks, "team_totals", "Over",  away_name)
+        _,          tt_away_un_pr = best_outcome(pbks, "team_totals", "Under", away_name)
+        tt_home_pt, tt_home_ov_pr = best_outcome(pbks, "team_totals", "Over",  home_name)
+        _,          tt_home_un_pr = best_outcome(pbks, "team_totals", "Under", home_name)
 
         # Team totals (F5)
-        f5tt_away_pt, f5tt_away_ov_pr = _prop_best(pbks, "team_totals_1st_5_innings", "Over",  away_name)
-        _,            f5tt_away_un_pr = _prop_best(pbks, "team_totals_1st_5_innings", "Under", away_name)
-        f5tt_home_pt, f5tt_home_ov_pr = _prop_best(pbks, "team_totals_1st_5_innings", "Over",  home_name)
-        _,            f5tt_home_un_pr = _prop_best(pbks, "team_totals_1st_5_innings", "Under", home_name)
+        f5tt_away_pt, f5tt_away_ov_pr = best_outcome(pbks, "team_totals_1st_5_innings", "Over",  away_name)
+        _,            f5tt_away_un_pr = best_outcome(pbks, "team_totals_1st_5_innings", "Under", away_name)
+        f5tt_home_pt, f5tt_home_ov_pr = best_outcome(pbks, "team_totals_1st_5_innings", "Over",  home_name)
+        _,            f5tt_home_un_pr = best_outcome(pbks, "team_totals_1st_5_innings", "Under", home_name)
 
         # Pitcher props — preserve any existing annotation results
         existing_pitchers_by_name = {
@@ -671,16 +650,7 @@ if __name__ == "__main__":
     if not args.save and not args.annotate:
         ap.error("Specify --save or --annotate")
 
-    today_et = datetime.now(_ET).date()
-    if args.date == "today":
-        target = today_et
-    elif args.date == "yesterday":
-        target = today_et - timedelta(days=1)
-    else:
-        try:
-            target = datetime.strptime(args.date, "%Y-%m-%d").date()
-        except ValueError:
-            sys.exit(f"Invalid date: {args.date}")
+    target = resolve_cli_date(args.date)
 
     data_dir    = Path(args.data_dir)
     history_dir = Path(args.history_dir)

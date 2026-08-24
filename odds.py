@@ -53,63 +53,62 @@ def pick_odds_by_time(candidates: list, game_time_utc: str) -> Optional[dict]:
 
 # ── Best-price extraction ─────────────────────────────────────────────────────
 
-def _best_price(bookmakers: list, market_key: str, outcome_name: str) -> Optional[float]:
-    best = None
+def best_outcome(bookmakers: list, market_key: str, outcome_name: str,
+                 description: Optional[str] = None,
+                 require_point: bool = False) -> tuple:
+    """Best (point, price) for one outcome of one market, across every bookmaker.
+
+    "Best" is the highest American price — for a single named outcome that is always
+    the number most favourable to the bettor, on both sides of zero.
+
+    `description` narrows to one subject inside a market, where `outcome_name` alone
+    is only "Over"/"Under": the club on a team total, the pitcher on a prop.
+
+    `require_point` skips outcomes priced without a line. That is right for totals,
+    where a point-less outcome carries no bet, and wrong for moneylines, which have
+    no point at all.
+
+    This is the only place the bookmakers → markets → outcomes payload is walked;
+    history.py grades against the same prices the cards are built from, so both go
+    through here rather than keeping a second copy of the traversal.
+    """
+    best_point = best_price = None
     for bk in bookmakers:
         for mkt in bk.get("markets", []):
-            if mkt["key"] != market_key:
+            if mkt.get("key") != market_key:
                 continue
             for oc in mkt.get("outcomes", []):
-                if oc.get("name") == outcome_name:
-                    p = oc.get("price")
-                    if p is not None and (best is None or p > best):
-                        best = p
-    return best
+                if oc.get("name") != outcome_name:
+                    continue
+                if description is not None and oc.get("description", "") != description:
+                    continue
+                point, price = oc.get("point"), oc.get("price")
+                if require_point and point is None:
+                    continue
+                if price is not None and (best_price is None or price > best_price):
+                    best_point, best_price = point, price
+    return best_point, best_price
+
+
+def _best_price(bookmakers: list, market_key: str, outcome_name: str) -> Optional[float]:
+    """Best moneyline price for one side. No point — h2h markets have none."""
+    return best_outcome(bookmakers, market_key, outcome_name)[1]
 
 
 def _best_spread(bookmakers: list, outcome_name: str, market_key: str = "spreads") -> tuple:
-    best_price, best_point = None, None
-    for bk in bookmakers:
-        for mkt in bk.get("markets", []):
-            if mkt["key"] != market_key:
-                continue
-            for oc in mkt.get("outcomes", []):
-                if oc.get("name") == outcome_name:
-                    p, pt = oc.get("price"), oc.get("point")
-                    if p is not None and (best_price is None or p > best_price):
-                        best_price, best_point = p, pt
-    return best_point, best_price
+    """Best (point, price) on the spread for one side."""
+    return best_outcome(bookmakers, market_key, outcome_name)
 
 
 def _best_total(bookmakers: list, side: str, market_key: str = "totals") -> tuple:
-    """Return (point, price) for the best-priced over or under on the given market."""
-    best_price, best_point = None, None
-    for bk in bookmakers:
-        for mkt in bk.get("markets", []):
-            if mkt["key"] != market_key:
-                continue
-            for oc in mkt.get("outcomes", []):
-                if oc.get("name") == side and oc.get("point") is not None:
-                    p, pt = oc.get("price"), oc.get("point")
-                    if p is not None and (best_price is None or p > best_price):
-                        best_price, best_point = p, pt
-    return best_point, best_price
+    """Best (point, price) for the over or under on a game total."""
+    return best_outcome(bookmakers, market_key, side, require_point=True)
 
 
 def _best_team_total(bookmakers: list, team_name: str, side: str,
                      market_key: str = "team_totals") -> tuple:
-    """Return (point, price) for the best-priced team total over/under for a team."""
-    best_price, best_point = None, None
-    for bk in bookmakers:
-        for mkt in bk.get("markets", []):
-            if mkt["key"] != market_key:
-                continue
-            for oc in mkt.get("outcomes", []):
-                if oc.get("name") == side and oc.get("description") == team_name:
-                    p, pt = oc.get("price"), oc.get("point")
-                    if p is not None and (best_price is None or p > best_price):
-                        best_price, best_point = p, pt
-    return best_point, best_price
+    """Best (point, price) on one club's team total."""
+    return best_outcome(bookmakers, market_key, side, description=team_name)
 
 
 def _find_prop_line(bookmakers: list, pitcher_name: str, market_key: str) -> Optional[dict]:
@@ -181,24 +180,22 @@ def fmt_total_ou(point, over_price, under_price) -> str:
     return f"{point} ({fmt_ml(over_price)}/{fmt_ml(under_price)})"
 
 
+def _fmt_prop_ou(prop: Optional[dict], market: str) -> str:
+    """Format a pitcher prop as '<market> O/U 5.5 (-115 / -105)', or '' if unposted."""
+    if not prop or prop.get("point") is None:
+        return ""
+    return (f"{market} O/U {prop['point']} "
+            f"({fmt_ml(prop.get('over'))} / {fmt_ml(prop.get('under'))})")
+
+
 def fmt_k_line(k: Optional[dict]) -> str:
     """Format pitcher K O/U as 'K O/U 5.5 (-115 / -105)'."""
-    if not k or k.get("point") is None:
-        return ""
-    pt = k["point"]
-    op = fmt_ml(k.get("over"))
-    up = fmt_ml(k.get("under"))
-    return f"K O/U {pt} ({op} / {up})"
+    return _fmt_prop_ou(k, "K")
 
 
 def fmt_outs_line(o: Optional[dict]) -> str:
     """Format pitcher outs O/U as 'Outs O/U 17.5 (-120 / +100)'."""
-    if not o or o.get("point") is None:
-        return ""
-    pt = o["point"]
-    op = fmt_ml(o.get("over"))
-    up = fmt_ml(o.get("under"))
-    return f"Outs O/U {pt} ({op} / {up})"
+    return _fmt_prop_ou(o, "Outs")
 
 
 # ── Game-level odds assembly ──────────────────────────────────────────────────

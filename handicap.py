@@ -15,7 +15,7 @@ Usage:
 
 import argparse
 import sys
-from datetime import date, timedelta, datetime, timezone
+from datetime import timedelta, datetime, timezone
 from pathlib import Path
 
 from season import ET as _ET
@@ -302,8 +302,7 @@ def main():
     if args.suggestions_only:
         generate_suggestions(game_data, data_dir, target_date)
     elif args.html:
-        from datetime import timezone as _tz
-        generated_at = datetime.now(_tz.utc).isoformat()
+        generated_at = datetime.now(timezone.utc).isoformat()
         suggestions = generate_suggestions(game_data, data_dir, target_date)
         try:
             from picks import load_all_picks as _lap
