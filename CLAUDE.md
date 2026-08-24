@@ -409,7 +409,7 @@ rest are directional and were encoded as *scrutiny*, not bans, on that basis:
 
 | Pattern | n | ROI | t | Encoded as |
 |---|---|---|---|---|
-| Pitcher props priced -130 or worse | 20 | -49.3% | -2.77 | hard rule, §5 + audit check 4 |
+| Pitcher props priced -130 or worse | 20 | -49.3% | -2.77 | **rule removed same day** — see below |
 | Team total OVER at 4.5+ | 92 | -16.2% | -1.57 | demanding number, §5/§6 |
 | Team total OVER at 5.5+ | 26 | -31.4% | -1.66 | demanding number, §5 |
 | K UNDER at 5.5+ | 10 | -43.6% | -1.51 | **not encoded** — see below |
@@ -426,17 +426,34 @@ encoded anyway, as scrutiny, on the understanding that they are priors rather th
 **K unders at 5.5 or higher are a known, unencoded leak.** 3-7, -43.6%. It is tempting to
 file this under the price rule — three of the ten were juiced at -134/-136/-142 — but the
 other seven were priced -110 or better and lost at the same rate (-44.2%). The juice is not
-what is wrong with them, so the -130 rule does not cover this bucket and nothing else in
+what is wrong with them, so no price rule covers this bucket and nothing else in
 the prompt targets it either. Left alone at n=10; it is the first thing to look at on the
 next review. §8 does now point the model at 3.5-4.5 as the productive under band, which
 leans against 5.5+ indirectly.
 
-**The price rule is the load-bearing one.** Props at -130 or worse went 6-14. Props in the
--101..-129 band went 27-14 (+23.6%) and plus-money props are also profitable, so the leak
-is specifically the juice, not the direction. The prompt used to say "-105 to -145 is where
-you should be living" — that band was wrong on its right-hand end. It now reads -105 to
--129, props at -130+ are a pass with no justifying-rationale escape, and audit check 4
-enforces it. The alt-line field is the intended outlet for a read you like at a bad price.
+**On price — read this before re-deriving the -130 rule.** Props at -130 or worse went
+6-14 (-49.3%, t=-2.77), while -101..-129 went 27-14 (+23.6%) and plus money is also
+profitable. That finding briefly became a hard rule: "pitcher props at -130 or worse are a
+pass." **It was removed the same day, deliberately, and must not be reinstated from the
+numbers alone.**
+
+The reason is that the finding does not mean what it looks like. All 20 of those juiced
+props were the **main posted line** — the only line the system could see at the time. Paying
+-140 for the number the book leads with is a genuinely bad bet. Paying -160 for a number
+two rungs easier is a different bet entirely, and the data says nothing about it because
+alternate ladders did not exist yet. Screening on the price alone would have banned the
+strategy the ladders were added to enable.
+
+The floor is now **-200 in every market, on main and alternate lines alike**, with the
+-150..-200 band requiring the reason to say what the juice is buying. Audit check 4
+enforces the floor and explicitly does *not* reject for juice inside the range. Section 5
+states the principle the -130 rule got wrong: price follows the number, so a juiced price
+on an easy number can beat a cheap price on a hard one, and what disqualifies a bet is the
+price being wrong for the chance — never the price being high.
+
+When alt-line picks have accumulated, re-run the analysis **split by main vs alternate
+line**. If juiced alternates lose the way juiced main lines did, that is a real finding;
+the current pooled number is not.
 
 **Demanding numbers (§5, "THE NUMBER ITSELF IS EVIDENCE").** Team total over 4.5+, K over
 7.5+, K under 3.5-, outs over 18.5+, game total over 9.5+ / under 7.0-. These are a
@@ -476,6 +493,38 @@ limit, because the right number of picks on a given slate is a function of the s
 line/side/price bucket is reproducible without touching the API. Over/under has to be
 parsed out of the `bet` string for props (`team_side` is null there) and off `team_side`
 for totals.
+
+## Alternate Lines — the ladder
+
+Added 2026-08-23. Strikeout props and team totals now arrive as a **ladder**: the same bet
+priced at every number the book offers, not just the one it leads with. `odds.alt_ladder()`
+walks `pitcher_strikeouts_alternate` / `alternate_team_totals`, keeping the best price per
+(point, side) across books; `merge_main_rung()` folds the main posted line in, because the
+alternate feed prices *around* the main number without repeating it and a ladder missing
+its own anchor gives the model nothing to compare against. `fmt_ladder()` renders one line
+per subject with `*` on the main rung. Section 8A of `_AI_SYSTEM_PROMPT` is the usage rule.
+
+**Ladders are trimmed to ±3 rungs around the main line** (`span`). Full ladders run 20+
+rungs out to absurd numbers (K over 12.5 at +900) and every one of them costs card tokens
+on every game of every slate. The rungs adjacent to the main number are the ones a step up
+or down actually lands on. A ladder that ends up with one rung is suppressed entirely —
+that is just the main line printed twice.
+
+**The pick's own `line` now wins when grading props.** This was a live bug the moment alt
+lines existed. `_resolve_pick()` preferred `k_line` from the history record and used the
+pick's `line` only as a fallback — invisible while every prop was taken at the main posted
+number, since the two always agreed. An alt-line pick at "Over 4.5 Ks" would have graded
+against the 6.5 the books led with: a won bet recorded as a loss, with nothing anywhere
+reporting an error. Team totals were always fine (they grade off `pick["line"]` directly).
+
+**Two rungs of one ladder are one pick, and `_canon_pick_key` already enforces it** — the
+key is the correlated *slot* (`(game, "pitcher", last)`, `(game, "runstotal")`) and has
+never included the line, so "Over 4.5 Ks" and "Over 6.5 Ks" on the same pitcher collapse.
+Do not add `line` to that key to "fix" alt lines; it would break exactly the guarantee that
+makes them safe.
+
+**Cost**: +2 credits per per-event call, ~16,000/month against a 20,000 plan. See
+API Budget above before adding a third alternate market.
 
 ## Grading Pitcher Props
 
@@ -673,7 +722,7 @@ Cost is **markets × regions per call**, not one credit per call:
 | Call | Markets | Credits |
 |------|---------|---------|
 | Bulk odds (`/odds`) | h2h, spreads, totals | **3** |
-| Per-event props (`/events/{id}/odds`) | 2 pitcher props + 3 F5 + 2 team totals = 7 | **7** |
+| Per-event props (`/events/{id}/odds`) | 2 pitcher props + 3 F5 + 2 team totals + 2 alternate ladders = 9 | **9** |
 
 With 4 cron runs/day, a 300-minute throttle, and a ~15-game slate:
 
@@ -705,6 +754,21 @@ That cut the largest line on the bill from 420 credits/day to 105:
 | Tomorrow's props | 4 × 15 × 7 = 420 | 1 × 15 × 7 = **105** |
 | Daily total | ~735 | **~420** |
 | Monthly | ~22,000 (over a 20k plan) | **~12,800** (comfortably inside) |
+
+**The alternate ladders (added 2026-08-23) spent part of that headroom.** The props call
+went from 7 markets to 9 — `alternate_team_totals` and `pitcher_strikeouts_alternate` —
+which is +2 credits on *every* per-event call, the most expensive line on the bill:
+
+| | 7 markets | 9 markets |
+|---|---|---|
+| Today's props | 3 × ~14 × 7 = 294 | 3 × ~14 × 9 = **378** |
+| Tomorrow's props | 1 × 15 × 7 = 105 | 1 × 15 × 9 = **135** |
+| Daily total | ~420 | **~534** |
+| Monthly | ~12,800 (36% headroom) | **~16,000** (20% headroom) |
+
+Still inside a 20,000 plan, but the margin is now thin enough that a fifth cron run or a
+tenth market would break it. Verify against real headers before adding anything:
+`jq '{fetched_at,quota_remaining,quota_used}' data/props_meta_*.json`.
 
 The evening scheduled run uses `--force-odds` so the first real pull always lands rather
 than being skipped by a stale throttle timestamp; manual runs after 5 PM stay throttled so

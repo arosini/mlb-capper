@@ -151,7 +151,10 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
                history_dir: Path = Path("./history")) -> int:
     """
     Merge picks from today's suggestions cache into picks/YYYY-MM-DD.json.
-    Deduplicates by canonical (game, bet_type, line, team_side) — keeps first price found.
+    Deduplicates by `_canon_pick_key`, which keys on the correlated SLOT — not on the
+    line. That is what stops two rungs of one alternate ladder (Section 8A of the AI
+    prompt) being logged as two picks: "Over 4.5 Ks" and "Over 6.5 Ks" on the same
+    pitcher are one opinion at two prices and collapse to one entry, keeping the first.
     Enriches each pick with away_code, home_code, and game_time_utc from history.
     Returns count of new picks added.
     """
@@ -513,7 +516,13 @@ def _resolve_pick(pick: dict, game_rec: dict) -> str | None:
         # Grade against the line the pick was actually taken at. The history entry's
         # line is whatever the books last showed and can be missing entirely once
         # they pull the prop, but `line` on the pick is fixed at pick time.
-        if p_line is None:
+        #
+        # The pick's own line WINS. It used to be a fallback used only when history
+        # had nothing, which was invisible while every prop was taken at the main
+        # posted number — the two agreed. Alternate ladders break that: a pick at
+        # "Over 4.5 Ks" off the alt market would have been graded against the 6.5 the
+        # books led with, turning a won bet into a lost one with no error anywhere.
+        if line is not None:
             p_line = line
         if actual is None or p_line is None:
             return None

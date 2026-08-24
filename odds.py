@@ -144,6 +144,97 @@ def _find_prop_line(bookmakers: list, pitcher_name: str, market_key: str) -> Opt
     }
 
 
+def alt_ladder(bookmakers: list, market_key: str, *, description: str = None,
+               subject_match: str = None, around: float = None,
+               span: int = 3) -> list:
+    """Every alternate line on one market for one subject, best price per point.
+
+    Alternate markets post the SAME subject at many numbers — a strikeout prop from
+    1.5 to 12.5, a team total from 0.5 to 8.5 — so unlike `best_outcome` there is no
+    single "best" to collapse to. Both sides are kept per point, because the whole
+    use of a ladder is comparing an over here against an under there.
+
+    `description` matches a team total's club exactly. `subject_match` matches a
+    pitcher by last name, since prop payloads spell first names inconsistently.
+
+    Returns [{"point", "over", "under"}] sorted by point, trimmed to `span` rungs
+    either side of `around` (the main posted line). The full ladder can run 20+ rungs
+    and most of it is unbettable noise; the rungs adjacent to the main number are the
+    ones a step up or down actually lands on. Pass around=None to keep all of it.
+    """
+    rungs: dict = {}
+    want = subject_match.strip().split()[-1].lower() if subject_match else None
+    for bk in bookmakers:
+        for mkt in bk.get("markets", []):
+            if mkt.get("key") != market_key:
+                continue
+            for oc in mkt.get("outcomes", []):
+                if description is not None and oc.get("description", "") != description:
+                    continue
+                if want is not None:
+                    subject = (oc.get("description") or oc.get("name") or "").lower()
+                    if want not in subject:
+                        continue
+                point, price = oc.get("point"), oc.get("price")
+                if point is None or price is None:
+                    continue
+                side = (oc.get("name") or "").lower()
+                if "over" in side:
+                    side = "over"
+                elif "under" in side:
+                    side = "under"
+                else:
+                    continue
+                rung = rungs.setdefault(point, {"point": point, "over": None, "under": None})
+                if rung[side] is None or price > rung[side]:
+                    rung[side] = price
+    out = sorted(rungs.values(), key=lambda r: r["point"])
+    if around is not None and out:
+        out = [r for r in out if abs(r["point"] - around) <= span]
+    return out
+
+
+def merge_main_rung(rungs: list, point, over, under) -> list:
+    """Fold the main posted line into an alternate ladder.
+
+    Books price the alternate market around the main number without repeating it, so
+    a raw ladder is missing the one rung the model most needs for comparison — the
+    default it is being offered. Without this the starred anchor never appears and
+    "is the 2.5 better than the main line?" has nothing to compare against.
+
+    A main line that IS already present keeps whichever price is better, since the
+    main and alternate feeds can disagree by a few cents on the same number.
+    """
+    if point is None:
+        return rungs
+    out = {r["point"]: dict(r) for r in rungs}
+    rung = out.setdefault(point, {"point": point, "over": None, "under": None})
+    rung["main"] = True
+    for side, price in (("over", over), ("under", under)):
+        if price is not None and (rung[side] is None or price > rung[side]):
+            rung[side] = price
+    return sorted(out.values(), key=lambda r: r["point"])
+
+
+def fmt_ladder(rungs: list, main_point=None) -> str:
+    """One-line ladder for the AI card: '2.5 (-165/+135) | 3.5 (+120/-145)*'.
+
+    The star marks the main posted line so the model can see which rung it would
+    have been handed by default, and price the others against it. `merge_main_rung`
+    flags that rung directly; `main_point` is only a fallback for callers that never
+    merged one in.
+    """
+    if not rungs:
+        return "—"
+    cells = []
+    for r in rungs:
+        ov = fmt_ml(r["over"]) if r["over"] is not None else "—"
+        un = fmt_ml(r["under"]) if r["under"] is not None else "—"
+        is_main = r.get("main") or (main_point is not None and r["point"] == main_point)
+        cells.append(f"{r['point']} ({ov}/{un}){'*' if is_main else ''}")
+    return " | ".join(cells)
+
+
 # ── Formatting helpers ────────────────────────────────────────────────────────
 
 def fmt_ml(price) -> str:
@@ -256,6 +347,26 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
     home_f5tt_un_pt, home_f5tt_un_pr = _best_team_total(prop_bks, home_name, "Under", _f5tt)
     has_f5tt = away_f5tt_ov_pt is not None or home_f5tt_ov_pt is not None
 
+    # Alternate ladders — the same subject priced at every number the book offers.
+    # Anchored on the main posted line so the trimmed window is the rungs a step up
+    # or down from what the model would otherwise have been handed.
+    def _k_ladder(sp_name, main):
+        main = main or {}
+        pt = main.get("point")
+        rungs = alt_ladder(prop_bks, "pitcher_strikeouts_alternate",
+                           subject_match=sp_name, around=pt)
+        return merge_main_rung(rungs, pt, main.get("over"), main.get("under"))
+
+    def _tt_ladder(team_name, ov_pt, ov_pr, un_pr):
+        rungs = alt_ladder(prop_bks, "alternate_team_totals",
+                           description=team_name, around=ov_pt)
+        return merge_main_rung(rungs, ov_pt, ov_pr, un_pr)
+
+    away_k_alts  = _k_ladder(away_sp_name, away_k)
+    home_k_alts  = _k_ladder(home_sp_name, home_k)
+    away_tt_alts = _tt_ladder(away_name, away_tt_ov_pt, away_tt_ov_pr, away_tt_un_pr)
+    home_tt_alts = _tt_ladder(home_name, home_tt_ov_pt, home_tt_ov_pr, home_tt_un_pr)
+
     return {
         # Full game
         "away_ml":     fmt_ml(_best_price(bks, "h2h", away_name)),
@@ -293,4 +404,13 @@ def get_game_odds(odds_data: dict, away_code: str, home_code: str,
         "home_k":    home_k,
         "away_outs": away_outs,
         "home_outs": home_outs,
+        # Alternate ladders (raw rungs; formatted at the point of use)
+        "away_k_alts":   away_k_alts,
+        "home_k_alts":   home_k_alts,
+        "away_tt_alts":  away_tt_alts,
+        "home_tt_alts":  home_tt_alts,
+        # A one-rung "ladder" is just the main line again — nothing to shop, so it does
+        # not earn card space.
+        "has_alts": any(len(l) > 1 for l in
+                        (away_k_alts, home_k_alts, away_tt_alts, home_tt_alts)),
     }

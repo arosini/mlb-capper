@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from analysis import flt
-from odds import fmt_k_line, fmt_outs_line
+from odds import fmt_k_line, fmt_ladder, fmt_outs_line
 from usage import record_claude
 
 from season import ET as _ET
@@ -301,15 +301,16 @@ believe. Work in this order, every time:
   4. If every price already matches your read — PASS. You were right and there is no bet.
 
 PRICING RULES:
-  • Do not recommend anything priced worse than -150. This is a near-hard rule. Breaking
-    it requires a genuinely exceptional read, and you must say in the reason why the edge
-    survives the price.
-  • Never recommend anything at -201 or worse. No exceptions. No parlays.
-  • +money and prices in the -105 to -129 band are where you should be living.
-  • PITCHER PROPS AT -130 OR WORSE ARE A PASS. A juiced prop is the book charging you for
-    an opinion it already holds. This is the tightest price rule in this section and it
-    applies to strikeouts and outs alike. If you love the read, take the alt line at plus
-    money instead (see Section 8) — do not pay the juice.
+  • Never recommend anything priced worse than -200. That is the floor, in every market,
+    on every line, main or alternate. No exceptions. No parlays.
+  • Between about -150 and -200 you are paying real juice, so say in the reason what you
+    are buying with it — a shorter number, a safer number, a spot you are confident in.
+    This is not a discouragement. A high-probability outcome at -180 and a coin flip at
+    +100 are both bets; the question is only whether the price matches the chance.
+  • PRICE FOLLOWS THE NUMBER, NOT THE OTHER WAY AROUND. Do not screen bets by their odds.
+    A juiced price on an EASY number can be far better value than a cheap price on a hard
+    one, and Section 8A's alt-line ladder exists precisely to trade one for the other. What
+    disqualifies a bet is the price being wrong for the chance, never the price being high.
   • A heavy favorite is not value just because they are better. Team A having the superior
     xERA and wRC+ matchup at -200 is the market agreeing with you. Check whether the run
     line pays for the same opinion: if their starter's recent box scores show he goes deep
@@ -317,8 +318,9 @@ PRICING RULES:
   • Inversely, if you like Side A but Side B's price has become outrageous relative to how
     close the matchup actually is, the correct bet may be Side B.
   • When the run line does not offer enough — the number is too big or the win is likely
-    but not comfortable — taking the ML at up to about -160 is acceptable if you genuinely
-    love it. Say so explicitly in the reason.
+    but not comfortable — laying a price on the ML is acceptable if you genuinely love it.
+    Say so explicitly in the reason. Sides are the one place the ladder cannot help you,
+    so the price is the only lever there is.
 
 THE NUMBER ITSELF IS EVIDENCE — DEMANDING LINES GET EXTRA SCRUTINY:
 
@@ -363,10 +365,10 @@ whatever lineups he happened to face. If his recent K totals came against high-K
 and today's lineup makes more contact, the recent totals argue AGAINST the over, not for
 it. Do not cite a hot streak as the reason for a number the hot streak created.
 
-When the answers are weak, remember that the usual alternative is not passing — it is
-taking the SAME READ at a cheaper number: the 4.5 team total instead of the 5.5, the 6.5 K
-line instead of the 8.5. The cheaper number is a real pick and often the better one. Pass
-only if the read does not survive at any number.
+When the answers are weak, the usual alternative is not passing — it is taking the SAME
+READ at a cheaper number. For strikeouts and team totals you have the whole ladder priced
+on the card, so this is a concrete move, not a wish: see Section 8A. The cheaper rung is a
+real pick and often the better one. Pass only if the read does not survive at any number.
 
 ═══════════════════════════════════════════════════════════════════
 6. TOTALS
@@ -389,8 +391,10 @@ bullpen quality and stress. Only then look at the posted number.
     is the easiest read to have and therefore the one the market prices most efficiently;
     a team total over is not the automatic home for it. Before taking one at 4.5 or higher,
     give it the closer look Section 5 describes, and ask whether the same opinion is
-    better expressed as the side, the game total, or the OPPOSING team's total under. The
-    under side of a team total is the less crowded bet and is passed over too often.
+    better expressed as the side, the game total, the OPPOSING team's total under, or a
+    LOWER RUNG of the same ladder (Section 8A — the 2.5 or 3.5 over is usually on the card
+    at a real price, and needs three runs rather than five). The under side of a team total
+    is the less crowded bet and is passed over too often.
 
 ═══════════════════════════════════════════════════════════════════
 7. SIDES
@@ -482,7 +486,9 @@ STRIKEOUTS. Use exactly five inputs, then the price:
       available — but confirm the price still pays after the number has moved that far, and
       say what makes the floor lower than the already-low number implies.
     • The middle of the board — K overs around 4.5-6.5 and unders around 3.5-4.5 — is where
-      the rate signals actually buy you something. Prefer it.
+      the rate signals actually buy you something. Prefer it, and note that the alternate
+      ladder (Section 8A) lets you MOVE a read there: an 8.5 you cannot defend is often a
+      6.5 you can, priced on the same card.
 
   Then check the line and the price.
 
@@ -503,13 +509,61 @@ OUTS. Use exactly these:
 DISQUALIFIER: meaningful rain risk kills pitcher OVERS — he may not take the mound or may
 be pulled after a delay.
 
-ALT LINES: if the prop you like is juiced worse than -130, do not recommend it at that
-price. Say so and name the next line up as an alternative with a price threshold instead.
-Example: "6+ Ks is -140; 7+ Ks is also live here at +110 or better." You do not have odds
-for alt lines — quote a price you would need, not a price you claim exists. Put this in
-"alt_suggestion" with line_warning true. This is also the right move in the other
-direction: when the number you like is a demanding one (Section 5), the alt-line field is
-where you name the cheaper number you would rather have.
+ALT LINES: see Section 8A. You now have real prices on alternate strikeout numbers, so a
+line you like at a number you do not is a shopping problem, not a pass. The
+"alt_suggestion" field is for a number you want that is NOT on the card — quote the price
+you would need, not a price you claim exists, and set line_warning true.
+
+═══════════════════════════════════════════════════════════════════
+8A. ALTERNATE LINES — SHOP THE LADDER BEFORE YOU BET
+═══════════════════════════════════════════════════════════════════
+
+For strikeout props and team totals the card prints an ALT LINES ladder: the same bet
+priced at every number the book offers, over and under at each rung, with the main posted
+line marked by a star. This is real, bettable pricing — not a suggestion, not a threshold
+you have to name. Treat every rung as available.
+
+THE MAIN LINE HAS NO SPECIAL STATUS. It is the number the book chose to lead with, tuned
+to split the money, which is exactly what makes it the most efficiently priced rung on the
+ladder. The value is usually somewhere else on it. Do not anchor on the starred number and
+then decide over or under — read the whole ladder and ask which rung is mispriced.
+
+HOW TO WORK IT:
+  1. Handicap first, as always. Form a view of the actual distribution: not "the over" but
+     roughly how many runs this club scores, or how many strikeouts this arm gets.
+  2. Read your view against every rung. A ladder of 2.5 (-165/+135) | 3.5 (+120/-145) is
+     two completely different bets on one opinion.
+  3. Take the rung where your estimate and the price diverge most — not the one where you
+     are most confident, and not the one that pays best.
+
+WHAT THIS BUYS YOU. A demanding number (Section 5) usually has a cheaper rung one or two
+steps down that carries the same read with far more margin. If you like a club to score at
+4.5, look at what 3.5 and 2.5 pay: the over at 2.5 needs three runs instead of five, and
+if the market has priced that rung lazily it is the better expression of the identical
+opinion. This is the intended remedy for a demanding number, and it is why demanding
+numbers are a scrutiny prompt rather than a ban — the answer is usually a different rung,
+not a pass.
+
+JUICE IS NOT THE ENEMY HERE — the floor is -200 and short numbers live in the -150s and
+-160s legitimately. A -165 price on a number that hits 75% of the time is value; a +120
+price on one that hits 40% is not. Do the comparison in probability, not in how the price
+looks. What you may NOT do is take a juiced short number just because it feels safe: an
+easy number at a price that already fully reflects how easy it is is a pass like any other.
+
+  • Break-even at -150 is 60%, at -175 is 64%, at -200 is 67%. If you cannot argue the
+    rung clears its break-even, it is not a bet no matter how modest the number looks.
+  • Going DOWN the ladder on an over (or up on an under) buys probability and costs price.
+    Going the other way sells probability for price. Both directions can be the value.
+  • A rung priced at -200 or worse is off the board entirely (Section 5).
+
+Say in the reason which number you took and why that rung rather than the obvious one —
+"the 2.5 over at -160 rather than the 3.5 at +120" is exactly the kind of line the reader
+benefits from seeing. When the rung you want is NOT on the ladder, that is what
+"alt_suggestion" is for: name the number and the price you would need.
+
+Everything in Section 4 still applies. A ladder is many prices on ONE opinion, so it is
+still one pick — never take two rungs of the same ladder, and never pair a rung of a team
+total with the game total on the same read.
 
 ═══════════════════════════════════════════════════════════════════
 9. FLAGS AND WEATHER
@@ -673,10 +727,11 @@ REJECT if ANY of the following is true
    rationale about Team A attached to a bet on Team B, or a rationale about the starters
    attached to a full-game bet whose case depends on the bullpens.
 
-4. PRICE VIOLATION. Odds worse than -150 without the rationale explicitly justifying why
-   the edge survives that price. Anything at -201 or worse is an automatic REJECT.
-     • REJECT any PITCHER PROP (strikeouts or outs) priced at -130 or worse. There is no
-       justifying-rationale escape on this one — the alt line exists for that read.
+4. PRICE VIOLATION. Anything priced worse than -200 is an automatic REJECT, in every
+   market, on main and alternate lines alike. Between -150 and -200 the rationale must say
+   what the juice is buying; REJECT if it never engages with the price at all.
+   Do NOT reject a bet merely for being juiced inside that range. A short alternate number
+   at -175 is a legitimate bet and this check is not a juice filter.
 
 5. NO PRICING ARGUMENT AT ALL. The rationale handicaps the game but never says what the
    market has wrong. "Team A is better" is not a bet. If there is no claim of a
@@ -1055,6 +1110,21 @@ def _serialize_game_for_ai(g: dict) -> str:
         prop_parts.append(f"{sp_h['name']} ({home}): {', '.join(p for p in [k_h, ou_h] if p)}")
     if prop_parts:
         odds_lines.append("  Props: " + " | ".join(prop_parts))
+    if od.get("has_alts"):
+        alt_lines = []
+        for label, rungs, main in (
+            (f"{sp_a['name']} ({away}) Ks", od.get("away_k_alts"),
+             (od.get("away_k") or {}).get("point")),
+            (f"{sp_h['name']} ({home}) Ks", od.get("home_k_alts"),
+             (od.get("home_k") or {}).get("point")),
+            (f"{away} Team Total", od.get("away_tt_alts"), None),
+            (f"{home} Team Total", od.get("home_tt_alts"), None),  # main rung self-flags
+        ):
+            if rungs and len(rungs) > 1:
+                alt_lines.append(f"    {label}: {fmt_ladder(rungs, main)}")
+        if alt_lines:
+            odds_lines.append("  ALT LINES (over/under at each number; * = main line):")
+            odds_lines.extend(alt_lines)
 
     spl_a = g.get("away_sp_splits") or {}
     spl_h = g.get("home_sp_splits") or {}

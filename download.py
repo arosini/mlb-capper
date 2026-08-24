@@ -290,6 +290,10 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
             "&markets=pitcher_strikeouts,pitcher_outs"
             ",h2h_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings"
             ",team_totals,team_totals_1st_5_innings"
+            # Alternate ladders. Billing is markets × regions per event, so these two
+            # are +2 credits on every props call — see "API Budget" in CLAUDE.md before
+            # adding a third.
+            ",alternate_team_totals,pitcher_strikeouts_alternate"
             "&bookmakers=draftkings,fanduel,fanatics"
             "&oddsFormat=american"
         )
