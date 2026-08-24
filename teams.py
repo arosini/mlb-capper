@@ -56,6 +56,28 @@ MLB_NAME_TO_CODE.update({
     "Oakland Athletics": "ATH",  # pre-relocation name still in some MLB API responses
 })
 
+# MLB Stats API team id → Handigraphs code. Handigraphs' starters feed nulls out `team`
+# for a pitcher it has no recent data on (a debut, a callup), but still sends the numeric
+# `teamId`. Without this map those rows lose their club and get dropped, which silently
+# blanks the OPPOSING club's offense card — the one place the pitcher's hand was needed.
+MLB_ID_TO_CODE = {
+    108: "LAA", 109: "ARI", 110: "BAL", 111: "BOS", 112: "CHC",
+    113: "CIN", 114: "CLE", 115: "COL", 116: "DET", 117: "HOU",
+    118: "KCR", 119: "LAD", 120: "WSN", 121: "NYM", 133: "ATH",
+    134: "PIT", 135: "SDP", 136: "SEA", 137: "SFG", 138: "STL",
+    139: "TBR", 140: "TEX", 141: "TOR", 142: "MIN", 143: "PHI",
+    144: "ATL", 145: "CHW", 146: "MIA", 147: "NYY", 158: "MIL",
+}
+
+
+def from_mlb_id(team_id) -> str:
+    """Handigraphs code for an MLB Stats API team id, or '' if unknown."""
+    try:
+        return MLB_ID_TO_CODE.get(int(team_id), "")
+    except (TypeError, ValueError):
+        return ""
+
+
 # Divisions, keyed by Handigraphs team code — used to flag divisional games.
 DIVISIONS = {
     "BAL": "AL East", "BOS": "AL East", "NYY": "AL East", "TBR": "AL East", "TOR": "AL East",

@@ -18,7 +18,7 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHR
 
 | Source | Auth | What it provides |
 |--------|------|-----------------|
-| Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L6RHP/LHP primary + L12RHP/LHP for the comparison wRC+), bullpen stats (last 12), ballpark weather |
+| Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L6RHP/LHP primary + L12RHP/LHP for the comparison wRC+, plus unsplit L6G/L12G for bullpen games), bullpen stats (last 12), ballpark weather |
 | MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs |
 | The Odds API | API key (query param) | Full-game ML/spread/total + F5 ML/spread/total + team totals + pitcher K/outs props for DK, FanDuel, Fanatics. Paid plan (~20K credits/month); billed per market × region, **not** per call — see API Budget |
 | Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Opus 4.8 for AI Picks — one generation call per odds refresh plus one audit call per pick, cached to `data/suggestions_{date}.json` |
@@ -64,15 +64,15 @@ handicap.py       — slim entry point, main() only; imports everything
 
 **`budget.py`**: `collect()`, `render_budget_page()`
 
-**`teams.py`**: `_STATS_MAP`, `_MLB_MAP`, `ODDS_TEAM`, `MLB_NAME_TO_CODE`, `to_stats()`, `to_mlb()`, `normalize_name()`, `logo_img()`, `_LOGO`
+**`teams.py`**: `_STATS_MAP`, `_MLB_MAP`, `ODDS_TEAM`, `MLB_NAME_TO_CODE`, `MLB_ID_TO_CODE`, `to_stats()`, `to_mlb()`, `from_mlb_id()`, `normalize_name()`, `logo_img()`, `_LOGO`
 
 **`odds.py`**: `load_odds()`, `get_game_odds()`, `best_outcome()`, `fmt_ml()`, `fmt_spread()`, `fmt_total()`, `fmt_k_line()`, `fmt_outs_line()`
 
 **`loaders.py`**: `load_starters()`, `load_team_stats()`, `load_bullpen()`, `load_ballpark_weather()`, `load_odds_meta()`, `load_pitcher_props()`
 
-**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()` (takes lat/lon, not a team code), `wind_effect()`, `compass_point()`, `stress_label_cls()`, `HAS_REQUESTS`
+**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_pitch_hands()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()` (takes lat/lon, not a team code), `wind_effect()`, `compass_point()`, `stress_label_cls()`, `HAS_REQUESTS`
 
-**`analysis.py`**: `analyze_game()`, `build_games()`, `validate_pitchers()`, `flt()`, `fp1()`, `fp3()`, `wrc_label()`, `xera_label()`, `pitcher_csv_flags()`, `bullpen_flags()`, `weather_flags()`, `pitcher_history_flags()`, `team_whiff_k_flag()`, `pitcher_whiff_k_flag()`, `extract_outings()`
+**`analysis.py`**: `analyze_game()`, `build_games()`, `resolve_pitchers()`, `pitcher_ids_to_check()`, `pitcher_workload()`, `is_short_arm()`, `is_bulk_arm()`, `pitched_too_recently()`, `outing_ip()`, `has_sp_stats()`, `flt()`, `fp1()`, `fp3()`, `wrc_label()`, `xera_label()`, `pitcher_csv_flags()`, `bullpen_flags()`, `weather_flags()`, `pitcher_history_flags()`, `team_whiff_k_flag()`, `pitcher_whiff_k_flag()`, `extract_outings()`
 
 **`render_terminal.py`**: `print_game()`, `bold()`, `cyan()`, `yellow()`, `dim()`, `use_color` (set to False for --no-color)
 
@@ -92,6 +92,7 @@ Run locally: `python3 handicap.py` (terminal) or `python3 handicap.py --html > o
 - `starters_last3g_{slot}_{date}.json`
 - `team_stats_L6RHP_{date}.json` / `team_stats_L6LHP_{date}.json` — **primary** team offense window
 - `team_stats_L12RHP_{date}.json` / `team_stats_L12LHP_{date}.json` — longer window; only its wRC+ is used
+- `team_stats_L6G_{date}.json` / `team_stats_L12G_{date}.json` — the same two windows **unsplit**; read only on bullpen games (see Openers and Bullpen Games)
 - `bullpen_stats_last12g_{date}.json`
 - `ballpark_weather_{date}.json`
 - `odds_{date}.json` — bulk game odds (merged with started-game odds from prior fetch)
@@ -105,6 +106,63 @@ Run locally: `python3 handicap.py` (terminal) or `python3 handicap.py --html > o
 
 Outside `data/`: `picks/{date}.json` (git-tracked pick log) and `rejections/{date}.json`
 (git-tracked log of picks the verification pass threw out, for prompt tuning).
+
+## Openers and Bullpen Games
+
+MLB's `probablePitcher` and the Handigraphs starters feed disagree for two unrelated
+reasons, and the old `validate_pitchers()` collapsed both into "Handigraphs is stale":
+
+- **An opener.** MLB lists the reliever who throws the first inning or two; Handigraphs
+  lists the arm expected to carry the bulk. Handigraphs is the one to believe — the bulk
+  arm's rate stats describe most of the game, and it is HIS hand the lineup mostly bats
+  against.
+- **A genuinely stale row.** The same two clubs played yesterday and Handigraphs is still
+  holding yesterday's starter.
+
+Blanking the row on both is what produced the empty offense cards: a row with no hand has
+no platoon split, and `_off()` returned `None` rather than a card. Three separate holes
+fed that, and all three are now closed:
+
+1. `resolve_pitchers()` (analysis.py) tells the cases apart from **recent workload**, not
+   from the ids differing. `OPENER_IP = 2.5` / `BULK_IP = 3.0` / `REAL_START_IP = 4.0`,
+   over the last `_ROLE_LOOKBACK = 5` appearances, with appearances on or after the target
+   date excluded (a re-run of a played day would otherwise let an opener's completed
+   1.0 IP count toward his own profile). Staleness is now tested **directly** —
+   `pitched_too_recently()` asks whether the Handigraphs pitcher made a real start inside
+   the last 3 days and so cannot be starting again — instead of being inferred from a
+   disagreement.
+2. `get_pitch_hands()` (mlb_api.py) batch-fetches `pitchHand` for every probable in **one**
+   `/people` call. The schedule's `probablePitcher` hydrate carries only id/fullName/link,
+   so a probable with no Handigraphs row otherwise has no hand anywhere.
+3. `from_mlb_id()` (teams.py) recovers the club for a Handigraphs row whose `team` is null.
+   The feed nulls `team` and `mlbam_id` for a pitcher it has no last-3 data on (a debut, a
+   callup) but still sends the numeric `teamId`. Those rows were being dropped by
+   `build_games()` — which blanked the **opposing** club's offense card, since the dropped
+   row was carrying the hand. This is not rare: it hit roughly one day in three over
+   June–August 2026.
+
+Each side resolves to a `Mode`, carried onto the SP card as `sp["mode"]`:
+
+| Mode | When | What the card shows |
+|---|---|---|
+| `starter` | ids agree, or MLB's probable profiles as a real starter | unchanged |
+| `opener` | MLB's probable is a short arm **and** Handigraphs' is a bulk arm | the **bulk arm's** stats and hand; opener named in the sub-caption; offense split on the bulk arm's hand |
+| `bullpen` | neither side's arm profiles as carrying a game | offense read **unsplit** (L6G/L12G); starter props and F5 reads flagged as not applying |
+
+A bullpen game is also detected when the two sources **agree** — a club whose only listed
+arm does not go deep is running a bullpen game no matter who is credited with the start.
+
+On a bullpen game where Handigraphs' pick has no stats at all, the card is headed by MLB's
+listed first arm instead: a bare name from a feed with no data on him is less use than the
+pitcher actually taking the ball.
+
+**Both new files degrade independently.** A date rendered before `L6G`/`L12G` were being
+downloaded has no unsplit pool, so a bullpen game falls back to the first arm's hand split
+rather than rendering an empty card.
+
+**`resolve_pitchers()` makes no network calls.** Game logs are fetched by `handicap.py`
+into a slate-wide `sp_logs` cache *before* the resolver runs, and handed in — the module
+order in this file forbids analysis.py reaching for data itself.
 
 ## Team Code Normalization
 Handigraphs starters use codes like `KCR`, `TBR`, `SFG`, `SDP`, `CHW`, `WSN`, `ARI`. All canonical maps live in `teams.py`:
@@ -122,7 +180,7 @@ _MLB_MAP   = {**_STATS_MAP, "ARI": "AZ"}  # MLB API uses AZ; ATH stays as-is
 Each card renders collapsed `<details>` sections except Matchup (open by default):
 1. **Summary** (always visible): `[logo] AWAY @ [logo] HOME` + `time · venue (roof status)` subtitle + weather/APF badge
 2. **Betting Odds** — Full Game: 4×3 grid (ML / Spread / Total for away/home); First 5 Innings: same grid if available; Pitcher Props: K O/U and Outs O/U per starter (requires Odds API Starter plan+)
-3. **Matchup · SP Last 3 / Team Last 6/12** (open) — SP card: xERA, ERA, K%, Whiff% visible; HH%, Barrel%, IP/gs, H/gs, PC/gs, BB% behind "More Stats"; Offense card: two group headers "L6" and "L12", each with wRC+, K%, Whiff%, HH% for that window vs starter hand; outing table per SP
+3. **Matchup · SP Last 3 / Team Last 6/12** (open) — SP card: xERA, ERA, K%, Whiff% visible; HH%, Barrel%, IP/gs, H/gs, PC/gs, BB% behind "More Stats"; Offense card: two group headers "L6" and "L12", each with wRC+, K%, Whiff%, HH% for that window vs starter hand; outing table per SP. The SP card also carries a `BULK` or `BULLPEN GAME` badge and a one-line sub-caption when the game is not a conventional start, and the offense card is headed "all hands" instead of "vs RHP"/"vs LHP" on a bullpen game
 4. **Bullpens · last 12** — xERA, ERA, and **2d stress** (Fresh/Normal/Elevated/Stressed based on avg relief IP per game over past 2 calendar days via MLB boxscores) (collapsed)
 5. **Weather** — venue, roof, conditions, APF with color coding (collapsed)
 6. **Flags** — auto-generated warnings (regression risk, small samples, weather, etc.) (collapsed)

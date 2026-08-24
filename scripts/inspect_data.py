@@ -72,10 +72,11 @@ def cmd_starters(args):
 
 
 def cmd_team_stats(args):
-    rhp, lhp = load_team_stats(_ROOT / "data", _parse_date(args.date))
+    rhp, lhp, _, _, all6, _ = load_team_stats(_ROOT / "data", _parse_date(args.date))
     team = to_stats(args.team)
     print("vs RHP:", json.dumps(rhp.get(team), indent=2))
     print("vs LHP:", json.dumps(lhp.get(team), indent=2))
+    print("all hands:", json.dumps(all6.get(team), indent=2))
 
 
 def cmd_bullpen(args):

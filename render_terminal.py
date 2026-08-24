@@ -29,9 +29,12 @@ def print_game(
     wx: dict,
     rhp_ctx: dict | None = None,
     lhp_ctx: dict | None = None,
+    all_pool: dict | None = None,
+    all_ctx: dict | None = None,
 ) -> None:
     g       = analyze_game(p1, p2, rhp, lhp, bullpen, mlb_info, wx,
-                           rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx)
+                           rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx,
+                           all_pool=all_pool, all_ctx=all_ctx)
     away    = g["away"]
     home    = g["home"]
     away_sp = g["away_sp"]
@@ -51,9 +54,15 @@ def print_game(
 
     def _sp_line(team, sp):
         lbl = f"({sp['label']:<10})" if sp["label"] else ""
+        op   = sp.get("opener") or {}
+        role = ""
+        if sp.get("mode") == "opener":
+            role = f"  [BULK — opener {op.get('name', '?')} ({op.get('hand', '?')}HP)]"
+        elif sp.get("mode") == "bullpen":
+            role = "  [BULLPEN GAME]"
         return (
             f"  {team:<5} {sp['name']} ({sp['hand']}HP)   "
-            f"xERA {sp['xera_s']}  {lbl:<12}  K-BB% {sp['kbb_s']}  {sp['depth']}"
+            f"xERA {sp['xera_s']}  {lbl:<12}  K-BB% {sp['kbb_s']}  {sp['depth']}{role}"
         )
 
     def _print_edge(category, stat, edge, away_v, home_v, prec, gap_unit=""):
@@ -81,7 +90,8 @@ def print_game(
             return f"  {team:<5} vs ???: no data"
         lbl = f"({off['label']:<10})" if off["label"] else ""
         return (
-            f"  {team:<5} vs {off['vs_hand']}: wRC+ L6 {off['wrc_s']} {lbl:<12}  "
+            f"  {team:<5} {off.get('hand_lbl') or 'vs ' + off['vs_hand']}: "
+            f"wRC+ L6 {off['wrc_s']} {lbl:<12}  "
             f"wRC+ L12 {off.get('wrc_ctx_s', 'N/A')}  "
             f"wOBA {off['woba']}  K% {off['k']}  Hard% {off['hard']}"
         )

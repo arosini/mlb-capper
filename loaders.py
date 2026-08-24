@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 import config
-from teams import to_stats
+from teams import from_mlb_id, to_stats
 
 from season import ET as _ET, season_start
 
@@ -53,10 +53,14 @@ def _load_starters_json(path: Path) -> list[dict]:
         if not isinstance(p, dict):
             continue
         s = p.get("stats") or {}
+        # A pitcher Handigraphs has no last-3 data for arrives with a null `team` (and a
+        # null mlbam_id) but a populated numeric `teamId`. Recovering the code here is
+        # what keeps build_games() from dropping the row — and the row is carrying the
+        # one field that matters most downstream, `throws`.
         result.append({
             "Name":          p.get("name", ""),
             "Throws":        p.get("throws", ""),
-            "Team":          p.get("team", ""),
+            "Team":          p.get("team") or from_mlb_id(p.get("teamId")),
             "Opponent":      p.get("opponent", ""),
             "mlbam_id":      p.get("mlbam_id") or p.get("id"),
             "lineup_status": p.get("lineup_status", ""),
@@ -196,16 +200,35 @@ def _load_team_split_pair(data_dir: Path, target_date: date, window: str) -> tup
     return {}, {}
 
 
-def load_team_stats(data_dir: Path, target_date: date) -> tuple[dict, dict, dict, dict]:
-    """Returns (rhp6, lhp6, rhp12, lhp12) dicts keyed by team code.
+def _load_team_all(data_dir: Path, target_date: date, window: str) -> dict:
+    """Load one team-offense window with NO platoon split (Handigraphs 'L6G'/'L12G')."""
+    suffix = config.TEAM_SPLIT_ALL_SUFFIX
+    p = _find_file(data_dir, f"team_stats_{window}{suffix}", target_date, "json")
+    if p:
+        return _load_team_stats_json(p)
+    p = _find_file(data_dir, f"team_stats_{window}{suffix}", target_date, "csv")
+    if p:
+        return {r["Team"]: r for r in _load_csv(p)}
+    return {}
+
+
+def load_team_stats(data_dir: Path, target_date: date) -> tuple[dict, dict, dict, dict, dict, dict]:
+    """Returns (rhp6, lhp6, rhp12, lhp12, all6, all12) dicts keyed by team code.
 
     The first pair is the PRIMARY window every offense number on the card comes from;
     the second is the longer window kept purely so wRC+ can be compared across the two.
     Either pair degrades independently to {} — a missing L12 file costs the context
     column, not the card.
+
+    The last two are the same two windows with no platoon split. They are read only on
+    bullpen games, where nobody's hand governs the game and a "vs RHP" line would be
+    describing a matchup that isn't happening. They degrade to {} the same way, which
+    on a bullpen game costs the offense card and nothing else.
     """
     rhp6, lhp6   = _load_team_split_pair(data_dir, target_date, config.TEAM_SPLIT_PRIMARY)
     rhp12, lhp12 = _load_team_split_pair(data_dir, target_date, config.TEAM_SPLIT_CONTEXT)
+    all6  = _load_team_all(data_dir, target_date, config.TEAM_SPLIT_PRIMARY)
+    all12 = _load_team_all(data_dir, target_date, config.TEAM_SPLIT_CONTEXT)
     if not rhp6 and not lhp6:
         print(
             f"WARNING: Missing {config.TEAM_SPLIT_PRIMARY} team stats data in {data_dir} "
@@ -218,7 +241,7 @@ def load_team_stats(data_dir: Path, target_date: date) -> tuple[dict, dict, dict
             f"for {target_date} — cards will show no comparison wRC+",
             file=sys.stderr,
         )
-    return rhp6, lhp6, rhp12, lhp12
+    return rhp6, lhp6, rhp12, lhp12, all6, all12
 
 
 def load_bullpen(data_dir: Path, target_date: date) -> dict:

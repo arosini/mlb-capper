@@ -137,6 +137,38 @@ def get_recent_starts(player_id: int) -> list[dict]:
     return all_splits
 
 
+def get_pitch_hands(player_ids) -> dict:
+    """Batch-fetch throwing hand for a set of MLB player ids → {id_str: 'L' | 'R'}.
+
+    The schedule's probablePitcher hydrate carries only id/fullName/link, so a probable
+    who has no Handigraphs row arrives with no hand at all — and a pitcher with no hand
+    means the opposing club's offense card has no platoon split to render and comes up
+    empty. One /people call covers the whole slate, so this costs a single request no
+    matter how many games are missing a hand.
+    """
+    ids = sorted({str(p) for p in player_ids if p})
+    if not HAS_REQUESTS or not ids:
+        return {}
+    hands: dict[str, str] = {}
+    # /people caps the id list; 40 keeps a full slate's probables inside it comfortably.
+    for i in range(0, len(ids), 40):
+        chunk = ids[i:i + 40]
+        try:
+            r = requests.get(
+                f"{MLB_API}/people",
+                params={"personIds": ",".join(chunk)},
+                timeout=10,
+            )
+            r.raise_for_status()
+            for person in r.json().get("people", []):
+                code = (person.get("pitchHand") or {}).get("code", "")
+                if code:
+                    hands[str(person.get("id"))] = code
+        except Exception as e:
+            print(f"Warning: pitch-hand lookup failed ({e})", file=sys.stderr)
+    return hands
+
+
 def get_team_schedule(team_id: int, season: int) -> list[dict]:
     """Fetch completed game results for a team in the given season."""
     if not HAS_REQUESTS or not team_id:

@@ -28,10 +28,12 @@ from loaders import (
 from odds import load_odds, get_game_odds, pick_odds_by_time
 from mlb_api import (
     HAS_REQUESTS,
-    get_mlb_schedule, get_bullpen_stress,
+    get_mlb_schedule, get_bullpen_stress, get_pitch_hands,
     get_recent_starts, get_team_schedule, get_weather,
 )
-from analysis import analyze_game, build_games, validate_pitchers, ou_trends
+from analysis import (
+    analyze_game, build_games, resolve_pitchers, pitcher_ids_to_check, ou_trends,
+)
 from venues import home_venue_ids, coords_are_sane, roof_kind, venue_geo
 import render_terminal
 from render_html import render_html_page
@@ -39,6 +41,15 @@ from suggestions import generate_suggestions
 
 # Reverse of _MLB_MAP: MLB API abbreviations → Handigraphs codes
 _MLB_TO_HG = {v: k for k, v in _MLB_MAP.items()}
+
+
+def _game_log(pid: str) -> list:
+    """get_recent_starts() for a player id that arrived as a string, or [] if it
+    isn't one. Handigraphs nulls the id out for pitchers it has no data on."""
+    try:
+        return get_recent_starts(int(pid))
+    except (TypeError, ValueError):
+        return []
 
 
 def main():
@@ -101,7 +112,7 @@ def main():
     # Load data
     starters   = load_starters(data_dir, target_date)
     # Primary offense window (last 6 vs hand) plus the longer comparison window.
-    rhp, lhp, rhp_ctx, lhp_ctx = load_team_stats(data_dir, target_date)
+    rhp, lhp, rhp_ctx, lhp_ctx, all6, all12 = load_team_stats(data_dir, target_date)
     bp         = load_bullpen(data_dir, target_date)
     ballpark_wx = {} if args.no_weather else load_ballpark_weather(data_dir, target_date)
 
@@ -111,6 +122,10 @@ def main():
     mlb_schedule: dict = {}
     bp_stress:   dict = {}
     home_venues: dict = {}
+    pitch_hands: dict = {}
+    # Game logs, keyed by MLB player id, shared across every game on the slate. A
+    # doubleheader or a mid-slate trade can put the same pitcher in two lookups.
+    sp_logs:     dict = {}
     if not args.no_mlb and HAS_REQUESTS:
         home_venues = home_venue_ids(data_dir, target_date.year)
         _log("Fetching MLB schedule...")
@@ -125,6 +140,15 @@ def main():
         _log("Fetching bullpen stress (past 2 days)...")
         bp_stress = get_bullpen_stress(all_team_ids, target_date, data_dir)
         _log(f"  {len(bp_stress)} teams")
+        # One call for the whole slate. A probable with no Handigraphs row has no hand
+        # anywhere else, and no hand means the opposing offense card has nothing to
+        # split on and renders empty.
+        pitch_hands = get_pitch_hands(
+            pid
+            for info in mlb_schedule.values()
+            for pid in (info.get("home_pid"), info.get("away_pid"))
+        )
+        _log(f"Pitch hands: {len(pitch_hands)} probables")
 
     games = build_games(starters)
 
@@ -204,16 +228,26 @@ def main():
             _log(f"  Skipping {p1.get('Team','')} @ {p2.get('Team','')}: not on today's MLB schedule")
             continue
 
-        # Validate pitcher IDs match MLB probable starters (prevents yesterday's pitcher showing)
+        # Reconcile the Handigraphs starters feed against MLB's probables. An opener, a
+        # bullpen game and a genuinely stale row all look identical from the outside —
+        # "the two sources name different pitchers" — and only recent workload tells
+        # them apart, so the game logs are fetched BEFORE the resolver, not after.
         if mlb_info:
-            p1, p2 = validate_pitchers(p1, p2, mlb_info)
+            if not args.no_mlb and HAS_REQUESTS:
+                for pid in pitcher_ids_to_check(p1, p2, mlb_info):
+                    if pid not in sp_logs:
+                        sp_logs[pid] = _game_log(pid)
+            p1, p2 = resolve_pitchers(p1, p2, mlb_info, logs=sp_logs,
+                                      hands=pitch_hands, today=target_date)
 
         if not args.no_mlb and HAS_REQUESTS:
             for p in (p1, p2):
-                pid  = p.get("mlbam_id")
+                pid  = str(p.get("mlbam_id") or "")
                 team = p.get("Team", "")
                 if pid and team:
-                    mlb_info[f"history_{team}"] = get_recent_starts(int(pid))
+                    if pid not in sp_logs:
+                        sp_logs[pid] = _game_log(pid)
+                    mlb_info[f"history_{team}"] = sp_logs[pid]
             away_id = mlb_info.get("away_mlb_id")
             home_id = mlb_info.get("home_mlb_id")
             if away_id:
@@ -277,7 +311,8 @@ def main():
 
         if args.html or args.suggestions_only:
             g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx, target_date,
-                             rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx)
+                             rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx,
+                             all_pool=all6, all_ctx=all12)
             # MLB's scheduled start time disambiguates doubleheader legs when matching
             # against the Odds API, which has no game-number field of its own.
             time_hint = mlb_info.get("game_date", "")
@@ -297,7 +332,8 @@ def main():
             game_data.append(g)
         else:
             render_terminal.print_game(p1, p2, rhp, lhp, bp, mlb_info, wx,
-                                       rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx)
+                                       rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx,
+                                       all_pool=all6, all_ctx=all12)
 
     if args.suggestions_only:
         generate_suggestions(game_data, data_dir, target_date)

@@ -40,12 +40,19 @@ HANDIGRAPHS_LOGIN_URL = f"{HANDIGRAPHS_BASE_URL}/api/auth/login"
 TEAM_SPLIT_PRIMARY = "L6"    # every offense number on the card comes from this window
 TEAM_SPLIT_CONTEXT = "L12"   # wRC+ only, carried alongside L6 for comparison
 
+# The same two windows with no platoon split at all. Handigraphs spells the unsplit
+# form "<window>G" — "L6G", not "L6"; a bare "L6" is a 400 Invalid split parameter.
+# Only used for bullpen games, where there is no starter whose hand to split on.
+TEAM_SPLIT_ALL_SUFFIX = "G"
+
 API_URLS = {
     "starters":         f"{HANDIGRAPHS_BASE_URL}/api/starters?split=last3g&day={{slot}}&include_season_stats=true",
     "team_rhp":         f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_PRIMARY}RHP&include_season_stats=true",
     "team_lhp":         f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_PRIMARY}LHP&include_season_stats=true",
     "team_rhp_ctx":     f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_CONTEXT}RHP&include_season_stats=true",
     "team_lhp_ctx":     f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_CONTEXT}LHP&include_season_stats=true",
+    "team_all":         f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_PRIMARY}{TEAM_SPLIT_ALL_SUFFIX}&include_season_stats=true",
+    "team_all_ctx":     f"{HANDIGRAPHS_BASE_URL}/api/team-stats?split={TEAM_SPLIT_CONTEXT}{TEAM_SPLIT_ALL_SUFFIX}&include_season_stats=true",
     "bullpen":          f"{HANDIGRAPHS_BASE_URL}/api/bullpen-stats/team?split=last12g&include_season_stats=true",
     "ballpark_weather": f"{HANDIGRAPHS_BASE_URL}/api/ballpark-weather",
 }

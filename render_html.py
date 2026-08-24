@@ -90,6 +90,10 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .gd{padding:.7rem .875rem .875rem;display:flex;flex-direction:column;gap:.7rem}
 .sec-hd{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-bottom:.28rem}
 .hb{background:#e5e7eb;color:#374151;font-size:.63rem;font-weight:700;padding:.04rem .26rem;border-radius:3px}
+.role-badge{font-size:.6rem;font-weight:700;letter-spacing:.04em;padding:.04rem .3rem;border-radius:3px;margin-left:.25rem;white-space:nowrap}
+.role-bulk{background:#dbeafe;color:#1d4ed8}
+.role-pen{background:#fef3c7;color:#b45309}
+.role-sub{font-size:.68rem;color:#6b7280;margin:-.1rem 0 .3rem;line-height:1.25}
 .xr{font-weight:600}
 .era-elite{color:#16a34a}.era-good{color:#2563eb}.era-avg{color:#6b7280}.era-below{color:#d97706}.era-poor{color:#dc2626}.era-na{color:#9ca3af}
 .wrc-elite{color:#16a34a}.wrc-above{color:#2563eb}.wrc-avg{color:#6b7280}.wrc-below{color:#d97706}.wrc-poor{color:#dc2626}
@@ -173,6 +177,9 @@ header{background:#030712}
 .ot-hd span{color:#6b7280}
 .stats b{color:#d1d5db}
 .hb{background:#374151;color:#d1d5db}
+.role-bulk{background:#12294d;color:#93c5fd}
+.role-pen{background:#2d1a00;color:#fbbf24}
+.role-sub{color:#9ca3af}
 .flags li{background:#1c1400;border-left-color:#b45309;color:#fbbf24}
 .news-link{color:#fbbf24}
 .trend-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
@@ -640,8 +647,29 @@ def _sp_card(sp, pc_avg=None, sec_id=""):
     ) if sec_id else ""
 
     hb = f'<span class="hb">{_h(sp["hand"])}</span>' if sp["hand"] != "?" else ""
-    return (f'<div class="mu-card"><div class="mu-card-hd">{_h(sp["name"])} {hb}</div>'
-            f'<div class="mu-2c">{rows}</div>{more_html}</div>')
+
+    # An opener or a bullpen game changes what the four numbers above even describe, so
+    # it is said in the card's title rather than left to the flags section, which is
+    # collapsed by default.
+    mode   = sp.get("mode", "starter")
+    opener = sp.get("opener") or {}
+    badge, sub = "", ""
+    if mode == "opener":
+        badge = '<span class="role-badge role-bulk">BULK</span>'
+        sub = (f'<div class="role-sub">Opener: {_h(opener.get("name", "?"))} '
+               f'({_h(opener.get("hand", "?"))}HP) — stats below are the bulk arm\u2019s</div>')
+    elif mode == "bullpen":
+        badge = '<span class="role-badge role-pen">BULLPEN GAME</span>'
+        # The card is already headed by whoever takes the ball first unless Handigraphs
+        # named a different arm, so only name him again when he is someone else.
+        first = opener.get("name") or ""
+        sub = (f'<div class="role-sub">No conventional starter — '
+               + (f'{_h(first)} takes the ball first' if first
+                  else 'expect a parade of relievers')
+               + '</div>')
+
+    return (f'<div class="mu-card"><div class="mu-card-hd">{_h(sp["name"])} {hb}{badge}</div>'
+            f'{sub}<div class="mu-2c">{rows}</div>{more_html}</div>')
 
 
 # The two offense windows carry the same four stats under the same four labels — the
@@ -679,9 +707,12 @@ def _bat_card(team, off):
         rows += _scaled_row("HH%", off.get(hh_key, "?"), "hh_bat")
         body += f'<div class="mu-grp-hd">{header}</div><div class="mu-2c">{rows}</div>'
 
+    # "vs RHP" / "vs LHP" normally; "all hands" when the opponent is running a bullpen
+    # game and there is no starter's hand to split on.
+    hand_lbl = off.get("hand_lbl") or ("vs " + off.get("vs_hand", "?"))
     return (f'<div class="mu-card"><div class="mu-card-hd">'
             f'{_h(team)} <span class="dim" style="font-weight:400">'
-            f'{_h("vs " + off["vs_hand"])}</span></div>'
+            f'{_h(hand_lbl)}</span></div>'
             f'{body}</div>')
 
 

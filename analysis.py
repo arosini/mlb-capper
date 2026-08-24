@@ -3,7 +3,9 @@
 from datetime import date, datetime
 from typing import Optional
 
-from teams import to_stats, to_mlb, ODDS_TEAM, MLB_NAME_TO_CODE, division
+from teams import (
+    to_stats, to_mlb, ODDS_TEAM, MLB_NAME_TO_CODE, division, normalize_name,
+)
 
 from season import ET as _ET
 
@@ -77,31 +79,254 @@ def build_games(starters: list[dict]) -> list[tuple[dict, dict]]:
     return games
 
 
-def validate_pitchers(p1: dict, p2: dict, mlb_info: dict) -> tuple[dict, dict]:
-    """Guard against Handigraphs carrying yesterday's starter in a back-to-back series.
+# ── Pitcher roles: openers, bulk arms, and bullpen games ──────────────────────
+#
+# MLB's probablePitcher and Handigraphs' starters feed disagree for two very different
+# reasons, and the old guard collapsed both into "Handigraphs is stale":
+#
+#   * an OPENER — MLB lists the reliever who throws the first inning or two, while
+#     Handigraphs lists the arm expected to carry the bulk of the game. Handigraphs is
+#     the one worth believing here: the bulk arm's rate stats describe most of the game,
+#     and it is HIS hand the opposing lineup mostly bats against.
+#   * a genuinely STALE row — the same two clubs played yesterday and Handigraphs is
+#     still holding yesterday's starter.
+#
+# Blanking the row on both meant an opener game lost the pitcher's hand entirely, and a
+# pitcher with no hand means no platoon split, which is why the opposing club's offense
+# card rendered empty. Recent workload from the MLB game log tells the two apart.
 
-    Compares mlbam_id (Handigraphs) against probablePitcher.id (MLB API).
-    If they differ, the row is stale — replace with a TBD placeholder.
+# At or under this many innings, an outing is not a conventional start. Two is the
+# classic opener script; 2.5 leaves room for the opener who gets an extra out or two.
+OPENER_IP = 2.5
+# At or above this, an arm is carrying real innings — the bulk pitcher, whose last-3
+# rate stats describe most of today's game.
+BULK_IP = 3.0
+# A start this long rules a pitcher out of starting again for several days.
+REAL_START_IP = 4.0
+
+_ROLE_LOOKBACK = 5   # appearances considered "recent usage"
+_ROLE_MIN_APPS = 2   # below this there is no pattern to read, only noise
+_REST_DAYS = 3       # a real start this recent means he cannot be starting today
+
+
+def outing_ip(raw) -> Optional[float]:
+    """Innings from a game log. MLB spells 5⅔ as '5.2' — a base-3 fraction that only
+    looks decimal, so reading it as 5.2 quietly understates every partial inning."""
+    v = flt(raw)
+    if v is None:
+        return None
+    whole  = int(v)
+    thirds = round((v - whole) * 10)
+    return whole + (thirds / 3.0 if thirds in (1, 2) else 0.0)
+
+
+def pitcher_workload(history: list[dict], before: Optional[date] = None,
+                     n: int = _ROLE_LOOKBACK) -> dict:
+    """Recent-usage profile from an MLB game log.
+
+    `before` drops appearances on or after the target date. On a re-run of a day whose
+    games have already been played the log contains today's outing, and letting an
+    opener's completed 1.0 IP count toward his own profile is circular.
     """
+    apps = []
+    for sp in history:
+        d = (sp.get("date") or "")[:10]
+        if before and d and d >= before.isoformat():
+            continue
+        ip = outing_ip((sp.get("stat") or {}).get("inningsPitched"))
+        if ip is None:
+            continue
+        apps.append((d, ip, int((sp.get("stat") or {}).get("gamesStarted") or 0)))
+    apps.sort(key=lambda a: a[0])
+    recent = apps[-n:]
+    ips = [ip for _, ip, _ in recent]
+    # The most recent REAL start, at full log depth rather than the recent window —
+    # the rest check needs to see it however long ago the window ends.
+    last_real_start = ""
+    for d, ip, gs in apps:
+        if gs and ip >= REAL_START_IP:
+            last_real_start = d
+    return {
+        "apps":            len(recent),
+        "avg_ip":          (sum(ips) / len(ips)) if ips else None,
+        "max_ip":          max(ips) if ips else None,
+        "last_real_start": last_real_start,
+    }
+
+
+def is_short_arm(w: dict) -> bool:
+    """Recent usage says this pitcher does not go deep — an opener or a reliever."""
+    return bool(
+        w.get("apps", 0) >= _ROLE_MIN_APPS
+        and w.get("avg_ip") is not None
+        and w["avg_ip"] <= OPENER_IP
+        and (w.get("max_ip") or 0) < REAL_START_IP
+    )
+
+
+def is_bulk_arm(w: dict) -> bool:
+    """This pitcher has recently carried bulk innings, started or not."""
+    return bool(w.get("apps", 0) >= 1 and (w.get("max_ip") or 0) >= BULK_IP)
+
+
+def pitched_too_recently(w: dict, today: Optional[date]) -> bool:
+    """A real start inside the rest window means he cannot be today's starter.
+
+    This is the stale-row test the old id comparison was standing in for, and it is
+    the direct one: it asks whether the Handigraphs pitcher is physically available
+    rather than inferring it from two sources disagreeing.
+    """
+    last = w.get("last_real_start")
+    if not last or not today:
+        return False
+    try:
+        return (today - date.fromisoformat(last)).days < _REST_DAYS
+    except ValueError:
+        return False
+
+
+def _hand_of(row: dict) -> str:
+    return (row.get("Throws") or "?")[0].upper()
+
+
+def has_sp_stats(row: dict) -> bool:
+    """Does this Handigraphs row carry rate stats, or only a name and a hand?"""
+    return any(flt(row.get(k)) is not None for k in ("xERA", "ERA", "K%"))
+
+
+def _blank_row(row: dict, name: str, hand: str, pid="") -> dict:
+    """A pitcher we can name but have no Handigraphs rate stats for."""
+    return {
+        "Name":     name or "TBD",
+        "Team":     row.get("Team", ""),
+        "Opponent": row.get("Opponent", ""),
+        "Throws":   hand or "?",
+        "mlbam_id": pid or "",
+        "game_number": row.get("game_number") or 1,
+    }
+
+
+def _why_short(w: dict) -> str:
+    if not w.get("apps"):
+        return "no recent MLB appearances on file"
+    return (f"last {w['apps']} outings avg {w['avg_ip']:.1f} IP "
+            f"(longest {w['max_ip']:.1f})")
+
+
+def _resolve_side(hg: dict, pid, pname: str, logs: dict, hands: dict,
+                  today: Optional[date]) -> dict:
+    """Decide who to show for one club, and under what role.
+
+    Returns the row to display, stamped with `Mode` ("starter" | "opener" | "bullpen"),
+    `Opener` (the arm MLB expects first, when that isn't the pitcher being shown), and
+    `RoleWhy` (the evidence, for the flags section).
+    """
+    pid_s  = str(pid or "")
+    hg_id  = str(hg.get("mlbam_id") or "")
+    mlb_hand = hands.get(pid_s, "")
+
+    def _stamp(row, mode, opener=None, why=""):
+        row = dict(row)
+        row["Mode"]    = mode
+        row["Opener"]  = opener
+        row["RoleWhy"] = why
+        # `mlb_hand` belongs to MLB's probable, so it can only fill in for a row that IS
+        # him. On an opener game the row being returned is the BULK arm — a different
+        # pitcher — and stamping the opener's hand on him would split the opposing
+        # lineup against the wrong side.
+        if (not _hand_of(row).strip("?") and mlb_hand
+                and str(row.get("mlbam_id") or "") == pid_s):
+            row["Throws"] = mlb_hand
+        return row
+
+    # No MLB probable to compare against — nothing to resolve.
+    if not pid_s:
+        return _stamp(hg, "starter")
+
+    # Handigraphs sends no id for a pitcher it has no recent data on. Matching on name
+    # recovers the id (so the game log can be fetched) while keeping the row's `throws`,
+    # which is the one field such a row does carry.
+    if not hg_id and normalize_name(hg.get("Name", "")) == normalize_name(pname):
+        hg = {**hg, "mlbam_id": pid_s}
+        hg_id = pid_s
+
+    w_prob = pitcher_workload(logs.get(pid_s, []), before=today)
+
+    if hg_id == pid_s:
+        # Both sources agree. A club whose only listed arm does not go deep is running a
+        # bullpen game regardless of who is credited with the start.
+        if is_short_arm(w_prob):
+            return _stamp(hg, "bullpen", why=_why_short(w_prob))
+        return _stamp(hg, "starter")
+
+    # The two sources disagree.
+    w_hg = pitcher_workload(logs.get(hg_id, []), before=today)
+    opener = {"name": pname, "hand": mlb_hand or "?", "id": pid_s}
+
+    if pitched_too_recently(w_hg, today):
+        # Handigraphs is holding a starter who threw too recently to go again — the
+        # back-to-back rematch case. MLB's probable is the live one.
+        row = _blank_row(hg, pname, mlb_hand, pid_s)
+        mode = "bullpen" if is_short_arm(w_prob) else "starter"
+        return _stamp(row, mode, why=_why_short(w_prob) if mode == "bullpen" else "")
+
+    if is_short_arm(w_prob):
+        if is_bulk_arm(w_hg):
+            # An opener in front of a bulk arm. Show the bulk arm — his stats and his
+            # hand describe the innings that decide the game.
+            return _stamp(hg, "opener", opener=opener, why=_why_short(w_prob))
+        # Nobody on this side profiles as carrying a game. Handigraphs' pick is worth
+        # showing only if it comes with stats; a bare name from a feed that has no data
+        # on him is less use than the arm MLB actually has taking the ball first.
+        if has_sp_stats(hg):
+            return _stamp(hg, "bullpen", opener=opener, why=_why_short(w_prob))
+        row = _blank_row(hg, pname, mlb_hand, pid_s)
+        return _stamp(row, "bullpen", why=_why_short(w_prob))
+
+    # MLB's probable profiles as a real starter (or has too short a log to say) and
+    # Handigraphs names someone else. Believe MLB — it is the more current source, and
+    # nothing about the usage pattern says this is an opener script.
+    return _stamp(_blank_row(hg, pname, mlb_hand, pid_s), "starter")
+
+
+def resolve_pitchers(p1: dict, p2: dict, mlb_info: dict,
+                     logs: Optional[dict] = None, hands: Optional[dict] = None,
+                     today: Optional[date] = None) -> tuple[dict, dict]:
+    """Reconcile the Handigraphs starters feed against MLB's probables, per club.
+
+    `logs` maps an MLB player id (as a string) to that pitcher's game-log splits, and
+    `hands` maps the same ids to 'L'/'R'. Both are gathered by the caller — this module
+    never makes network calls — and both are optional: with neither, every side resolves
+    to plain "starter" and the behaviour is the pre-role one.
+    """
+    logs  = logs or {}
+    hands = hands or {}
     away_mlb   = mlb_info.get("away", "")
     t1_is_away = (to_mlb(p1.get("Team", "")) == away_mlb)
     away_p, home_p = (p1, p2) if t1_is_away else (p2, p1)
 
-    def _tbd(p: dict, probable_name: str) -> dict:
-        return {"Name": probable_name or "TBD", "Team": p.get("Team", ""),
-                "Opponent": p.get("Opponent", ""), "Throws": "?"}
-
-    away_pid = str(mlb_info.get("away_pid") or "")
-    home_pid = str(mlb_info.get("home_pid") or "")
-    ap_id    = str(away_p.get("mlbam_id") or "")
-    hp_id    = str(home_p.get("mlbam_id") or "")
-
-    if away_pid and ap_id and ap_id != away_pid:
-        away_p = _tbd(away_p, mlb_info.get("away_pname", ""))
-    if home_pid and hp_id and hp_id != home_pid:
-        home_p = _tbd(home_p, mlb_info.get("home_pname", ""))
+    away_p = _resolve_side(away_p, mlb_info.get("away_pid"),
+                           mlb_info.get("away_pname", ""), logs, hands, today)
+    home_p = _resolve_side(home_p, mlb_info.get("home_pid"),
+                           mlb_info.get("home_pname", ""), logs, hands, today)
 
     return (away_p, home_p) if t1_is_away else (home_p, away_p)
+
+
+def pitcher_ids_to_check(p1: dict, p2: dict, mlb_info: dict) -> set:
+    """Every MLB player id resolve_pitchers() may need a game log for.
+
+    Kept here, beside the resolver, so the caller doing the fetching never has to
+    re-derive which ids matter.
+    """
+    ids = set()
+    for row in (p1, p2):
+        if row.get("mlbam_id"):
+            ids.add(str(row["mlbam_id"]))
+    for key in ("away_pid", "home_pid"):
+        if mlb_info.get(key):
+            ids.add(str(mlb_info[key]))
+    return ids
 
 
 # ── Flag generators ───────────────────────────────────────────────────────────
@@ -700,6 +925,8 @@ def analyze_game(
     today: Optional[date] = None,
     rhp_ctx: Optional[dict] = None,
     lhp_ctx: Optional[dict] = None,
+    all_pool: Optional[dict] = None,
+    all_ctx: Optional[dict] = None,
 ) -> dict:
     """Return structured analysis dict — used by both terminal and HTML renderers.
 
@@ -707,6 +934,10 @@ def analyze_game(
     every offense number and the offense edge. `rhp_ctx`/`lhp_ctx` are the longer window
     (last 12) and contribute exactly one thing: a comparison wRC+ alongside the primary
     one. They are optional so a caller with only the primary window still works.
+
+    `all_pool`/`all_ctx` are those same two windows with no platoon split, and are read
+    only when the opposing club is running a bullpen game. There is no starter's hand to
+    split on then, so a "vs RHP" line would be describing a matchup that isn't happening.
     """
     today = today or date.today()
     t1, t2    = p1.get("Team", "?"), p2.get("Team", "?")
@@ -723,6 +954,8 @@ def analyze_game(
 
     def _sp(p: dict) -> dict:
         hand = (p.get("Throws") or "?")[0]
+        mode = p.get("Mode") or "starter"
+        opener = p.get("Opener") or None
         xera = flt(p.get("xERA"))
         kbb  = flt(p.get("K-BB%", ""))
         ogs  = flt(p.get("Outs/GS"))
@@ -738,6 +971,10 @@ def analyze_game(
         return {
             "name":      p.get("Name", "TBD"),
             "hand":      hand,
+            # "starter" | "opener" (this is the bulk arm behind one) | "bullpen"
+            "mode":      mode,
+            "opener":    opener,
+            "role_why":  p.get("RoleWhy", ""),
             "has_stats": has_stats,
             "xera":      xera,
             "xera_s":    f"{xera:.2f}" if xera is not None else "?",
@@ -757,19 +994,32 @@ def analyze_game(
         }
 
     def _off(batting: str, pitcher: dict) -> Optional[dict]:
+        # On a bullpen game nobody's hand governs enough of the game to split on, so the
+        # lineup is read against its unsplit form instead. That is also the one path that
+        # still produces a card when the opposing arm's hand is unknown.
+        bullpen_game = (pitcher.get("Mode") == "bullpen")
         hand = (pitcher.get("Throws") or "?")[0]
-        if hand not in ("R", "L"):
+        # A page rendered for a date before the unsplit windows were being downloaded
+        # has no overall pool to read. Falling back to the first arm's hand is a worse
+        # answer than "all hands" but a much better one than an empty card.
+        if bullpen_game and not (all_pool or {}).get(to_stats(batting)):
+            bullpen_game = False
+        if bullpen_game:
+            pool, ctx_pool, hand_lbl = (all_pool or {}), (all_ctx or {}), "all hands"
+        elif hand in ("R", "L"):
+            pool     = rhp if hand == "R" else lhp
+            ctx_pool = (rhp_ctx if hand == "R" else lhp_ctx) or {}
+            hand_lbl = "vs RHP" if hand == "R" else "vs LHP"
+        else:
             return None
-        pool = rhp if hand == "R" else lhp
-        s    = pool.get(to_stats(batting), {})
+        s = pool.get(to_stats(batting), {})
         if not s:
             return None
         wrc = flt(s.get("wRC+"))
         # Comparison window. Absent data (no L12 file, a club with no qualifying row, or
         # a null wRC+) degrades to N/A exactly the way the primary number does — the
         # column disappears rather than the card breaking.
-        ctx_pool = (rhp_ctx if hand == "R" else lhp_ctx) or {}
-        ctx_row  = ctx_pool.get(to_stats(batting), {})
+        ctx_row = ctx_pool.get(to_stats(batting), {})
         wrc_ctx  = flt(ctx_row.get("wRC+")) if ctx_row else None
         return {
             "wrc":       wrc,
@@ -786,7 +1036,9 @@ def analyze_game(
             "hard_ctx":  fp1(ctx_row.get("HardHit%")),
             "whiff":     fp1(s.get("Whiff%")),
             "whiff_ctx": fp1(ctx_row.get("Whiff%")),
-            "vs_hand":   "RHP" if hand == "R" else "LHP",
+            "vs_hand":   "ALL" if bullpen_game else ("RHP" if hand == "R" else "LHP"),
+            "hand_lbl":  hand_lbl,
+            "bullpen_game": bullpen_game,
         }
 
     def _bp(team: str) -> dict:
@@ -912,6 +1164,28 @@ def analyze_game(
 
     # Aggregate flags
     flags: list[str] = []
+    # Opener and bullpen games first — they change how every other line on the card
+    # should be read, so they belong above the stat-derived flags rather than buried
+    # among them.
+    for team, sp, opp in [(away_team, away_sp, home_team), (home_team, home_sp, away_team)]:
+        why = f" ({sp['role_why']})" if sp.get("role_why") else ""
+        op  = sp.get("opener") or {}
+        if sp["mode"] == "opener":
+            flags.append(
+                f"OPENER: {team} start {op.get('name', '?')} ({op.get('hand', '?')}HP)"
+                f"{why}, with {sp['name']} ({sp['hand']}HP) expected to carry the bulk "
+                f"of the innings. The stats and the hand shown are the bulk arm's — "
+                f"{opp}'s offense line is split against {sp['hand']}HP, not the opener's."
+            )
+        elif sp["mode"] == "bullpen":
+            first = (f"{op.get('name')} ({op.get('hand', '?')}HP) is listed first"
+                     if op.get("name") else f"{sp['name']} is listed")
+            flags.append(
+                f"BULLPEN GAME: {team} have no conventional starter — {first}{why}. "
+                f"Expect a parade of relievers; {opp}'s offense is shown against all "
+                f"hands rather than a platoon split, and starter-based reads "
+                f"(SP K/outs props, F5 lines) do not apply."
+            )
     for team, p in [(away_team, p_away), (home_team, p_home)]:
         name = p.get("Name", "?")
         for f in pitcher_csv_flags(p):

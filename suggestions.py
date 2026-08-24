@@ -275,6 +275,19 @@ The realistic outcome of applying Section 5 honestly is that most games produce 
 picks and a strong game produces ONE. Filling all three slots on a game should be rare
 and should require an unusually clean read across independent markets.
 
+SLATE-LEVEL DISCIPLINE. The per-game caps above are a ceiling, not a target, and clearing
+them is not the same as having found value. On a normal full slate you should be touching
+FEWER THAN HALF the games. If you find yourself with a pick on most of the board, you have
+stopped pricing and started previewing — go back through and cut every pick whose case is
+"I like this side" rather than "this specific number is wrong."
+
+When two picks on the same game rest on the SAME underlying read — a side and a team total
+that both come down to one lineup beating one starter — that is one opinion sold twice, not
+two edges. Keep the one with the better price and drop the other.
+
+The best version of this slate is a short list you can defend individually. Six well-priced
+picks are worth more than fifteen with four good ones buried in them.
+
 ═══════════════════════════════════════════════════════════════════
 5. PRICE IS THE WHOLE JOB
 ═══════════════════════════════════════════════════════════════════
@@ -292,7 +305,11 @@ PRICING RULES:
     it requires a genuinely exceptional read, and you must say in the reason why the edge
     survives the price.
   • Never recommend anything at -201 or worse. No exceptions. No parlays.
-  • +money and prices in the -105 to -145 band are where you should be living.
+  • +money and prices in the -105 to -129 band are where you should be living.
+  • PITCHER PROPS AT -130 OR WORSE ARE A PASS. A juiced prop is the book charging you for
+    an opinion it already holds. This is the tightest price rule in this section and it
+    applies to strikeouts and outs alike. If you love the read, take the alt line at plus
+    money instead (see Section 8) — do not pay the juice.
   • A heavy favorite is not value just because they are better. Team A having the superior
     xERA and wRC+ matchup at -200 is the market agreeing with you. Check whether the run
     line pays for the same opinion: if their starter's recent box scores show he goes deep
@@ -302,6 +319,50 @@ PRICING RULES:
   • When the run line does not offer enough — the number is too big or the win is likely
     but not comfortable — taking the ML at up to about -160 is acceptable if you genuinely
     love it. Say so explicitly in the reason.
+
+THE NUMBER ITSELF IS EVIDENCE — DEMANDING LINES GET EXTRA SCRUTINY:
+
+A posted number is not a neutral target. Some numbers already sit at the edge of what the
+matchup can produce, and betting PAST them means betting on an outcome that is rare even
+when your read is correct. Being right about the matchup and wrong about the price is the
+most common way a good handicap becomes a bad bet.
+
+The following are DEMANDING NUMBERS. None of them is banned — each can be an excellent bet
+— but each requires a higher bar than the same read on an ordinary number:
+
+  • TEAM TOTAL OVER at 4.5 or higher. You are betting a club to score 5+ runs. At 5.5 or
+    higher the ask is stiffer again and should be close to a last resort.
+  • PITCHER K OVER at 7.5 or higher. At 8.5 or higher this is asking for an outing that is
+    exceptional even for the pitcher you are backing.
+  • PITCHER K UNDER at 3.5 or lower. A low number means the market already expects few
+    strikeouts; you need the outing to be shorter or quieter than an already-quiet forecast.
+  • PITCHER OUTS OVER at 18.5 or higher — a bet on 6+ full innings against a league that
+    increasingly does not allow them.
+  • GAME TOTAL OVER at 9.5 or higher, or GAME TOTAL UNDER at 7.0 or lower.
+
+To recommend one of these, ALL THREE must hold:
+
+  1. The edge is in the DIRECTION OF THE NUMBER, not merely present. A hot lineup facing a
+     weak starter justifies a team total over at 3.5. Pushing that same read to 5.5 needs
+     the run environment itself — park, weather, both bullpens — pointing the same way.
+  2. The number is beatable on the RECENT RECORD, not on reputation or rate stats alone.
+     Check what actually happened: the box scores, the K totals per start, the runs scored
+     per game. If he has cleared 8.5 strikeouts once in his last three, 8.5 is not a bet
+     no matter how good the K% looks. A rate that produces the number only in an
+     above-average outing is a rate that does not produce the number.
+  3. The reason SAYS OUT LOUD why the demanding number is beatable, in the published copy,
+     naming the specific evidence that clears it. Not "he is elite" — the actual totals.
+
+BEWARE THE RECENCY TRAP SPECIFICALLY. A starter coming off three double-digit strikeout
+games has a K line that has already moved to meet him, and those totals were built against
+whatever lineups he happened to face. If his recent K totals came against high-K opponents
+and today's lineup makes more contact, the recent totals argue AGAINST the over, not for
+it. Do not cite a hot streak as the reason for a number the hot streak created.
+
+If a demanding number fails any of the three tests, the correct action is usually to take
+the SAME READ at a cheaper number — the 4.5 team total instead of the 5.5, the 6.5 K line
+instead of the 8.5 — or to pass entirely. The cheaper number is a real pick. A demanding
+number you cannot defend is not.
 
 ═══════════════════════════════════════════════════════════════════
 6. TOTALS
@@ -320,6 +381,12 @@ bullpen quality and stress. Only then look at the posted number.
     direction. Do not default to F5.
   • Choose a TEAM total when only ONE side of the run environment is mispriced — you like
     one lineup against one starter but have no opinion on the other half.
+  • TEAM TOTAL OVERS ARE THE MOST OVERUSED BET ON THIS BOARD. "Good offense vs bad starter"
+    is the easiest read to have and therefore the one the market prices most efficiently;
+    a team total over is not the automatic home for it. Before taking one at 4.5 or higher,
+    apply the demanding-number test in Section 5, and ask whether the same opinion is
+    better expressed as the side, the game total, or the OPPOSING team's total under. The
+    under side of a team total is the less crowded bet and is passed over too often.
 
 ═══════════════════════════════════════════════════════════════════
 7. SIDES
@@ -396,6 +463,22 @@ STRIKEOUTS. Use exactly five inputs, then the price:
   Length only supports the over; it never creates one. A deep outs line with contact-heavy
   opposition is still a pass.
 
+  THE SIZE OF THE K LINE IS ITSELF A SIGNAL. Apply the demanding-number test in Section 5:
+    • A K line of 7.5 or higher exists because the market already knows this pitcher misses
+      bats. The rate signals agreeing is the STARTING point, not the case — at that number
+      they are priced in. What makes it a bet is length the market is underrating, or a
+      lineup whose Whiff% runs well above its K%. At 8.5 or higher, require that his last 3
+      box scores show him CLEARING the number more often than not; a 40% K rate that has
+      produced 9, 7 and 10 does not make 8.5 a value bet, it makes it a coin flip you are
+      paying for.
+    • A K line of 3.5 or lower on the UNDER is the mirror image: the market has already
+      forecast a short or quiet outing, and you are being asked to bet it goes even quieter.
+      These can be excellent — a contact lineup against a low-K arm is the cleanest under
+      available — but confirm the price still pays after the number has moved that far, and
+      say what makes the floor lower than the already-low number implies.
+    • The middle of the board — K overs around 4.5-6.5 and unders around 4.5-5.5 — is where
+      the rate signals actually buy you something. Prefer it.
+
   Then check the line and the price.
 
 OUTS. Use exactly these:
@@ -415,10 +498,13 @@ OUTS. Use exactly these:
 DISQUALIFIER: meaningful rain risk kills pitcher OVERS — he may not take the mound or may
 be pulled after a delay.
 
-ALT LINES: if the prop you like is juiced worse than -150, say so and name the next line
-up as an alternative with a price threshold. Example: "6+ Ks is -155; 7+ Ks is also live
-here at +110 or better." You do not have odds for alt lines — quote a price you would
-need, not a price you claim exists. Put this in "alt_suggestion" with line_warning true.
+ALT LINES: if the prop you like is juiced worse than -130, do not recommend it at that
+price. Say so and name the next line up as an alternative with a price threshold instead.
+Example: "6+ Ks is -140; 7+ Ks is also live here at +110 or better." You do not have odds
+for alt lines — quote a price you would need, not a price you claim exists. Put this in
+"alt_suggestion" with line_warning true. This is also the right move in the other
+direction: when the number you like is a demanding one (Section 5), the alt-line field is
+where you name the cheaper number you would rather have.
 
 ═══════════════════════════════════════════════════════════════════
 9. FLAGS AND WEATHER
@@ -584,6 +670,8 @@ REJECT if ANY of the following is true
 
 4. PRICE VIOLATION. Odds worse than -150 without the rationale explicitly justifying why
    the edge survives that price. Anything at -201 or worse is an automatic REJECT.
+     • REJECT any PITCHER PROP (strikeouts or outs) priced at -130 or worse. There is no
+       justifying-rationale escape on this one — the alt line exists for that read.
 
 5. NO PRICING ARGUMENT AT ALL. The rationale handicaps the game but never says what the
    market has wrong. "Team A is better" is not a bet. If there is no claim of a
@@ -609,6 +697,26 @@ REJECT if ANY of the following is true
    must say why he pitches deeper than the market expects. REJECT if it never engages
    with the short outing at all. Do not apply this where the card posts no outs line, and
    do not reject a K UNDER on these grounds — a short outs line supports an under.
+
+9. DEMANDING NUMBER NOT DEFENDED. Some numbers require the outcome to be unusual even when
+   the handicap is right, so the rationale has to argue for the NUMBER and not just for the
+   direction. This applies to:
+     • a TEAM TOTAL OVER at 4.5 or higher
+     • a PITCHER K OVER at 7.5 or higher
+     • a PITCHER K UNDER at 3.5 or lower
+     • a PITCHER OUTS OVER at 18.5 or higher
+     • a GAME TOTAL OVER at 9.5 or higher, or a GAME TOTAL UNDER at 7.0 or lower
+   REJECT if the rationale makes only a directional case — "this lineup is hot," "this arm
+   misses bats," "these starters are good" — without citing concrete recent evidence that
+   this specific number gets cleared: runs actually scored, strikeout totals actually
+   posted, innings actually thrown. A rationale built on rate stats and reputation alone is
+   a REJECT at these numbers even though the same rationale would be fine at an ordinary
+   one.
+   REJECT SPECIFICALLY if the rationale cites a hot streak as support for a K OVER while
+   the card shows today's lineup strikes out LESS than the opponents that streak was built
+   against. That is evidence against the bet being offered as evidence for it.
+   Do NOT reject a demanding number that IS defended with specific recent totals. The bar
+   is a real argument about the number, not agreement that the bet will win.
 
 ═══════════════════════════════════════════════════════════════════
 ACCEPT otherwise
@@ -817,8 +925,20 @@ def _serialize_game_for_ai(g: dict) -> str:
         # starter reads as still being on his old team.
         name = f"{team} ({side}) — {sp['name']}"
         hand = (sp.get("hand") or "?")[0]
+        # An opener or a bullpen game invalidates most of what follows — starter K/outs
+        # props, F5 lines, and any "the starter goes 6" assumption — so the caveat leads
+        # the line rather than trailing it.
+        op   = sp.get("opener") or {}
+        role = ""
+        if sp.get("mode") == "opener":
+            role = (f" [OPENER GAME: {op.get('name', '?')} ({op.get('hand', '?')}) opens; "
+                    f"the stats below are {sp['name']}'s, the bulk arm]")
+        elif sp.get("mode") == "bullpen":
+            first = f"{op['name']} listed first; " if op.get("name") else ""
+            role = (f" [BULLPEN GAME: {first}no conventional starter — "
+                    f"starter props and F5 reads do not apply]")
         if not sp.get("has_stats"):
-            return f"  {name} ({hand}): NO STATS (first start this season)"
+            return f"  {name} ({hand}):{role or ''} NO STATS (first start this season)"
         parts = []
         if sp.get("label"):
             parts.append(f"xERA {sp['xera_s']} ({sp['label']})")
@@ -830,7 +950,7 @@ def _serialize_game_for_ai(g: dict) -> str:
                 parts.append(f"{lbl} {val}")
         if sp.get("depth") not in ("—", None):
             parts.append(sp["depth"])
-        base = f"  {name} ({hand}): " + ", ".join(parts)
+        base = f"  {name} ({hand}):{role} " + ", ".join(parts)
         recent = _recent_3(outings)
         if recent:
             outing_strs = [f"      {_outing_str(o)}" for o in recent]
@@ -844,12 +964,16 @@ def _serialize_game_for_ai(g: dict) -> str:
         return base
 
     def _off_line(team, off, vs_hand):
+        # `vs_hand` is the opposing starter's hand letter and is only a fallback label
+        # now — on a bullpen game the offense is read unsplit, and the card carries the
+        # label that says so.
         # Every stat is labelled with its own window inline. The card carries a last-6 AND
         # a last-12 figure for wRC+, K%, Whiff%, and HH% now, and the model writes public
         # copy that must name the window it is quoting — an unlabelled pair is exactly the
         # kind of thing a second opinion over the same card cannot catch.
         if not off:
             return f"  {team} vs {vs_hand}HP: No data"
+        split = off.get("hand_lbl") or f"vs {vs_hand}HP"
         lbl = f" ({off['label']})" if off.get("label") else ""
         parts = [f"wRC+ last 6: {off.get('wrc_s', '?')}{lbl}",
                  f"wRC+ last 12: {off.get('wrc_ctx_s', 'N/A')}"]
@@ -862,7 +986,7 @@ def _serialize_game_for_ai(g: dict) -> str:
             parts.append(f"{stat} last 6: {off[key]}")
             if off.get(f"{key}_ctx") not in ("?", None):
                 parts.append(f"{stat} last 12: {off[f'{key}_ctx']}")
-        return f"  {team} vs {vs_hand}HP: " + ", ".join(parts)
+        return f"  {team} {split}: " + ", ".join(parts)
 
     def _bp_line(team, bp):
         if not bp:
@@ -992,7 +1116,9 @@ def _serialize_game_for_ai(g: dict) -> str:
     lines.append(_sp_line(sp_a, outs_a, away, "away"))
     lines.append(_sp_line(sp_h, outs_h, home, "home"))
     lines.append(
-        "OFFENSE — vs the opposing starter's hand. wRC+, K%, Whiff%, and HH% are each "
+        "OFFENSE — vs the opposing starter's hand, except on a bullpen game, where the "
+        "line is labelled \"all hands\" because no starter's hand governs enough of the "
+        "game to split on. wRC+, K%, Whiff%, and HH% are each "
         "shown twice: LAST 6 GAMES (the primary read) and LAST 12 GAMES (the same lineup, "
         "same hand, longer window — context only, see Section 1 on how to weigh the gap "
         "between them):"

@@ -36,6 +36,8 @@ FILE_NAMES = {
     "team_lhp":        f"team_stats_{config.TEAM_SPLIT_PRIMARY}LHP_{{date}}.json",
     "team_rhp_ctx":    f"team_stats_{config.TEAM_SPLIT_CONTEXT}RHP_{{date}}.json",
     "team_lhp_ctx":    f"team_stats_{config.TEAM_SPLIT_CONTEXT}LHP_{{date}}.json",
+    "team_all":        f"team_stats_{config.TEAM_SPLIT_PRIMARY}{config.TEAM_SPLIT_ALL_SUFFIX}_{{date}}.json",
+    "team_all_ctx":    f"team_stats_{config.TEAM_SPLIT_CONTEXT}{config.TEAM_SPLIT_ALL_SUFFIX}_{{date}}.json",
     "bullpen":         "bullpen_stats_last12g_{date}.json",
     "ballpark_weather": "ballpark_weather_{date}.json",
 }
@@ -368,7 +370,7 @@ def download_all(target_date: date, data_dir: Path, slot: str = "today",
             # completed slate; 'tomorrow' already has today's upcoming starters.
             # The flip side: tomorrow's real slate isn't published yet, so fetching
             # it would save today's starters under a tomorrow-dated file. Every SP
-            # would then fail validate_pitchers() against the MLB API's probables
+            # would then fail resolve_pitchers() against the MLB API's probables
             # and get blanked. Keep whatever the prior evening's run cached.
             if slot == "tomorrow" and et_hour < 6:
                 print("  [starters] Before 6 AM ET — tomorrow's slate not published yet; "
