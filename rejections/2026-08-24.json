@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-08-24",
+    "game": "COL @ WSN",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Cade Cavalli Over 6.5 Ks",
+    "odds": "+104",
+    "confidence": "medium",
+    "reason": "Cavalli has posted 8, 10, and 11 strikeouts across his last 3 starts behind a 39.2 K% and 35.3 Whiff% over that window, and he averages 6.7 IP/gs so the innings are there. Colorado sits at a middling 23.0 K% vs RHP over their last 6 \u2014 enough contact to shave the total but nowhere near enough to bring an elite bat-misser under seven. Getting plus money on a number he has cleared by multiple whiffs every recent time out is the mispricing.",
+    "reject_reason": "Check 9: the over rests on the recent streak (\"8, 10, and 11 strikeouts\" / \"a number he has cleared by multiple whiffs every recent time out\"), but the card's own flag shows those totals came against higher-K lineups (CIN 26%, CHC 26%, TEX 31%) than today's COL at 23%, so that streak is evidence against the over into a more contact-oriented lineup.",
+    "rejected_at": "2026-08-24T08:15:57.388481+00:00"
+  }
+]
