@@ -1,6 +1,6 @@
 """Core game analysis — analyze_game(), flags, trends, and helper utilities."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime
 from typing import Optional
 
 from teams import to_stats, to_mlb, ODDS_TEAM, MLB_NAME_TO_CODE, division
@@ -15,10 +15,6 @@ def flt(val) -> Optional[float]:
         return float(str(val).rstrip("%"))
     except (TypeError, ValueError):
         return None
-
-
-def pct_val(s: str) -> Optional[float]:
-    return flt(s.rstrip("%")) if s else None
 
 
 def fp1(val) -> str:

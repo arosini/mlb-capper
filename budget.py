@@ -20,7 +20,6 @@ quota to report:
   exposes no budget or remaining-limit endpoint on this path (spend limits are a
   Claude Enterprise feature).
 """
-import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 

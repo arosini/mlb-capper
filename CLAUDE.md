@@ -56,7 +56,7 @@ handicap.py       — slim entry point, main() only; imports everything
 
 ### Key exports by module
 
-**`season.py`**: `ET`, `GAME_TYPES`, `today_et()`, `game_count()`, `has_games()`, `season_start()`
+**`season.py`**: `ET`, `GAME_TYPES`, `today_et()`, `game_count()`, `has_games()`, `season_start()`, `resolve_cli_date()`
 
 **`venues.py`**: `home_venue_ids()`, `venue_geo()`, `coords_are_sane()`, `roof_kind()`, `ROOFED`
 
@@ -64,13 +64,13 @@ handicap.py       — slim entry point, main() only; imports everything
 
 **`budget.py`**: `collect()`, `render_budget_page()`
 
-**`teams.py`**: `_STATS_MAP`, `_MLB_MAP`, `ODDS_TEAM`, `MLB_NAME_TO_CODE`, `to_stats()`, `to_mlb()`, `logo_img()`, `_LOGO`
+**`teams.py`**: `_STATS_MAP`, `_MLB_MAP`, `ODDS_TEAM`, `MLB_NAME_TO_CODE`, `to_stats()`, `to_mlb()`, `normalize_name()`, `logo_img()`, `_LOGO`
 
-**`odds.py`**: `load_odds()`, `get_game_odds()`, `fmt_ml()`, `fmt_spread()`, `fmt_total()`, `fmt_k_line()`, `fmt_outs_line()`
+**`odds.py`**: `load_odds()`, `get_game_odds()`, `best_outcome()`, `fmt_ml()`, `fmt_spread()`, `fmt_total()`, `fmt_k_line()`, `fmt_outs_line()`
 
 **`loaders.py`**: `load_starters()`, `load_team_stats()`, `load_bullpen()`, `load_ballpark_weather()`, `load_odds_meta()`, `load_pitcher_props()`
 
-**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()` (takes lat/lon, not a team code), `wind_effect()`, `compass_point()`, `stress_label_cls()`, `STADIUMS` (legacy fallback only), `HAS_REQUESTS`
+**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()` (takes lat/lon, not a team code), `wind_effect()`, `compass_point()`, `stress_label_cls()`, `HAS_REQUESTS`
 
 **`analysis.py`**: `analyze_game()`, `build_games()`, `validate_pitchers()`, `flt()`, `fp1()`, `fp3()`, `wrc_label()`, `xera_label()`, `pitcher_csv_flags()`, `bullpen_flags()`, `weather_flags()`, `pitcher_history_flags()`, `team_whiff_k_flag()`, `pitcher_whiff_k_flag()`, `extract_outings()`
 
@@ -339,7 +339,10 @@ a job that only gets one shot a week.
 1. Check what's available: `python3 download.py --inspect`
 2. Map the raw JSON key in the appropriate `_load_*_json()` in `loaders.py`
 3. Add to the `_sp()` / `_bp()` / `_off()` dict inside `analyze_game()` in `analysis.py`
-4. Render it in `_sp_card()` / `_bp_row()` / `_bat_card()` in `render_html.py`
+4. Render it in `_sp_card()` / `_bp_row()` / `_bat_card()` in `render_html.py` — these
+   are module-level functions, not nested inside `_html_game()`. If the new field should
+   be colour-graded, add a scale to `_SCALES` and call `_scaled_row()` rather than writing
+   a new threshold ladder.
 
 ## Season Window — regular + postseason only
 
@@ -439,9 +442,10 @@ Three separate bugs, all fixed:
    `Indoor` with no wind/precip, and retractables carry an explicit
    "conditions apply only if open" caveat, since the fallback path cannot know the state.
 
-`get_weather()` now takes **coordinates**, not a team code. `STADIUMS` survives only as a
-last-resort map and must not be reintroduced on the primary path — it is team-keyed and
-therefore wrong for exactly the games this section is about.
+`get_weather()` now takes **coordinates**, not a team code. The old team-keyed `STADIUMS`
+map has been deleted: it had no remaining callers, and it was wrong for exactly the games
+this section is about. Do not reintroduce a team-keyed park lookup — resolve the venue and
+its coordinates from the schedule (see `venues.py`).
 
 ## Data Volume — what grows, and what is bounded
 

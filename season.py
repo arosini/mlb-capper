@@ -50,6 +50,24 @@ def today_et() -> date:
     return datetime.now(ET).date()
 
 
+def resolve_cli_date(token: str) -> date:
+    """Resolve a --date argument — 'today', 'yesterday', or YYYY-MM-DD — on the ET calendar.
+
+    Shared by the two append-only log tools. history.py and picks.py annotate the same
+    slate and must agree on what "yesterday" means: if one resolved it against local
+    time and the other against ET, a run in the hours around midnight would grade one
+    file and silently skip the other.
+    """
+    if token == "today":
+        return today_et()
+    if token == "yesterday":
+        return today_et() - timedelta(days=1)
+    try:
+        return datetime.strptime(token, "%Y-%m-%d").date()
+    except ValueError:
+        raise SystemExit(f"Invalid date: {token}")
+
+
 def _plausibly_in_season(d: date) -> bool:
     return _SEASON_FIRST_MONTH_DAY <= (d.month, d.day) <= _SEASON_LAST_MONTH_DAY
 
@@ -107,11 +125,6 @@ def has_games(target_date: date, data_dir: Optional[Path] = None) -> bool:
     Fails open by design — see game_count().
     """
     return game_count(target_date, data_dir) != 0
-
-
-def season_year(d: date) -> int:
-    """The season a date belongs to. MLB never crosses New Year, so this is the year."""
-    return d.year
 
 
 def season_start(d: date) -> date:

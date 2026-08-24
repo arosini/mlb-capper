@@ -1,6 +1,6 @@
 """Terminal renderer — print_game() and ANSI color helpers."""
 
-import sys
+
 from analysis import analyze_game
 
 # Set to False via --no-color flag before calling print_game()
@@ -56,18 +56,25 @@ def print_game(
             f"xERA {sp['xera_s']}  {lbl:<12}  K-BB% {sp['kbb_s']}  {sp['depth']}"
         )
 
+    def _print_edge(category, stat, edge, away_v, home_v, prec, gap_unit=""):
+        """The '→ Pitching edge: NYY (xERA 3.10 vs 3.94)' line under a section.
+
+        The edge-holder's number is printed first whichever club it belongs to, so the
+        comparison always reads in the direction of the edge being claimed. Nothing is
+        printed at all when either side has no number to compare.
+        """
+        if away_v is None or home_v is None:
+            return
+        if not edge:
+            print(f"  → {category}: EVEN  (gap {abs(away_v - home_v):.{prec}f}{gap_unit})")
+            return
+        win_v, lose_v = (away_v, home_v) if edge == away else (home_v, away_v)
+        print(f"  → {category} edge: {edge}  ({stat} {win_v:.{prec}f} vs {lose_v:.{prec}f})")
+
     print(cyan("\nSTARTERS"))
     print(_sp_line(away, away_sp))
     print(_sp_line(home, home_sp))
-    xa, xh = away_sp["xera"], home_sp["xera"]
-    if xa is not None and xh is not None:
-        pe = g["pitch_edge"]
-        if not pe:
-            print(f"  → Pitching: EVEN  (gap {abs(xa-xh):.2f})")
-        elif pe == away:
-            print(f"  → Pitching edge: {away}  (xERA {xa:.2f} vs {xh:.2f})")
-        else:
-            print(f"  → Pitching edge: {home}  (xERA {xh:.2f} vs {xa:.2f})")
+    _print_edge("Pitching", "xERA", g["pitch_edge"], away_sp["xera"], home_sp["xera"], 2)
 
     def _off_line(team, off):
         if off is None:
@@ -82,16 +89,9 @@ def print_game(
     print(cyan("\nOFFENSE vs STARTER HAND  (last 6g; L12 wRC+ for comparison)"))
     print(_off_line(away, away_off))
     print(_off_line(home, home_off))
-    wrc_a = away_off["wrc"] if away_off else None
-    wrc_h = home_off["wrc"] if home_off else None
-    if wrc_a is not None and wrc_h is not None:
-        oe = g["off_edge"]
-        if not oe:
-            print(f"  → Offense: EVEN  (gap {abs(wrc_a - wrc_h):.0f} wRC+)")
-        elif oe == away:
-            print(f"  → Offense edge: {away}  (wRC+ {wrc_a:.0f} vs {wrc_h:.0f})")
-        else:
-            print(f"  → Offense edge: {home}  (wRC+ {wrc_h:.0f} vs {wrc_a:.0f})")
+    _print_edge("Offense", "wRC+", g["off_edge"],
+                away_off["wrc"] if away_off else None,
+                home_off["wrc"] if home_off else None, 0, " wRC+")
 
     def _bp_line(team, bp):
         lbl = f"({bp['label']:<10})" if bp["label"] else ""
@@ -108,15 +108,7 @@ def print_game(
     print(cyan("\nBULLPENS  (last 12g)"))
     print(_bp_line(away, away_bp))
     print(_bp_line(home, home_bp))
-    xbp_a, xbp_h = away_bp["xera"], home_bp["xera"]
-    if xbp_a is not None and xbp_h is not None:
-        be = g["bp_edge"]
-        if not be:
-            print(f"  → Bullpen: EVEN  (gap {abs(xbp_a - xbp_h):.2f})")
-        elif be == away:
-            print(f"  → Bullpen edge: {away}  (xERA {xbp_a:.2f} vs {xbp_h:.2f})")
-        else:
-            print(f"  → Bullpen edge: {home}  (xERA {xbp_h:.2f} vs {xbp_a:.2f})")
+    _print_edge("Bullpen", "xERA", g["bp_edge"], away_bp["xera"], home_bp["xera"], 2)
 
     if g["wx"]:
         print(cyan("\nWEATHER"))

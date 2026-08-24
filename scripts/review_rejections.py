@@ -30,9 +30,8 @@ _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent.parent))
 import argparse
 import json
 import os
-import re
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from season import ET as _ET

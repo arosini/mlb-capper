@@ -253,49 +253,7 @@ def get_bullpen_stress(team_mlb_ids: set, target_date: date, data_dir: Path) -> 
     return result
 
 
-# ── Weather (Open-Meteo fallback) ─────────────────────────────────────────────
-
-# (lat, lon, city, IANA timezone)
-STADIUMS: dict[str, tuple] = {
-    "ARI": (33.4453, -112.0667, "Phoenix",           "America/Phoenix"),
-    "ATH": (38.5802, -121.4687, "Sacramento",         "America/Los_Angeles"),
-    "OAK": (38.5802, -121.4687, "Sacramento",         "America/Los_Angeles"),
-    "ATL": (33.8908,  -84.4677, "Atlanta",            "America/New_York"),
-    "BAL": (39.2838,  -76.6218, "Baltimore",          "America/New_York"),
-    "BOS": (42.3467,  -71.0972, "Boston",             "America/New_York"),
-    "CHC": (41.9484,  -87.6553, "Chicago (Wrigley)",  "America/Chicago"),
-    "CWS": (41.8300,  -87.6338, "Chicago (Sox)",      "America/Chicago"),
-    "CHW": (41.8300,  -87.6338, "Chicago (Sox)",      "America/Chicago"),
-    "CIN": (39.0978,  -84.5081, "Cincinnati",         "America/New_York"),
-    "CLE": (41.4962,  -81.6852, "Cleveland",          "America/New_York"),
-    "COL": (39.7559, -104.9942, "Denver",             "America/Denver"),
-    "DET": (42.3390,  -83.0485, "Detroit",            "America/Detroit"),
-    "HOU": (29.7573,  -95.3555, "Houston",            "America/Chicago"),
-    "KC":  (39.0517,  -94.4803, "Kansas City",        "America/Chicago"),
-    "KCR": (39.0517,  -94.4803, "Kansas City",        "America/Chicago"),
-    "LAA": (33.8003, -117.8827, "Anaheim",            "America/Los_Angeles"),
-    "LAD": (34.0739, -118.2400, "Los Angeles",        "America/Los_Angeles"),
-    "MIA": (25.7781,  -80.2197, "Miami",              "America/New_York"),
-    "MIL": (43.0280,  -87.9712, "Milwaukee",          "America/Chicago"),
-    "MIN": (44.9817,  -93.2781, "Minneapolis",        "America/Chicago"),
-    "NYM": (40.7571,  -73.8458, "New York (Mets)",    "America/New_York"),
-    "NYY": (40.8296,  -73.9262, "New York (Yankees)", "America/New_York"),
-    "PHI": (39.9061,  -75.1665, "Philadelphia",       "America/New_York"),
-    "PIT": (40.4469,  -80.0058, "Pittsburgh",         "America/New_York"),
-    "SD":  (32.7076, -117.1570, "San Diego",          "America/Los_Angeles"),
-    "SDP": (32.7076, -117.1570, "San Diego",          "America/Los_Angeles"),
-    "SEA": (47.5914, -122.3325, "Seattle",            "America/Los_Angeles"),
-    "SF":  (37.7786, -122.3893, "San Francisco",      "America/Los_Angeles"),
-    "SFG": (37.7786, -122.3893, "San Francisco",      "America/Los_Angeles"),
-    "STL": (38.6226,  -90.1928, "St. Louis",          "America/Chicago"),
-    "TB":  (27.7682,  -82.6534, "St. Petersburg",     "America/New_York"),
-    "TBR": (27.7682,  -82.6534, "St. Petersburg",     "America/New_York"),
-    "TEX": (32.7473,  -97.0824, "Arlington",          "America/Chicago"),
-    "TOR": (43.6414,  -79.3894, "Toronto",            "America/Toronto"),
-    "WSH": (38.8730,  -77.0074, "Washington",         "America/New_York"),
-    "WSN": (38.8730,  -77.0074, "Washington",         "America/New_York"),
-}
-
+# ── Weather (Open-Meteo) ──────────────────────────────────────────────────────
 
 _COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
             "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]

@@ -443,7 +443,6 @@ def inspect_fields(data_dir: Path, target_date: date) -> None:
             rows = []
         if rows:
             first = rows[0]
-            stats = first.get("stats")
             print(f"\n── {key}  ({p.name}, {len(rows)} rows) ──")
             for field, val in first.items():
                 if field == "stats" and isinstance(val, dict):

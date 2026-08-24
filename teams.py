@@ -82,8 +82,13 @@ def to_mlb(t: str) -> str:
     return _MLB_MAP.get(t, t)
 
 
-def logo_img(team: str) -> str:
-    """Return an <img> tag for a team logo via ESPN CDN."""
+def logo_img(team: str, size: str = "") -> str:
+    """Return an <img> tag for a team logo via ESPN CDN.
+
+    `size="sm"` selects the inline variant used inside dense tables. Both pull the
+    same asset and differ only in the CSS class that sizes it.
+    """
     code = _LOGO.get(team, team.lower())
     url = f"https://a.espncdn.com/combiner/i?img=/i/teamlogos/mlb/500/{code}.png&h=28&w=28"
-    return f'<img src="{url}" class="tm-logo" alt="{team}" onerror="this.style.display=\'none\'">'
+    cls = "tm-logo-sm" if size == "sm" else "tm-logo"
+    return f'<img src="{url}" class="{cls}" alt="{team}" onerror="this.style.display=\'none\'">'
