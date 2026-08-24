@@ -1,6 +1,29 @@
-requests>=2.32.0
-# 0.112.0 is the oldest release verified against this code. The floor is not
-# cosmetic: suggestions.py and scripts/review_rejections.py pass
-# thinking={"type": "adaptive"} and output_config, neither of which the old
-# >=0.27.0 floor could satisfy.
-anthropic>=0.112.0
+# Both requirements carry an upper bound on purpose. CI runs `pip install -r
+# requirements.txt` on every scheduled run and deploys the result straight to
+# production, so an unbounded floor means the next major release of either
+# package ships to mlbautocap.com unreviewed. That already happened once:
+# anthropic 1.0.0 landed 2026-08-20 and went live the same day under the old
+# `>=0.112.0` floor. It happened to be compatible — see below — but nothing
+# about the pin made that true.
+#
+# To move to a new major: bump the ceiling here, run the verification in
+# `## Dependencies` in CLAUDE.md, and only then deploy.
+
+requests>=2.32.0,<3
+
+# anthropic 1.x verified against this code on 2026-08-24. The 0.x -> 1.x break
+# is narrow and this project touches none of it: no Text Completions, no
+# temperature/top_p/top_k, no raw `output_format=` dict, no `.with_raw_response`,
+# no direct httpx use, no Bedrock client. The three call sites pass only
+# model / max_tokens / thinking / output_config / system / tools / tool_choice /
+# messages, all unchanged in 1.x, and `messages.stream()` + `get_final_message()`
+# in scripts/review_rejections.py is likewise unchanged.
+#
+# The floor stays at 0.112.0-era capability for a reason: suggestions.py and
+# scripts/review_rejections.py pass thinking={"type": "adaptive"} and
+# output_config, which no release before 0.112.0 accepts. 1.x is now the floor
+# because that is what production has been running since 2026-08-20.
+#
+# 1.x also raises the Python floor to 3.10; the workflows pin 3.11, so that is
+# already satisfied.
+anthropic>=1.0.0,<2

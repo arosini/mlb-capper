@@ -216,6 +216,54 @@ Two ordering rules in `publish.yml` protect the invariant:
 - **Secrets needed**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHROPIC_API_KEY`
 - **Trigger manually**: `gh workflow run publish.yml`
 
+## Dependencies — both pins are bounded on purpose
+
+Two direct dependencies, in `requirements.txt`; everything else is transitive.
+
+| | Pin | Why the ceiling |
+|---|---|---|
+| `requests` | `>=2.32.0,<3` | ordinary HTTP client; no 3.x exists yet |
+| `anthropic` | `>=1.0.0,<2` | the SDK that generates picks |
+
+**The ceilings are the point.** Every workflow runs `pip install -r requirements.txt`
+and deploys the result, so an unbounded floor means the next major release of either
+package ships to production unreviewed. **That already happened**: `anthropic` 1.0.0
+was published 2026-08-20 and went live the same day under the old `>=0.112.0` floor.
+It was compatible — but by luck, not by design. Verified after the fact: 25–27
+successful Claude calls a day on 8/21–8/23, recorded in `usage/2026-08.json`.
+
+`anthropic` 1.x is a narrow break and this project touches none of it — no Text
+Completions, no `temperature`/`top_p`/`top_k`, no raw `output_format={...}` dict, no
+`.with_raw_response`, no direct `httpx` use, no Bedrock client. All three call sites
+(`suggestions.py` ×2, `scripts/review_rejections.py` ×1) pass only `model`,
+`max_tokens`, `thinking`, `output_config`, `system`, `tools`, `tool_choice`, and
+`messages`, none of which changed; `messages.stream()` + `get_final_message()` is
+likewise unchanged. 1.x raises the Python floor to 3.10 and the workflows pin 3.11,
+so that is already satisfied.
+
+The floor stays at 1.x-era capability because `thinking={"type": "adaptive"}` and
+`output_config` are load-bearing here and no release before 0.112.0 accepts them.
+
+**To move either package to a new major:**
+
+1. Bump the ceiling in `requirements.txt` and install it locally.
+2. Re-run the checks in `## Early-Season Robustness` below, plus a render of all
+   three pages, and diff them against the pre-bump output — a dependency bump must
+   not change a single byte of rendered HTML.
+3. Grep for the removed surface the new major names in its own `MIGRATION.md`.
+4. Only then deploy.
+
+GitHub Actions are dependencies too. As of 2026-08-24 all four are on their current
+major — `actions/checkout@v7`, `actions/setup-python@v7`, `actions/cache@v6`,
+`cloudflare/wrangler-action@v4`. Check with `gh api repos/{owner}/{repo}/releases/latest`.
+
+> ⚠️ **The model id is not a dependency and is not covered by these pins.**
+> `suggestions.py` and `scripts/review_rejections.py` hardcode `claude-opus-4-8`.
+> Newer models exist (`claude-opus-5` is same-price at $5/$25 per MTok). Moving is a
+> deliberate change, not a version bump: the prompts here are tuned against 4.8, and
+> `usage.PRICING` must carry a rate for whatever id is used. Do not fold a model
+> change into a dependency pass.
+
 ## AI Picks — generation and verification
 
 Two model calls, both Claude Opus 4.8 with `thinking: {"type": "adaptive"}`:
