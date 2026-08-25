@@ -9,5 +9,16 @@
     "reason": "Seymour has struck out 7, 9 and 8 in his last 3 starts \u2014 all clear of this number \u2014 on a 32.9% K rate and 30.3% Whiff% while averaging 5.7 IP per outing, with a 5.5% walk rate keeping his pitch counts efficient at 98, 93 and 90. Detroit strikes out at 22.0% vs LHP over their last 6 and 23.1% over their last 12, and their 51 wRC+ vs LHP over the last 6 means few long innings to shorten his night. Detroit's bullpen is stressed at 6.7 relief innings over the past two days, so Tampa Bay has every reason to let him work, and a line of five and a half sits a full strikeout below what he has produced in each of his last three.",
     "reject_reason": "Check 8: the case leans on the streak \u2014 \"Seymour has struck out 7, 9 and 8 in his last 3 starts \u2014 all clear of this number\" \u2014 but the card flags those totals as built against higher-K opposition (SEA 27%, BAL 27%) than today's Detroit lineup (22.0% vs LHP, last 6), which is evidence against the over rather than for it, and the rationale never reconciles that gap.",
     "rejected_at": "2026-08-25T08:12:11.351073+00:00"
+  },
+  {
+    "date": "2026-08-25",
+    "game": "PIT @ SDP",
+    "bet_type": "Pitcher_Outs",
+    "bet": "Paul Skenes Under 15.5 Outs",
+    "odds": "-120",
+    "confidence": "medium",
+    "reason": "Skenes has recorded 15, 15 and 13 outs over his last 3 starts \u2014 none of them past 15 \u2014 with a 14.8% walk rate and a 4.90 xERA over that window, and his 81-pitch, 4.1-inning outing last time out is the shape this has been taking. San Diego's 119 wRC+ vs RHP over their last 6 (123 over their last 12) with a 26.6% whiff rate means long counts and traffic, exactly what has been ending his afternoons in the fifth. The number sits at the top of his recent range rather than in the middle of it, and the price barely charges for that.",
+    "reject_reason": "[mechanical] quoted -120 but the card posts -105 for that line and side",
+    "rejected_at": "2026-08-25T14:38:31.292176+00:00"
   }
 ]
