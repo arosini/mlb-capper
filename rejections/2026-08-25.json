@@ -20,5 +20,16 @@
     "reason": "Skenes has recorded 15, 15 and 13 outs over his last 3 starts \u2014 none of them past 15 \u2014 with a 14.8% walk rate and a 4.90 xERA over that window, and his 81-pitch, 4.1-inning outing last time out is the shape this has been taking. San Diego's 119 wRC+ vs RHP over their last 6 (123 over their last 12) with a 26.6% whiff rate means long counts and traffic, exactly what has been ending his afternoons in the fifth. The number sits at the top of his recent range rather than in the middle of it, and the price barely charges for that.",
     "reject_reason": "[mechanical] quoted -120 but the card posts -105 for that line and side",
     "rejected_at": "2026-08-25T14:38:31.292176+00:00"
+  },
+  {
+    "date": "2026-08-25",
+    "game": "MIL @ NYM",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Kyle Harrison Over 5.5 Ks",
+    "odds": "-115",
+    "confidence": "medium",
+    "reason": "Harrison has a 33.9% K rate and 30.5% whiff rate over his last 3 starts, and he got 10 strikeouts in 5.0 innings and 8 in 5.0 innings in two of them, so the number does not require length. The Mets have struck out 24.3% of the time vs left-handers over their last 6 games and 24.2% over their last 12 with a 28.5% whiff rate in the shorter window, a lineup missing more bats than even that K rate shows. The price treats this as a coin flip when his rate clears the number inside the five innings the market already expects from him.",
+    "reject_reason": "The over leans on the recent strikeout outbursts \u2014 \"he got 10 strikeouts in 5.0 innings and 8 in 5.0 innings in two of them\" \u2014 but the card's flag plainly shows those came against higher-K lineups (PIT 32%, SEA 27%) than today's Mets (24.3% vs LHP), so that streak argues against the over rather than for it.",
+    "rejected_at": "2026-08-25T20:28:43.242061+00:00"
   }
 ]
