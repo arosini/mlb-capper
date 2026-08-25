@@ -31,5 +31,16 @@
     "reason": "Harrison has a 33.9% K rate and 30.5% whiff rate over his last 3 starts, and he got 10 strikeouts in 5.0 innings and 8 in 5.0 innings in two of them, so the number does not require length. The Mets have struck out 24.3% of the time vs left-handers over their last 6 games and 24.2% over their last 12 with a 28.5% whiff rate in the shorter window, a lineup missing more bats than even that K rate shows. The price treats this as a coin flip when his rate clears the number inside the five innings the market already expects from him.",
     "reject_reason": "The over leans on the recent strikeout outbursts \u2014 \"he got 10 strikeouts in 5.0 innings and 8 in 5.0 innings in two of them\" \u2014 but the card's flag plainly shows those came against higher-K lineups (PIT 32%, SEA 27%) than today's Mets (24.3% vs LHP), so that streak argues against the over rather than for it.",
     "rejected_at": "2026-08-25T20:28:43.242061+00:00"
+  },
+  {
+    "date": "2026-08-25",
+    "game": "CLE @ LAA",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Walbert Urena Under 4.5 Ks",
+    "odds": "-158",
+    "confidence": "medium",
+    "reason": "Cleveland strikes out at a 13.9 rate vs RHP over their last 6 and 15.8 over their last 12, with a 15.3 Whiff% in the recent window \u2014 the lowest-swing-and-miss lineup on this card, and 8 of 9 in today's order hit with the platoon advantage. Urena averages 4.4 IP/gs over his last 3 starts with a 12.5 BB%, including a 2.1-inning outing, which caps the number of hitters he sees around 18 or 19. He got 4 across 5 innings in his one start against Cleveland this year. Five strikeouts requires both a longer outing than he has been giving and a whiff rate this lineup has not allowed anyone.",
+    "reject_reason": "At -158 the rationale never engages the price or claims a mispricing \u2014 it argues only that \"Five strikeouts requires both a longer outing than he has been giving and a whiff rate this lineup has not allowed anyone,\" with no mention of what the juice is buying or what the market has wrong.",
+    "rejected_at": "2026-08-25T23:02:51.789152+00:00"
   }
 ]
