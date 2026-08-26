@@ -31,5 +31,16 @@
     "reason": "Melton carries a 17.1 K% over his last 3 starts with 5, 4 and 3 strikeouts, and those came against San Francisco (28% K) and the White Sox (27% K) \u2014 lineups that strike out far more than today's. Tampa Bay is the toughest contact team on the board at a 16.6 K% vs RHP over their last 6 and 14.7% over their last 12, with an 18.2 Whiff% that supports it. His outs line of 17.5 gives him around six innings, and at his rate against a lineup that puts the ball in play that projects to roughly three and a half strikeouts. Getting plus money on a number he needs an above-average outing to reach is the mispricing.",
     "reject_reason": "Misattributed stat: \"Tampa Bay ... with an 18.2 Whiff%\" \u2014 18.2 is DET's Whiff% last 6 vs RHP; TBR's is 21.5 (last 6) / 19.3 (last 12), and the higher whiff figure actually cuts against the under.",
     "rejected_at": "2026-08-26T08:13:15.665529+00:00"
+  },
+  {
+    "date": "2026-08-26",
+    "game": "TEX @ CHW",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Sean Burke Under 5.5 Ks",
+    "odds": "+120",
+    "confidence": "medium",
+    "reason": "Burke has a 19.7% strikeout rate over his last 3 starts and has averaged 4.7 per outing across them, including 2 in 4.1 innings at Detroit and 4 in 6 innings against the Mets. Texas has cut its strikeout rate to 20.6% vs right-handers over its last 6 games, down sharply from 26.5% over its last 12, and the lineup posted today runs five left-handed or switch bats against him. Reaching six strikeouts means his best outing of the month against a lineup currently putting the ball in play, and plus money on the under is more than that ask is worth.",
+    "reject_reason": "\"the lineup posted today runs five left-handed or switch bats against him\" contradicts the card: Texas's posted order has only four lefty bats (Pederson, Seager, Nimmo, Carter) and no switch hitters, and the card explicitly states \"4 of 9 bat with the platoon advantage vs RHP.\"",
+    "rejected_at": "2026-08-26T22:44:56.128358+00:00"
   }
 ]
