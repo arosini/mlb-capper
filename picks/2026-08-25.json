@@ -24,10 +24,10 @@
     "market_probability": 54,
     "rung_rejected": "2.5 over at -230, which prices a mean his last three starts have not come close to",
     "found_at": "2026-08-25T08:12:26.340552+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -54,10 +54,10 @@
     "market_probability": 48,
     "rung_rejected": null,
     "found_at": "2026-08-25T08:12:26.340552+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -84,10 +84,10 @@
     "market_probability": 57,
     "rung_rejected": null,
     "found_at": "2026-08-25T08:12:26.340552+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -114,10 +114,10 @@
     "market_probability": 44,
     "rung_rejected": "7.5 over at +230, which needs eight and leans on the 14-K game repeating",
     "found_at": "2026-08-25T08:12:26.340552+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -144,10 +144,10 @@
     "market_probability": 46,
     "rung_rejected": "7.5 over at +340, which needs eight runs and asks far more than this matchup projects",
     "found_at": "2026-08-25T08:12:26.340552+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -174,10 +174,10 @@
     "market_probability": 43,
     "rung_rejected": "the 2.5 rung, where only the over is priced at -375, leaving the main line as the bettable under",
     "found_at": "2026-08-25T08:12:26.340552+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -204,10 +204,10 @@
     "market_probability": 42,
     "rung_rejected": null,
     "found_at": "2026-08-25T08:12:26.340552+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -234,10 +234,10 @@
     "market_probability": 45,
     "rung_rejected": "the 3.5 rung, where only the over is priced at -310, so the main line is the available under",
     "found_at": "2026-08-25T08:12:26.340552+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -264,10 +264,10 @@
     "market_probability": 56,
     "rung_rejected": "6.5 over at +140, which needs seven and turns a comfortable number into a coin flip",
     "found_at": "2026-08-25T08:12:26.340552+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -294,10 +294,10 @@
     "market_probability": 51,
     "rung_rejected": "4.5 under \u2014 not offered on the card, leaving 5.5 at +124 as the priced rung",
     "found_at": "2026-08-25T14:38:53.052715+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -324,10 +324,10 @@
     "market_probability": 49,
     "rung_rejected": "3.5 under \u2014 not offered on the card, so 4.5 at +130 is the priced rung",
     "found_at": "2026-08-25T14:38:53.052715+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -354,10 +354,10 @@
     "market_probability": 55,
     "rung_rejected": null,
     "found_at": "2026-08-25T14:38:53.052715+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 0,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -384,10 +384,10 @@
     "market_probability": 48,
     "rung_rejected": "2.5 under at +170 \u2014 the bigger price, but two runs or fewer is a step past what this read supports",
     "found_at": "2026-08-25T14:38:53.052715+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -414,10 +414,10 @@
     "market_probability": 46,
     "rung_rejected": "2.5 under \u2014 no price posted on that rung, leaving 3.5 at +104",
     "found_at": "2026-08-25T14:38:53.052715+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -444,10 +444,10 @@
     "market_probability": 53,
     "rung_rejected": null,
     "found_at": "2026-08-25T14:38:53.052715+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 9,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -474,10 +474,10 @@
     "market_probability": 53,
     "rung_rejected": null,
     "found_at": "2026-08-25T20:29:05.325480+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -504,10 +504,10 @@
     "market_probability": 44,
     "rung_rejected": "5.5 over at +263",
     "found_at": "2026-08-25T20:29:05.325480+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -534,10 +534,10 @@
     "market_probability": 52,
     "rung_rejected": "4.5 over at +135",
     "found_at": "2026-08-25T20:29:05.325480+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -564,10 +564,10 @@
     "market_probability": 54,
     "rung_rejected": "4.5 over at +142",
     "found_at": "2026-08-25T20:29:05.325480+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -594,10 +594,10 @@
     "market_probability": 52,
     "rung_rejected": null,
     "found_at": "2026-08-25T20:29:05.325480+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 13,
+    "home_score_final": 1,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -624,10 +624,10 @@
     "market_probability": 50,
     "rung_rejected": "4.5 over at -220, which is past the price I will lay on any number",
     "found_at": "2026-08-25T23:03:05.959016+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 13,
+    "home_score_final": 1,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   },
   {
     "date": "2026-08-25",
@@ -654,9 +654,9 @@
     "market_probability": 55,
     "rung_rejected": "4.5 over at +115, which needs a fifth run I am not counting on in this park",
     "found_at": "2026-08-25T23:03:05.959016+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-26T07:35:52.374349+00:00"
   }
 ]
