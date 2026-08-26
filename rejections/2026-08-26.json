@@ -1,0 +1,35 @@
+[
+  {
+    "date": "2026-08-26",
+    "game": "CHC @ ARI",
+    "bet_type": "Total",
+    "bet": "Game Total Over 8.5",
+    "odds": "-114",
+    "confidence": "medium",
+    "reason": "Both lineups are punishing left-handed pitching right now and both starters are lefties: Arizona sits at 158 wRC+ vs LHP over their last 6 (141 over their last 12) against Matthew Boyd, who carries a 6.07 xERA, 10.1 K% and 11.5 Barrel% over his last 3 starts and has allowed 7 ER and 4 ER (5 R) in two of them. Chicago answers with 166 wRC+ vs LHP over their last 6 (134 over their last 12) and a 48.5 HH%, and Arizona's bullpen has a 5.13 xERA over its last 12 to clean up behind Eduardo Rodriguez, who has not gone past 5.2 innings in either of his last two home starts. At 114 degrees with two contact-heavy, hard-hitting lineups facing lefties, the number is set for a pitcher's environment that only one of these four arms provides.",
+    "reject_reason": "\"Eduardo Rodriguez, who has not gone past 5.2 innings in either of his last two home starts\" contradicts the card: his home log shows Aug 9 vs LAD at 7.0 IP (the second-most-recent home start), so the claim is false as stated.",
+    "rejected_at": "2026-08-26T08:12:28.319561+00:00"
+  },
+  {
+    "date": "2026-08-26",
+    "game": "LAD @ ATL",
+    "bet_type": "Team_Total",
+    "bet": "ATL Team Total Under 3.5",
+    "odds": "+112",
+    "confidence": "medium",
+    "reason": "Atlanta is at 61 wRC+ vs RHP over their last 6 and 60 over their last 12 \u2014 the same poor number in both windows, so this is their level and not a slump \u2014 while striking out 25.4% of the time over the last 6. Roki Sasaki has a 3.92 xERA over his last 3 with a 2.84 ERA... he has allowed exactly 2 earned runs in each of those three starts, and behind him the Dodger bullpen carries a 2.56 xERA and 30.0 K% over its last 12 with no relief work in the past two days. Atlanta has scored 3.0 runs per game in this starter's last two outings, and the market is still pricing them for four runs against an arm and a bullpen that have not been giving them up.",
+    "reject_reason": "Misquoted stat: \"3.92 xERA over his last 3 with a 2.84 ERA\" \u2014 the card lists Sasaki's last-3 ERA as 3.18, not 2.84.",
+    "rejected_at": "2026-08-26T08:12:38.787917+00:00"
+  },
+  {
+    "date": "2026-08-26",
+    "game": "TBR @ DET",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Troy Melton Under 4.5 Ks",
+    "odds": "+132",
+    "confidence": "high",
+    "reason": "Melton carries a 17.1 K% over his last 3 starts with 5, 4 and 3 strikeouts, and those came against San Francisco (28% K) and the White Sox (27% K) \u2014 lineups that strike out far more than today's. Tampa Bay is the toughest contact team on the board at a 16.6 K% vs RHP over their last 6 and 14.7% over their last 12, with an 18.2 Whiff% that supports it. His outs line of 17.5 gives him around six innings, and at his rate against a lineup that puts the ball in play that projects to roughly three and a half strikeouts. Getting plus money on a number he needs an above-average outing to reach is the mispricing.",
+    "reject_reason": "Misattributed stat: \"Tampa Bay ... with an 18.2 Whiff%\" \u2014 18.2 is DET's Whiff% last 6 vs RHP; TBR's is 21.5 (last 6) / 19.3 (last 12), and the higher whiff figure actually cuts against the under.",
+    "rejected_at": "2026-08-26T08:13:15.665529+00:00"
+  }
+]
