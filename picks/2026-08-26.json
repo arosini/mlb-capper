@@ -24,10 +24,10 @@
     "market_probability": 50,
     "rung_rejected": "6.5 over at +186, which needs seven and prices out too thin against a 5.3 IP/gs workload",
     "found_at": "2026-08-26T08:13:15.803602+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-27T11:19:07.120645+00:00"
   },
   {
     "date": "2026-08-26",
