@@ -1254,7 +1254,19 @@ def _verify_pick(client, pick: dict, game_block: str) -> tuple[bool, str]:
             max_tokens=4000,
             thinking={"type": "adaptive"},
             output_config={"effort": "medium"},
-            system=_VERIFY_SYSTEM_PROMPT,
+            # The audit runs once per pick in a sequential loop, so ~7 calls a run go out
+            # back to back with an identical prefix — same tools, same system prompt, only
+            # the card and rationale differ. Caching that prefix turns 6 of every 7 full-
+            # price sends into cache reads at a tenth the rate. Render order is tools ->
+            # system -> messages, so the breakpoint here covers both constants and the
+            # per-pick user message stays outside it.
+            #
+            # Opus 5's minimum cacheable prefix is 512 tokens and this prompt is ~2.2K, so
+            # it does cache; below the minimum it would silently no-op. Do NOT copy this to
+            # the generation call — that fires once per run, six hours apart, so its cache
+            # would never be read and the 1.25x write premium would be a pure loss.
+            system=[{"type": "text", "text": _VERIFY_SYSTEM_PROMPT,
+                     "cache_control": {"type": "ephemeral"}}],
             tools=[_VERIFY_TOOL],
             messages=[{"role": "user", "content": user_msg}],
         )

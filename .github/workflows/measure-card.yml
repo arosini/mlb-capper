@@ -1,0 +1,70 @@
+name: Measure AI Card
+
+# Manual only. Reports where the AI data card's tokens go, block by block.
+#
+# Costs nothing to run: it restores the data/ cache that the publish workflow already
+# saved rather than downloading anything, so the metered Odds API is never called, and
+# the only Anthropic endpoint it touches is token counting, which is free. Nothing is
+# committed and nothing is deployed.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    env:
+      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node24
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set cache date
+        run: |
+          python3 -c "import season; print('CACHE_DATE='+season.today_et().strftime('%Y-%m-%d'))" >> $GITHUB_ENV
+
+      # Read-only restore of whatever the newest publish run saved. This workflow never
+      # saves a cache of its own — doing so would claim a key the publish workflow's
+      # run-scoped restore-keys then fall back to, and publish is the one that should
+      # own that data.
+      - name: Restore odds cache
+        uses: actions/cache/restore@v6
+        with:
+          path: data/
+          key: odds-${{ env.CACHE_DATE }}-none
+          restore-keys: |
+            odds-${{ env.CACHE_DATE }}-
+            odds-
+
+      - name: Dump the real cards
+        run: |
+          echo "data/ holds $(ls data/ 2>/dev/null | wc -l) files"
+          python3 handicap.py --dump-cards /tmp/cards.json
+
+      - name: Measure
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python3 scripts/measure_card.py /tmp/cards.json --json-out /tmp/card-profile.json \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload card dump and profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-profile
+          path: |
+            /tmp/cards.json
+            /tmp/card-profile.json
+          retention-days: 7
