@@ -371,12 +371,12 @@
         "output_tokens": 72232
       },
       "odds": {
-        "observed_at": "2026-08-26T22:39:39.750205+00:00",
+        "observed_at": "2026-08-27T03:29:07.035161+00:00",
         "remaining_first": 7684,
-        "remaining_last": 7261,
-        "remaining_min": 7261,
+        "remaining_last": 7217,
+        "remaining_min": 7217,
         "used_first": 12316,
-        "used_last": 12739
+        "used_last": 12783
       }
     }
   },
