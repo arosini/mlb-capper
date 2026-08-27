@@ -93,11 +93,58 @@ def _pick_summary_title(pick: dict) -> str:
 
 # ── AI system prompt ──────────────────────────────────────────────────────────
 
-_AI_SYSTEM_PROMPT = """\
+# One definition, interpolated into BOTH prompts below. The generator and the auditor
+# read the same card, so a divergence here would mean the auditor mis-reading what the
+# analyst was shown — and check 2 rejects figures "not on the card". Keep it single-source.
+#
+# This text used to be printed inside every game card, ~366 tokens x 20 games on every
+# generation call, to say the same thing each time. It is identical per game, so it
+# belongs in the system prompt, which is sent once.
+_CARD_FORMAT = """\
+CARD FORMAT — what each section of a game card means. The section headers on the card are
+short labels; their meaning is fixed and given here.
+
+  STARTING PITCHERS:  every rate stat is that starter's LAST 3 STARTS. Each line begins
+    with the club he is pitching FOR today. That club is current as of this slate and
+    OVERRIDES anything you believe about where he plays; a starter is traded mid-season
+    and the card, not your prior, is right. "Recent starts" lines under him are his last
+    three outings, oldest to newest.
+
+  OFFENSE:  that lineup vs the HAND of today's opposing starter — except on a bullpen
+    game, where the line reads "all hands" because no starter's hand governs enough of
+    the game to split on. wRC+, K%, Whiff% and HH% are each shown TWICE: "last 6" is the
+    primary read, "last 12" is the same lineup and same hand over a longer window, for
+    context only. Section 1 governs how to weigh a gap between them.
+
+  BULLPENS:  that bullpen's LAST 12 GAMES. "2d stress" is relief innings thrown over the
+    past two calendar days.
+
+  STARTER vs TODAY'S OPPONENT:  up to his last 3 meetings with today's opposing club,
+    with each meeting's box score. This is a Tier 2 input — roughly 60-80 plate
+    appearances across a roster that has turned over.
+
+  TEAM TRENDS / OVER/UNDER HISTORY / SITUATIONAL TRENDS:  graded OUTCOMES, not inputs.
+    A lopsided record is a starting question, never an edge on its own. Section 11 sets
+    what these are worth, which is very little.
+
+  POSTED LINEUP:  today's actual batting order with each hitter's bat side. MLB posts
+    these 1-2 hours before first pitch, so early in the day the card reads "not yet
+    posted" — that absence is NOT information about either club, it just has not happened
+    yet. The OFFENSE figures above are TEAM numbers that know nothing about who is
+    actually in the box, so where a lineup exists this is the one place a missing regular
+    or an unusual platoon arrangement is visible.
+
+  ODDS:  full-game markets only. FIRST-FIVE-INNINGS (F5) markets are NOT on the card and
+    are NOT bettable — do not ask for them and do not reason about them. "[no-vig NN% /
+    NN%]" beside a market is its two posted prices with the book's margin divided out.
+"""
+
+_AI_SYSTEM_PROMPT = f"""\
 You are a disciplined MLB betting analyst. Your job is to find MISPRICED bets — not to
 predict winners. Handicapping a game correctly and betting it are two different things.
 Most games have no bet. A slate where you pass on everything is a good slate.
 
+{_CARD_FORMAT}
 ═══════════════════════════════════════════════════════════════════
 1. WHAT THE NUMBERS ARE — read this before anything else
 ═══════════════════════════════════════════════════════════════════
@@ -287,12 +334,12 @@ inverts every matchup you then reason about.
 
 Per game, you may recommend AT MOST ONE pick from each of these three categories:
 
-  A. ONE TOTAL. This single slot covers game total, F5 total, team total, and F5 team
-     total. Pick the ONE that best expresses your read. You may not take a game under
-     AND a team under. You may not take a full-game over AND an F5 over.
+  A. ONE TOTAL. This single slot covers the game total and either club's team total.
+     Pick the ONE that best expresses your read. You may not take a game under AND a
+     team under.
 
-  B. ONE SIDE. This single slot covers moneyline, run line/spread, F5 ML, and F5 spread.
-     Pick the ONE that carries the price you actually want.
+  B. ONE SIDE. This single slot covers the moneyline and the run line/spread. Pick the
+     ONE that carries the price you actually want.
 
   C. ONE PROP PER STARTING PITCHER — either strikeouts OR outs, never both for the same
      pitcher. Two different pitchers in the same game may each have one prop.
@@ -442,9 +489,6 @@ of knowing whether your number disagrees with it.
     a bet, for the same reason.
   In both cases what makes it a bet is the DISTANCE between your run environment and the
   posted number. Neither direction is the default and neither is the trap.
-  • Choose full game vs F5 deliberately: F5 when your entire read is about the STARTERS
-    and you want no bullpen exposure; full game when the bullpens reinforce the same
-    direction. Do not default to F5.
   • Choose a TEAM total when only ONE side of the run environment is mispriced — you like
     one lineup against one starter but have no opinion on the other half.
   • "GOOD OFFENSE VS BAD STARTER" IS THE EASIEST READ ON THE BOARD, and therefore the one
@@ -469,7 +513,7 @@ things make a side harder than a total or a prop, and both are structural:
   • THE LADDER CANNOT HELP YOU. Every other market on this card is priced at several
     numbers, so a read that does not survive the posted line can be moved to one that
     suits it. A side has one number and one price. If the price is wrong for your read,
-    the only moves are the run line, the F5, or passing.
+    the only moves are the run line or passing.
   • BASEBALL SIDES ARE COMPRESSED. The best team in the league beats the worst something
     like 60% of the time on a given day, and most matchups sit far closer than that. An
     edge that would be enormous on a total is often invisible on a moneyline, because a
@@ -483,9 +527,11 @@ WHICH EXPRESSION FITS WHICH EDGE:
   • Dominant starter + opposing lineup cold over its last 6 vs his hand → their side, IF
     the price has not already absorbed it. This is the cleanest side there is and it is
     also the one the market prices best.
-  • Own bullpen shaky or stressed while the starter is the whole edge → F5 ML or F5
-    spread. The F5 is the right home for a read that is entirely about the starters, and
-    the wrong one for anything that needs nine innings to happen.
+  • Own bullpen shaky or stressed while the starter is the whole edge → NOT a side. A
+    side pays only on the final score, so a read that is entirely about the starter and
+    actively distrusts the bullpen behind him is being bet on the innings it does not
+    cover. Put it in that starter's strikeout or outs prop, where the bullpen cannot
+    take it away, or pass.
   • Strong offense vs a weak opposing starter, but you do not trust your own starter →
     this is a SCORING opinion, not a winning one, so it belongs in the TOTAL slot rather
     than the side slot. Which total is a separate question — Section 6 is explicit that a
@@ -908,7 +954,7 @@ When your analysis is complete, call the report_betting_suggestions tool.
 
 # ── Verification pass ─────────────────────────────────────────────────────────
 
-_VERIFY_SYSTEM_PROMPT = """\
+_VERIFY_SYSTEM_PROMPT = f"""\
 You are an auditor reviewing a single proposed MLB bet. You did not make this pick. Your
 job is to catch reasoning that is internally broken — not to re-handicap the game and not
 to substitute your own opinion.
@@ -916,6 +962,7 @@ to substitute your own opinion.
 You will be given the exact data card the analyst saw, plus their pick and their stated
 rationale. Return ACCEPT or REJECT.
 
+{_CARD_FORMAT}
 WINDOWS ON THE CARD. Every stat is a specific time window, and the card labels each one:
 SP xERA/ERA/K%/Whiff%/BB% are his LAST 3 STARTS; team offense — wRC+, K%, Whiff%, HH% —
 is the lineup's LAST 6 GAMES vs today's opposing starter's hand, AND each of those four
@@ -1253,7 +1300,15 @@ def _verify_pick(client, pick: dict, game_block: str) -> tuple[bool, str]:
             model="claude-opus-5",
             max_tokens=4000,
             thinking={"type": "adaptive"},
-            output_config={"effort": "medium"},
+            # A bounded task — read one card, check one rationale against it, return a
+            # verdict — so it runs at low effort. WATCH THE REJECTION RATE: the audit's
+            # value is cross-referencing quoted figures against the card (misquoted ERAs,
+            # a stat attributed to the wrong club, a lineup claim the card contradicts),
+            # and that is precisely what effort buys. The baseline is 16 audit rejections
+            # over 2026-08-09..08-27, 6.2% of picks submitted, countable from rejections/
+            # by excluding the "[mechanical]" prefix. If it falls well below that, put
+            # this back to "medium".
+            output_config={"effort": "low"},
             # The audit runs once per pick in a sequential loop, so ~7 calls a run go out
             # back to back with an identical prefix — same tools, same system prompt, only
             # the card and rationale differ. Caching that prefix turns 6 of every 7 full-
@@ -1429,7 +1484,7 @@ def _serialize_game_for_ai(g: dict) -> str:
         elif sp.get("mode") == "bullpen":
             first = f"{op['name']} listed first; " if op.get("name") else ""
             role = (f" [BULLPEN GAME: {first}no conventional starter — "
-                    f"starter props and F5 reads do not apply]")
+                    f"starter props do not apply]")
         if not sp.get("has_stats"):
             return f"  {name} ({hand}):{role or ''} NO STATS (first start this season)"
         parts = []
@@ -1517,13 +1572,14 @@ def _serialize_game_for_ai(g: dict) -> str:
         """
         if not ou:
             return f"  {team}: no graded history"
-        side = "home" if ou.get("is_home") else "away"
+        # Two slices, not four. The home/away splits of each were the thinnest cuts on
+        # the card — a 3-2 record carries no signal — and §11 already says this whole
+        # block is worth very little. The two kept are the widest sample and the only
+        # one tied to today's starter.
         parts = []
         for key, tail in (
             ("last10",        "last {n}"),
-            ("last10_side",   "last {n} " + side),
             ("sp_last5",      "last {n} behind this SP"),
-            ("sp_last3_side", "last {n} behind this SP at " + side),
         ):
             rec = ou.get(key)
             if not rec:
@@ -1565,14 +1621,15 @@ def _serialize_game_for_ai(g: dict) -> str:
         ("ML",             None,       "away_ml",      "home_ml",       True),
         ("Spread",         None,       "away_spread",  "home_spread",   True),
         ("Total",          None,       "over",         "under",         False),
-        ("F5 ML",          "has_f5",   "away_f5_ml",   "home_f5_ml",    True),
-        ("F5 Total",       "has_f5",   "f5_over",      "f5_under",      False),
-        ("F5 Spread",      "has_f5",   "away_f5_spread", "home_f5_spread", True),
         ("Team Total",     "has_tt",   "away_tt_over", "away_tt_under", "away"),
         ("Team Total",     "has_tt",   "home_tt_over", "home_tt_under", "home"),
-        ("F5 Team Total",  "has_f5tt", "away_f5tt_over", "away_f5tt_under", "away"),
-        ("F5 Team Total",  "has_f5tt", "home_f5tt_over", "home_f5tt_under", "home"),
     )
+    # The five F5 rows (F5 ML / total / spread and both F5 team totals) were half the
+    # odds block — the single largest thing on the card — for a family the pick log
+    # scores at -54% ROI on F5 totals, -100% on F5 ML, and zero picks taken since the
+    # 2026-08-08 prompt rewrite. They are off the AI card and out of the tool schema.
+    # They stay on the HTML page, in history/ and in picks.py's grading, because past
+    # picks still have to render and settle.
     def _nv(key_a, key_b):
         """The market's two prices with the book's margin divided out.
 
@@ -1633,46 +1690,27 @@ def _serialize_game_for_ai(g: dict) -> str:
     # to his own home starts. Both are real numbers about a park this game is not
     # being played in, offered under a Tier 1 heading — the same failure the park
     # factor is already suppressed for.
-    show_at = not g.get("neutral_site")
-
-    def _spl_line(name, spl, vs_label, venue_label):
-        parts = []
+    def _spl_line(name, spl, vs_label):
+        # The at-park split is gone. It was never the venue it appeared to describe: the
+        # AWAY starter's "at" split is his starts at the HOME club's park, which is a
+        # handful of games chosen by schedule rather than by anything about him, and it
+        # already had to be suppressed outright on neutral sites for saying something
+        # false. Two thin numbers under a heading that implied more.
         vs = spl.get("vs")
-        if vs:
-            parts.append(
-                f"vs {vs_label}: {vs['n']}gs, {vs['era']} ERA, {vs['ip']} IP/gs, {vs['k']} K/gs"
-            )
-        else:
-            parts.append(f"vs {vs_label}: no data")
-        if show_at:
-            at = spl.get("at")
-            if at:
-                parts.append(
-                    f"at {venue_label}: {at['n']}gs, {at['era']} ERA, {at['ip']} IP/gs"
-                )
-            else:
-                parts.append(f"at {venue_label}: no data")
-        base = f"  {name}: " + " | ".join(parts)
+        head = (f"vs {vs_label}: {vs['n']}gs, {vs['era']} ERA, {vs['ip']} IP/gs, "
+                f"{vs['k']} K/gs") if vs else f"vs {vs_label}: no data"
+        base = f"  {name}: {head}"
 
         # The individual meetings, not just their average. Head-to-head is weighted on
         # CONSISTENCY across starts, and an average is exactly the thing that hides it —
         # one blowup and two gems average out to the same line as three mediocre starts.
         vs_ot = list(reversed(spl.get("vs_outings") or []))
-        at_ot = list(reversed(spl.get("at_outings") or [])) if show_at else []
-        vs_dates = {o["date"] for o in vs_ot}
-        extra_at = [o for o in at_ot if o["date"] not in vs_dates]
-        blocks = []
-        if vs_ot:
-            blocks.append(
-                f"    vs {vs_label} — each meeting (oldest → newest):\n"
-                + "\n".join(f"      {_outing_str(o)}" for o in vs_ot)
-            )
-        if extra_at:
-            blocks.append(
-                f"    at {venue_label} — further starts there (oldest → newest):\n"
-                + "\n".join(f"      {_outing_str(o)}" for o in extra_at)
-            )
-        return base + ("\n" + "\n".join(blocks) if blocks else "")
+        if not vs_ot:
+            return base
+        return base + (
+            f"\n    each meeting (oldest → newest):\n"
+            + "\n".join(f"      {_outing_str(o)}" for o in vs_ot)
+        )
 
     neutral_tag = " | NEUTRAL SITE" if g.get("neutral_site") else ""
     lines = [f"=== {away} @ {home}{time_s} | {venue} ({venue_tag}){neutral_tag} ==="]
@@ -1682,43 +1720,28 @@ def _serialize_game_for_ai(g: dict) -> str:
             f"NEUTRAL SITE: this game is played at {venue}"
             + (f" in {city}" if city else "")
             + f", not at {home}'s home park. Ignore any home-park assumption; the "
-              "park factor and the starters' at-park splits are both omitted below, "
-              "because neither describes this venue."
+              "park factor is omitted below, because it describes a venue this game "
+              "is not being played in."
         )
     lines.append(f"Weather: {wx_s}")
-    lines.append(
-        "STARTING PITCHERS — all rate stats are LAST 3 STARTS. The club shown is the one "
-        "he is pitching FOR today; it is current as of this slate and overrides anything "
-        "you believe about where he plays:"
-    )
+    lines.append("STARTING PITCHERS:")
     lines.append(_sp_line(sp_a, outs_a, away, "away"))
     lines.append(_sp_line(sp_h, outs_h, home, "home"))
-    lines.append(
-        "OFFENSE — vs the opposing starter's hand, except on a bullpen game, where the "
-        "line is labelled \"all hands\" because no starter's hand governs enough of the "
-        "game to split on. wRC+, K%, Whiff%, and HH% are each "
-        "shown twice: LAST 6 GAMES (the primary read) and LAST 12 GAMES (the same lineup, "
-        "same hand, longer window — context only, see Section 1 on how to weigh the gap "
-        "between them):"
-    )
+    lines.append("OFFENSE:")
     lines.append(_off_line(away, of_a, hand_h))
     lines.append(_off_line(home, of_h, hand_a))
-    lines.append("BULLPENS — LAST 12 GAMES:")
+    lines.append("BULLPENS:")
     lines.append(_bp_line(away, bp_a))
     lines.append(_bp_line(home, bp_h))
-    lines.append("STARTER vs TODAY'S OPPONENT — up to last 3 meetings:")
-    lines.append(_spl_line(sp_a["name"], spl_a, home, "this park"))
-    lines.append(_spl_line(sp_h["name"], spl_h, away, "home"))
+    lines.append("STARTER vs TODAY'S OPPONENT:")
+    lines.append(_spl_line(sp_a["name"], spl_a, home))
+    lines.append(_spl_line(sp_h["name"], spl_h, away))
     lines.append("ODDS:")
     lines.extend(odds_lines if odds_lines else ["  None available"])
-    lines.append("TEAM TRENDS (in this starter's recent starts):")
+    lines.append("TEAM TRENDS:")
     lines.append(_trend_line(away, tr_a))
     lines.append(_trend_line(home, tr_h))
-    lines.append(
-        "OVER/UNDER HISTORY — how the GAME TOTAL actually resolved in these teams' "
-        "graded games. These are outcomes, not inputs; a lopsided record is a starting "
-        "question, not an edge on its own:"
-    )
+    lines.append("OVER/UNDER HISTORY:")
     lines.append(_ou_line(away, g.get("away_ou")))
     lines.append(_ou_line(home, g.get("home_ou")))
     lu = g.get("lineups")
@@ -1736,20 +1759,11 @@ def _serialize_game_for_ai(g: dict) -> str:
             head = (f"  {team} ({adv} of {len(players)} bat with the platoon advantage "
                     f"vs {opp_hand}HP): ")
             return head + "; ".join(cells)
-        lines.append(
-            "POSTED LINEUP — today's actual batting order. The offense numbers above are "
-            "TEAM figures over the last 6 games and know nothing about who is in the box "
-            "today, so this is the one place a missing regular or an unusual platoon "
-            "arrangement is visible:"
-        )
+        lines.append("POSTED LINEUP:")
         lines.append(_lineup_line(away, lu["away"], hand_h))
         lines.append(_lineup_line(home, lu["home"], hand_a))
     else:
-        lines.append(
-            "POSTED LINEUP: not yet posted (MLB releases these 1-2 hours before first "
-            "pitch). The team offense figures above are all there is — do not treat the "
-            "absence as information about either club."
-        )
+        lines.append("POSTED LINEUP: not yet posted.")
     h2h = g.get("h2h") or {}
     if h2h.get("total", 0) >= 2:
         lines.append(
@@ -1762,8 +1776,7 @@ def _serialize_game_for_ai(g: dict) -> str:
         lines.append("FLAGS:")
         lines.extend(f"  {f}" for f in other_flags)
     if situational:
-        lines.append("SITUATIONAL TRENDS (facts about recent results; Section 11 sets "
-                     "what they are worth, which is very little):")
+        lines.append("SITUATIONAL TRENDS:")
         lines.extend(f"  {f}" for f in situational)
     return "\n".join(lines)
 
@@ -1881,10 +1894,10 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                             # forever rather than failing loudly.
                             "bet_type":    {
                                 "type": "string",
-                                "enum": ["Total", "Spread", "ML", "F5_Total", "F5_ML",
-                                         "F5_Spread", "Team_Total", "Pitcher_Ks",
+                                "enum": ["Total", "Spread", "ML",
+                                         "Team_Total", "Pitcher_Ks",
                                          "Pitcher_Outs"],
-                                "description": "Market. Team_Total with period 'f5' is an F5 team total.",
+                                "description": "Market. Full-game only; F5 markets are not offered.",
                             },
                             "bet":         {"type": "string", "description": "Full bet description, e.g. 'Game Total Under 8.5' or 'NYY -1.5'"},
                             "team_side":   {
@@ -1893,7 +1906,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                                 "description": "Which side: 'over'/'under' for totals; 'away'/'home' for ML/spread; 'away_over' etc for team totals; null for props",
                             },
                             "line":        {"type": ["number", "null"], "description": "Numeric line: total line (e.g. 8.5), spread line (e.g. -1.5 for favorite), null for ML"},
-                            "period":      {"type": "string", "enum": ["full_game", "f5", "props"], "description": "full_game, f5 (first 5 innings), or props"},
+                            "period":      {"type": "string", "enum": ["full_game", "props"], "description": "full_game or props (F5 is not offered)"},
                             "odds":        {"type": "string", "description": "American odds string, e.g. '-110' or '+145'"},
                             "odds_num":    {"type": "integer", "description": "Same odds as an integer, e.g. -110 or 145. Must match the odds string."},
                             "confidence":  {"type": "string", "enum": ["high", "medium"]},
