@@ -331,7 +331,7 @@ def main():
                 _log(f"  No usable coordinates for venue {venue_id} "
                      f"({mlb_info.get('venue','?')}) — skipping weather")
 
-        if args.html or args.suggestions_only:
+        if args.html or args.suggestions_only or args.dump_cards:
             g = analyze_game(p1, p2, rhp, lhp, bp, mlb_info, wx, target_date,
                              rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx,
                              all_pool=all6, all_ctx=all12)

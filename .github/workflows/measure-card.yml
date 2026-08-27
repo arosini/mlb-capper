@@ -57,6 +57,10 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
+          # pipefail, or tee's exit code masks the script's. Without it an empty dump
+          # reported this step as green — which is exactly how the first run of this
+          # workflow "succeeded" while measuring nothing.
+          set -o pipefail
           python3 scripts/measure_card.py /tmp/cards.json --json-out /tmp/card-profile.json \
             | tee -a "$GITHUB_STEP_SUMMARY"
 
