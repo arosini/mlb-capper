@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-08-27",
+    "game": "ARI @ SFG",
+    "bet_type": "Team_Total",
+    "bet": "SFG Team Total Over 3.5",
+    "odds": "-122",
+    "confidence": "medium",
+    "reason": "San Francisco has posted a 161 wRC+ vs RHP over their last 6 with a 50.6 HH%, and the longer window backs it up at 134 over their last 12 \u2014 established form, not a two-game spike. Jose Cabrera brings a 5.50 xERA and 7.82 ERA over his last 3 with an 11.1 BB% and just a 14.3 K%, has averaged 4.2 innings per start, and has not pitched in 50 days, so the Giants get to an Arizona bullpen carrying a 5.00 xERA over its last 12 games by the fifth inning. With the wind blowing out 16 mph, the market is treating four Giants runs as a coin flip against a starter who has not completed five innings in any of his last three.",
+    "reject_reason": "The closing claim that Cabrera \"has not completed five innings in any of his last three\" contradicts the card, which shows his Jun 27 @TBR start at 5.0 IP.",
+    "rejected_at": "2026-08-27T18:26:16.917838+00:00"
+  }
+]
