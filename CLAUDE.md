@@ -1191,8 +1191,9 @@ Three things the profile says that the estimates did not:
   already records as -54% ROI on F5 totals, -100% on F5 ML, and n=0 picks since the
   rewrite. It is the best-evidenced cut on the card.
 - **`lineup` at 62 tok is the "not yet posted" placeholder, not a lineup.** This run was
-  9:37 AM ET. In the evening run the block is real and roughly 230, so the card is ~3,100
-  then. Three of the four daily runs pay the placeholder, not the lineup.
+  9:37 AM ET. Measured again at 5:16 PM ET the block is real and **320 tok**, so the
+  evening card runs ~260 tokens heavier than the morning one. Three of the four daily
+  runs pay the placeholder, not the lineup.
 - **`ou_history` + `trends` = 341 tok/game (11.7%)** for the two things §11 says are worth
   very little.
 
@@ -1201,11 +1202,55 @@ matchups posted at the 7:14 AM ET fetch, so 2,926 is the average of a *fully pop
 card; games carried in from the MLB schedule alone are thinner. And a 20-game slate puts
 the generation call near **58,000 input tokens**, not the 20,414 printed for 7.
 
-**Do not cut a block on these numbers alone.** `ou_history` and `trends` are large for
-things §11 says are worth very little, and `h2h` is a Tier 2 input carrying a Tier 1
-footprint — but each was added deliberately and the audit's check 2 rejects any figure
-not on the card, so anything removed from the card must also come out of what a rationale
-is allowed to quote.
+### After the 2026-08-27 cuts — measured
+
+Four cuts landed the same day: F5 markets off the card, the at-park split out of the
+head-to-head block, OVER/UNDER HISTORY from four slices to two, and the per-card prose
+hoisted into `_CARD_FORMAT`.
+
+**Controlled A/B, identical inputs: 1,456 → 1,042 tok/card, −28.4%.**
+
+The two CI runs are NOT a controlled comparison and must not be read as one — the second
+restored a cache eight hours fresher, so lineups had posted, the books had filled in the
+alternate ladders, and more flags were firing. Same 7 games, different data:
+
+| Block | before | after | Δ | |
+|---|---|---|---|---|
+| pitchers | 553 | 499 | −54 | header hoisted |
+| **odds** | 537 | 336 | **−201** | F5 rows removed |
+| offense | 372 | 232 | **−140** | header hoisted |
+| h2h | 369 | 232 | **−137** | at-park split removed |
+| ou_history | 204 | 85 | **−119** | 4 slices → 2 |
+| lineup | 62 | 320 | +258 | *confound* — placeholder → real lineup |
+| odds_alt_ladders | 267 | 364 | +97 | *confound* — books filled the ladders |
+| flags | 168 | 191 | +23 | *confound* — fresher data fires more |
+| **total excl. lineup** | **2,863** | **2,306** | **−557** | **−19.5%** |
+
+Read the per-block deltas, not the total: every cut moves the right way and by roughly
+the expected amount, while all three increases are the data being newer.
+
+**Worth ~$8/month.** 4 generation calls × 20 games × 557 plus 26 audits × 557 is ~59,000
+input tokens/day, less ~566 tokens of system-prompt growth per call for `_CARD_FORMAT`
+(absorbed on the audit side by the cache). The card was never the $50/month line the
+regression implied — at 2,926 tokens there was only so much in it.
+
+**`_CARD_FORMAT` is interpolated into both prompts from one constant.** Both are
+f-strings now. The generator and the auditor read the same card and audit check 2 rejects
+figures "not on the card", so a divergence would mean the auditor mis-reading what the
+analyst was shown. Do not copy-paste it into one prompt and edit it there.
+
+**Anything cut from the card must also come out of what a rationale may quote.** Audit
+check 2 rejects figures not on the card, so a block removed from `_serialize_game_for_ai`
+while the prompts still invite the model to reason about it turns good picks into
+rejections. Each of these four cuts moved the prompt too: §4A/§4B/§6/§7 lost their F5
+options and the `bet_type`/`period` enums stopped offering them; §11's framing of the
+outcome blocks now lives in `_CARD_FORMAT`. Keep that pairing for any future cut.
+
+**F5 is gone from the card and the tool schema, not from the project.** `analysis.py`
+still computes it, the HTML page still shows it, `history.py` still records it, and
+`picks.py` still grades it — past picks have to render and settle. `download.py` also
+still fetches the three F5 markets, so **this saves no Odds API credits**; removing them
+from the props URL is a separate change with its own consequences for the page.
 
 ## Budget Page (`/budget/`)
 
