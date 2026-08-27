@@ -14,6 +14,7 @@ Usage:
 """
 
 import argparse
+import json
 import sys
 from datetime import timedelta, datetime, timezone
 from pathlib import Path
@@ -73,9 +74,12 @@ def main():
                     help="Output a self-contained HTML page to stdout")
     ap.add_argument("--suggestions-only", action="store_true",
                     help="Generate and cache AI suggestions (no HTML output); run before --html")
+    ap.add_argument("--dump-cards", metavar="PATH",
+                    help="Write the serialized AI data cards to PATH as JSON and exit. "
+                         "Makes no API call — this is the input to scripts/measure_card.py")
     args = ap.parse_args()
 
-    if args.no_color or args.html or args.suggestions_only:
+    if args.no_color or args.html or args.suggestions_only or args.dump_cards:
         render_terminal.use_color = False
 
     # In HTML mode route status messages to stderr so they don't corrupt the HTML
@@ -353,7 +357,15 @@ def main():
                                        rhp_ctx=rhp_ctx, lhp_ctx=lhp_ctx,
                                        all_pool=all6, all_ctx=all12)
 
-    if args.suggestions_only:
+    if args.dump_cards:
+        # Serialize exactly what the model is sent, and stop. No API call, so this is
+        # free to run on a real slate — which is the only place the cards are real.
+        from suggestions import _serialize_game_for_ai
+        cards = [{"game": f"{g['away']} @ {g['home']}",
+                  "card": _serialize_game_for_ai(g)} for g in game_data]
+        Path(args.dump_cards).write_text(json.dumps(cards, indent=2))
+        print(f"[dump-cards] wrote {len(cards)} cards to {args.dump_cards}", file=sys.stderr)
+    elif args.suggestions_only:
         generate_suggestions(game_data, data_dir, target_date)
     elif args.html:
         generated_at = datetime.now(timezone.utc).isoformat()

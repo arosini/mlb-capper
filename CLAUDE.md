@@ -1083,25 +1083,113 @@ re-derived by hand. Check with:
 **CRITICAL**: Never let Claude run `curl https://api.the-odds-api.com/` — this costs
 credits. `.claude/settings.json` denies it automatically.
 
-### The Anthropic API — comfortable
+### The Anthropic API — input-dominated, and the old estimate was wrong
 
 Per scheduled run: 1 generation call + one verification call per pick returned (~8).
 Measured from `picks/`, the model returns ~7–8 picks per run (~4 survive dedup as new).
 
-| | Input tokens | Output tokens |
-|---|---|---|
-| Generation (system 4.0K + ~15 cards × ~550) | ~12,400 | ~12,000 |
-| Verification × 8 (system 0.95K + card + rationale) | ~13,600 | ~16,000 |
-| **Per run** | ~26,000 | ~28,000 |
-| **Per day (×4 runs)** | ~104,000 | ~112,000 |
+**Measured** from `usage/2026-08.json`, 18 days (2026-08-09 → 08-26), 535 calls:
 
-At Opus 4.8 pricing ($5/MTok in, $25/MTok out): **~$3.30/day, ~$100/month, ~$700/season.**
-Output is ~84% of the bill, and verification is ~57% of the output. 36 calls/day is
-nowhere near any rate limit — spend is the only constraint, and it is not urgent.
+| | Actual | The estimate this replaced |
+|---|---|---|
+| Cost/day | **$4.02** | ~$3.30 |
+| Input tokens/day | **429,000** | ~104,000 |
+| Output tokens/day | 75,000 | ~112,000 |
+| Input share of the bill | **53%** | ~16% |
+
+**~$121/month.** The headline was close; the composition was inverted. The old table
+said "output is ~84% of the bill" — it is 47%, and **input is now the majority**. Two
+things drifted after it was written and neither was re-measured:
+
+- **`_AI_SYSTEM_PROMPT` is ~12,950 tokens, not the 4.0K the table assumed.** It roughly
+  tripled across the 2026-08-23 prompt audit and the 08-24 adversarial review. Measure it,
+  don't estimate it: `len(_AI_SYSTEM_PROMPT)` is 51,819 chars as of 2026-08-27.
+- **The card is far past the ~550 tok/game the table assumed.** See below.
+
+Regressing daily input tokens on daily call count over those 18 days gives
+`input ≈ -84,847 + 17,278 × calls` (R² = 0.85): **~17,300 input tokens per marginal
+call**, nearly all of it the data card, which the audit pass re-sends in full once per
+pick. That multiplier is why the card — not the system prompt — is the thing to shrink.
+
+Two things follow, and both are load-bearing:
+
+- **The audit pass is ~26 of the ~30 daily calls and roughly $3 of the $4/day.**
+- **`_verify_pick` caches its prefix; `generate_suggestions` deliberately does not.**
+  The audit runs a sequential loop, so ~7 calls a run share an identical tools+system
+  prefix and 6 of 7 become cache reads at 0.1x. Generation fires once per run, six hours
+  apart — its cache could never be read, so a breakpoint there would only add the 1.25x
+  write premium on ~13K tokens. **Do not "make it consistent" by caching both.**
+  Opus 5's minimum cacheable prefix is 512 tokens (`_VERIFY_SYSTEM_PROMPT` is ~2.2K, so
+  it caches); below the minimum the marker silently no-ops rather than erroring.
+  `usage.cost_usd()` already prices reads at 0.10x and writes at 1.25x, so the saving
+  shows up in the ledger and on `/budget/` with no further change.
+
+36 calls/day is nowhere near any rate limit — spend is the only constraint.
 
 The AI call is skipped when no game on the slate has odds posted (early opening day, or a
 failed odds fetch) — the prompt cannot produce a bet without a price, so that call was
 guaranteed to return an empty picks array at full cost.
+
+## Measuring the AI Card
+
+The card is the dominant input-token term in the bill (see API Budget above), and it had
+never been measured — CLAUDE.md modelled it at ~550 tokens/game while the adversarial
+review kept adding to it. There is now tooling instead of an estimate:
+
+```bash
+python3 handicap.py --dump-cards /tmp/cards.json   # no API call — serializes and exits
+python3 scripts/measure_card.py /tmp/cards.json    # per-block token profile
+```
+
+`--dump-cards` writes exactly what `generate_suggestions` would send.
+`scripts/measure_card.py` splits each card into its named blocks, pools them across the
+slate, and counts tokens — **exactly**, via `messages.count_tokens`, when
+`ANTHROPIC_API_KEY` is set. That endpoint is free; a chars/4 rule is off by enough on
+dense numeric text to rank the blocks wrongly, so treat any run that prints
+`ESTIMATED (chars/4)` as indicative only. The splitter asserts that block line counts
+reconstruct the card, so a section header added to `_serialize_game_for_ai` without a
+matching entry in `_SECTIONS` fails loudly rather than silently pooling into its
+predecessor.
+
+**`.github/workflows/measure-card.yml`** runs both on demand (`workflow_dispatch`) at
+zero cost: it restores the `data/` cache the publish workflow already saved instead of
+downloading, so the metered Odds API is never touched, and token counting is free. It
+uses `actions/cache/restore` and **never saves a cache** — saving would claim a key that
+publish's run-scoped `restore-keys` then falls back to, and publish must own that data.
+
+### First profile — 2026-08-27, 20-game slate
+
+Taken against today's real market lines with the other blocks filled at the sizes the
+code itself produces. **This is a floor, not the number**: real slates carry more flags
+and a situational-trends block this run had none of. The proportions are the point.
+
+| Block | tok/game | % of card |
+|---|---|---|
+| pitchers (incl. 3 recent starts each) | 241 | 16.6% |
+| lineup | 232 | 15.9% |
+| h2h (splits + every meeting) | 198 | 13.6% |
+| offense | 189 | 13.0% |
+| odds_alt_ladders | 155 | 10.6% |
+| odds | 152 | 10.4% |
+| ou_history | 121 | 8.3% |
+| trends | 54 | 3.7% |
+| bullpens | 53 | 3.6% |
+| everything else | 60 | 4.1% |
+| **total** | **~1,456** | |
+
+**~366 tok/game of that is fixed prose** — the section headers explaining what each block
+means, byte-identical on every card and therefore re-sent ~20 times per generation call.
+Hoisting it into `_AI_SYSTEM_PROMPT` would save ~7,000 tokens per generation call at zero
+information loss. Note it is **not** a saving on the audit pass, which sends one card: the
+prose would simply move from the card into `_VERIFY_SYSTEM_PROMPT`. Not done yet — the
+prompts are length-tuned (see Section balance) and this should land with a measured
+before/after, not blind.
+
+**Do not cut a block on these numbers alone.** `ou_history` and `trends` are large for
+things §11 says are worth very little, and `h2h` is a Tier 2 input carrying a Tier 1
+footprint — but each was added deliberately and the audit's check 2 rejects any figure
+not on the card, so anything removed from the card must also come out of what a rationale
+is allowed to quote.
 
 ## Budget Page (`/budget/`)
 
