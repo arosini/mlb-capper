@@ -1157,33 +1157,49 @@ downloading, so the metered Odds API is never touched, and token counting is fre
 uses `actions/cache/restore` and **never saves a cache** — saving would claim a key that
 publish's run-scoped `restore-keys` then falls back to, and publish must own that data.
 
-### First profile — 2026-08-27, 20-game slate
+### First profile — 2026-08-27, exact
 
-Taken against today's real market lines with the other blocks filled at the sizes the
-code itself produces. **This is a floor, not the number**: real slates carry more flags
-and a situational-trends block this run had none of. The proportions are the point.
+Measured in CI with `messages.count_tokens` over 7 real cards. **The card is 2,926
+tokens.** The earlier estimate in this file (~550) was low by 5x; the ~15,000 implied by
+the input-vs-calls regression was high by 5x, because bigger slates produce both more
+picks and more calls and the regression could not separate them.
+
+The measured number closes the budget: 4 generation calls (system 12,954 + 20 cards) plus
+~26 audits (system 2,377 + one card + rationale) predicts **~433,000 input tokens/day**
+against **~429,000 actually recorded**. The cost model is now validated end to end.
 
 | Block | tok/game | % of card |
 |---|---|---|
-| pitchers (incl. 3 recent starts each) | 241 | 16.6% |
-| lineup | 232 | 15.9% |
-| h2h (splits + every meeting) | 198 | 13.6% |
-| offense | 189 | 13.0% |
-| odds_alt_ladders | 155 | 10.6% |
-| odds | 152 | 10.4% |
-| ou_history | 121 | 8.3% |
-| trends | 54 | 3.7% |
-| bullpens | 53 | 3.6% |
-| everything else | 60 | 4.1% |
-| **total** | **~1,456** | |
+| pitchers (incl. 3 recent starts each) | 553 | 18.9% |
+| **odds** | 537 | 18.4% |
+| offense | 372 | 12.7% |
+| h2h (splits + every meeting) | 369 | 12.6% |
+| **odds_alt_ladders** | 267 | 9.1% |
+| ou_history | 204 | 7.0% |
+| flags | 168 | 5.8% |
+| bullpens | 153 | 5.2% |
+| trends | 137 | 4.7% |
+| lineup | 62 | 2.1% |
+| header / season / situational / weather | 103 | 3.5% |
+| **total** | **2,926** | |
 
-**~366 tok/game of that is fixed prose** — the section headers explaining what each block
-means, byte-identical on every card and therefore re-sent ~20 times per generation call.
-Hoisting it into `_AI_SYSTEM_PROMPT` would save ~7,000 tokens per generation call at zero
-information loss. Note it is **not** a saving on the audit pass, which sends one card: the
-prose would simply move from the card into `_VERIFY_SYSTEM_PROMPT`. Not done yet — the
-prompts are length-tuned (see Section balance) and this should land with a measured
-before/after, not blind.
+Three things the profile says that the estimates did not:
+
+- **Odds is the biggest thing on the card, not the pitchers.** `odds` + `odds_alt_ladders`
+  is **804 tok/game, 27.5%** — 11.7 market rows plus the ladders. Half those rows are F5
+  (F5 ML, F5 total, F5 spread, and both F5 team totals), which is the family this file
+  already records as -54% ROI on F5 totals, -100% on F5 ML, and n=0 picks since the
+  rewrite. It is the best-evidenced cut on the card.
+- **`lineup` at 62 tok is the "not yet posted" placeholder, not a lineup.** This run was
+  9:37 AM ET. In the evening run the block is real and roughly 230, so the card is ~3,100
+  then. Three of the four daily runs pay the placeholder, not the lineup.
+- **`ou_history` + `trends` = 341 tok/game (11.7%)** for the two things §11 says are worth
+  very little.
+
+Two caveats on the slate rather than the card. Handigraphs had only 7 of today's 20
+matchups posted at the 7:14 AM ET fetch, so 2,926 is the average of a *fully populated*
+card; games carried in from the MLB schedule alone are thinner. And a 20-game slate puts
+the generation call near **58,000 input tokens**, not the 20,414 printed for 7.
 
 **Do not cut a block on these numbers alone.** `ou_history` and `trends` are large for
 things §11 says are worth very little, and `h2h` is a Tier 2 input carrying a Tier 1
