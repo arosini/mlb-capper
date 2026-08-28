@@ -399,6 +399,27 @@
         "used_first": 12786,
         "used_last": 13028
       }
+    },
+    "2026-08-28": {
+      "claude": {
+        "cache_read_tokens": 36290,
+        "cache_write_tokens": 3629,
+        "calls": 13,
+        "cost_usd": 1.619487,
+        "input_tokens": 181257,
+        "models": {
+          "claude-opus-5": 13
+        },
+        "output_tokens": 26895
+      },
+      "odds": {
+        "observed_at": "2026-08-28T06:14:51.611706+00:00",
+        "remaining_first": 6969,
+        "remaining_last": 6856,
+        "remaining_min": 6856,
+        "used_first": 13031,
+        "used_last": 13144
+      }
     }
   },
   "month": "2026-08"

@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-08-28",
+    "game": "KCR @ CLE",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Michael Wacha Under 4.5 Ks",
+    "odds": "-160",
+    "confidence": "medium",
+    "reason": "Cleveland has run a 13.8 K% and a 13.3 Whiff% vs RHP over their last 6, with a 17.8 K% over their last 12 backing it up \u2014 the most contact-oriented lineup on the slate. Wacha brings a 19.2 K% and a 19.9 Whiff% over his last 3 starts, modest bat-missing that produced 5, 3 and 6 strikeouts, and across 3 starts against Cleveland he has averaged just 3.7 K per outing over 6.4 innings. The juice buys a number that his own head-to-head history against this club has never once beaten, and the market is paying for his innings total rather than his strikeout rate.",
+    "reject_reason": "The claim that this is \"a number that his own head-to-head history against this club has never once beaten\" contradicts the card: Wacha's Jul 26 start vs CLE was 5 K, which clears 4.5.",
+    "rejected_at": "2026-08-28T06:20:28.673056+00:00"
+  }
+]
