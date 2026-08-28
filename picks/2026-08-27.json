@@ -84,10 +84,10 @@
     "market_probability": 43,
     "rung_rejected": "5.5 over at -179, which needs 64% to break even for one fewer strikeout",
     "found_at": "2026-08-27T11:19:05.456447+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 1,
+    "annotated_at": "2026-08-28T03:58:59.889442+00:00"
   },
   {
     "date": "2026-08-27",
@@ -144,10 +144,10 @@
     "market_probability": 48,
     "rung_rejected": null,
     "found_at": "2026-08-27T11:19:05.456447+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 2,
+    "annotated_at": "2026-08-28T03:58:59.889442+00:00"
   },
   {
     "date": "2026-08-27",
@@ -174,10 +174,10 @@
     "market_probability": 48,
     "rung_rejected": "9.5, where only the over is priced (+160) \u2014 the 8.5 under is the rung with the number and the price both on my side",
     "found_at": "2026-08-27T11:19:05.456447+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 2,
+    "annotated_at": "2026-08-28T03:58:59.889442+00:00"
   },
   {
     "date": "2026-08-27",
@@ -204,10 +204,10 @@
     "market_probability": 53,
     "rung_rejected": "6.5 over at +168 \u2014 more upside but it needs seven, and six is the part of the range I trust",
     "found_at": "2026-08-27T18:26:44.725188+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 1,
+    "annotated_at": "2026-08-28T03:58:59.889442+00:00"
   },
   {
     "date": "2026-08-27",

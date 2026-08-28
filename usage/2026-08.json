@@ -392,12 +392,12 @@
         "output_tokens": 53071
       },
       "odds": {
-        "observed_at": "2026-08-27T23:17:51.738847+00:00",
+        "observed_at": "2026-08-28T03:58:49.395897+00:00",
         "remaining_first": 7214,
-        "remaining_last": 7075,
-        "remaining_min": 7075,
+        "remaining_last": 6972,
+        "remaining_min": 6972,
         "used_first": 12786,
-        "used_last": 12925
+        "used_last": 13028
       }
     }
   },
