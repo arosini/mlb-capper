@@ -20,5 +20,27 @@
     "reason": "Kelly has averaged 4.9 IP per start over his last 3, going 5.0, 4.0 and 5.2 innings \u2014 none of which reached 18 outs \u2014 while walking 14.1% of hitters and carrying a 7.71 xERA over that window. He needed 99 pitches to get 17 outs last time out, and today he faces a San Francisco lineup at 132 wRC+ vs RHP over its last 6 with a 45.6% hard-hit rate. The number asks him to work into the sixth against the best offense he has seen in a month, which his current pitch efficiency does not support.",
     "reject_reason": "[mechanical] the card posts no Pitcher_Outs at 17.5 on that side",
     "rejected_at": "2026-08-29T11:43:46.452367+00:00"
+  },
+  {
+    "date": "2026-08-29",
+    "game": "PHI @ LAA",
+    "bet_type": "Total",
+    "bet": "Game Total Under 8.5",
+    "odds": "-113",
+    "confidence": "medium",
+    "reason": "Sanchez brings a 3.02 xERA, 31.9 Whiff% and a 4.0 BB% over his last 3 starts at 6.2 IP/gs against a Los Angeles lineup posting an 85 wRC+ vs LHP over their last 6 and just 67 over their last 12 \u2014 a slump confirmed by the longer window rather than a blip. Philadelphia's side of it is a 96 wRC+ vs RHP over their last 6 against Johnson, who has allowed 1 earned run or fewer in each of his last 3, and whatever the starters leave behind runs into two of the better bullpens on the board at 2.83 and 3.04 xERA over their last 12. Eight is a normal number for a game with an ace, a punchless home lineup and two shutdown relief corps.",
+    "reject_reason": "Misquoted card: \"Johnson, who has allowed 1 earned run or fewer in each of his last 3\" \u2014 the card's start log shows Aug 16 vs KCR at 5.1IP 2ER, so that claim contradicts the data. (The bet label \"Under 8.5\" also doesn't match the posted total of 8.)",
+    "rejected_at": "2026-08-29T13:22:57.062294+00:00"
+  },
+  {
+    "date": "2026-08-29",
+    "game": "ARI @ SFG",
+    "bet_type": "Total",
+    "bet": "Game Total Over 7.5 (4:05 PM ET game)",
+    "odds": "-115",
+    "confidence": "medium",
+    "reason": "Kelly has a 7.71 xERA and a 14.1 BB% over his last 3 starts with a K-BB% of -2.8, and he walks into San Francisco's 132 wRC+ vs RHP over their last 6, corroborated by 126 over their last 12 and a 45.6 HH% in the same window. Molina has thrown only 7.1 innings across 3 starts, so Arizona's 82 wRC+ vs RHP works mostly against relief innings, and behind Kelly sits an Arizona bullpen at a 5.17 xERA over its last 12. Arizona has gone over in 7 of their last 10 and 7 of their last 10 on the road, and with the wind blowing out 17 mph a 7.5 total is a run below what these two pitching staffs project to allow.",
+    "reject_reason": "Nearly every figure is invented and the pitchers are wrong: the card has Bratt (L) vs Wilkinson (L), not \"Kelly has a 7.71 xERA\" or \"Molina has thrown only 7.1 innings,\" and there is no \"132 wRC+ vs RHP\" (SFG is 117 vs LHP last 6) or \"wind blowing out 17 mph\" (card says 13 mph).",
+    "rejected_at": "2026-08-29T13:23:15.663414+00:00"
   }
 ]

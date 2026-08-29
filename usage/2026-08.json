@@ -423,15 +423,15 @@
     },
     "2026-08-29": {
       "claude": {
-        "cache_read_tokens": 21774,
-        "cache_write_tokens": 3629,
-        "calls": 9,
-        "cost_usd": 1.514773,
-        "input_tokens": 175891,
+        "cache_read_tokens": 58064,
+        "cache_write_tokens": 7258,
+        "calls": 22,
+        "cost_usd": 3.181573,
+        "input_tokens": 365121,
         "models": {
-          "claude-opus-5": 9
+          "claude-opus-5": 22
         },
-        "output_tokens": 24070
+        "output_tokens": 51263
       },
       "odds": {
         "observed_at": "2026-08-29T11:38:42.535388+00:00",
