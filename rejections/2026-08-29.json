@@ -42,5 +42,16 @@
     "reason": "Kelly has a 7.71 xERA and a 14.1 BB% over his last 3 starts with a K-BB% of -2.8, and he walks into San Francisco's 132 wRC+ vs RHP over their last 6, corroborated by 126 over their last 12 and a 45.6 HH% in the same window. Molina has thrown only 7.1 innings across 3 starts, so Arizona's 82 wRC+ vs RHP works mostly against relief innings, and behind Kelly sits an Arizona bullpen at a 5.17 xERA over its last 12. Arizona has gone over in 7 of their last 10 and 7 of their last 10 on the road, and with the wind blowing out 17 mph a 7.5 total is a run below what these two pitching staffs project to allow.",
     "reject_reason": "Nearly every figure is invented and the pitchers are wrong: the card has Bratt (L) vs Wilkinson (L), not \"Kelly has a 7.71 xERA\" or \"Molina has thrown only 7.1 innings,\" and there is no \"132 wRC+ vs RHP\" (SFG is 117 vs LHP last 6) or \"wind blowing out 17 mph\" (card says 13 mph).",
     "rejected_at": "2026-08-29T13:23:15.663414+00:00"
+  },
+  {
+    "date": "2026-08-29",
+    "game": "CHW @ MIN",
+    "bet_type": "Total",
+    "bet": "Game Total Over 9.0",
+    "odds": "-112",
+    "confidence": "medium",
+    "reason": "Ober carries a 6.14 xERA and a 55.8 HH% over his last 3 starts and faces a White Sox lineup at 138 wRC+ vs RHP over its last 6, 110 over its last 12. Fedde answers with a 4.59 xERA over his last 3 and only 11.2 innings across those three starts, meaning Minnesota's 143 wRC+ vs RHP over its last 6 (13.3 K%, the lowest strikeout rate on the board) gets the bullpen early \u2014 and that Twins pen has a 4.49 xERA and 6.57 ERA over its last 12. A 106 park factor and two shallow starters point past nine, and the number is sitting at the board average despite neither starter projecting past the fifth.",
+    "reject_reason": "Backwards bullpen attribution: \"Minnesota's 143 wRC+ ... gets the bullpen early \u2014 and that Twins pen has a 4.49 xERA and 6.57 ERA.\" Minnesota's lineup faces the White Sox pen (3.82 xERA / 3.22 ERA); the Twins pen is what Chicago hits against.",
+    "rejected_at": "2026-08-29T17:31:31.226831+00:00"
   }
 ]
