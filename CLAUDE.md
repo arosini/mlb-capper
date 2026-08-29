@@ -274,6 +274,59 @@ Two ordering rules in `publish.yml` protect the invariant:
 - **Secrets needed**: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHROPIC_API_KEY`
 - **Trigger manually**: `gh workflow run publish.yml`
 
+## The Schedule Is Not Reliable — the hourly catch-up
+
+GitHub Actions `schedule` is best-effort, and for this repo it degraded badly at the end
+of August 2026. The cron is unchanged at `30 7`, `0 14`, `0 20`, `30 22` UTC, but the
+deliveries stopped landing anywhere near those slots:
+
+| ET day | actual deliveries (UTC) |
+|---|---|
+| 2026-08-26 | 08:07, 14:32, 22:39 — roughly on time |
+| 2026-08-27 | 03:28, 18:21, 23:17 |
+| 2026-08-28 | 03:58, 06:14, 19:30, 23:14 |
+| 2026-08-29 | 02:38, 03:48 |
+
+Twice — 08-27 and 08-29 — nothing fired between ET midnight and mid-morning, so the site
+sat on yesterday's slate until someone noticed and dispatched a run by hand. **Every run
+that fired succeeded**; nothing in this repo was broken either time. Four chances a day
+is simply too few when any of them can silently not happen.
+
+**The fix is a fifth cron, `0 * * * *`, gated by a `decide` job** so that almost every
+firing is a few seconds of no-op:
+
+- Any trigger that is **not** the hourly cron — the four original slots,
+  `workflow_dispatch`, `push` — passes straight through, unchanged.
+- The hourly one runs the full job **only** when `history/{today_et}.json` is absent from
+  the repo. That file is written by the first successful run of each ET day, so its
+  absence means today has not been published at all.
+
+Three guards on that, each closing a real hole:
+
+1. **Off-season.** `history.py` guards its write with `if records:`, so an empty slate
+   writes **no file** — which means "file missing" also describes every winter day, the
+   All-Star break, and a full rainout. Without a season check the catch-up would fire a
+   complete run, Anthropic bill included, every hour from November to March. The gate
+   calls `season.game_count()`, which returns 0 outside the season window without
+   touching the network and **-1 (not 0) on a statsapi outage**, so an outage fails open
+   to running rather than silently suspending the site.
+2. **A time window of 3 AM – 10 PM ET.** Before the first slot there is nothing to catch
+   up on and Handigraphs has not posted the slate; after 10 PM the day is over and the
+   6:30 PM slot already owns tomorrow's board.
+3. **`concurrency: {group: publish, cancel-in-progress: false}`.** A catch-up can now
+   coincide with a late real delivery, and two concurrent runs race on the push of
+   `history/` and `picks/`. The retry path in the commit step recovers from that, but not
+   racing is cheaper. Queue rather than cancel — a superseded publish still needed to
+   happen.
+
+The gate derives its date from `season.today_et()` for the same reason everything else
+does; a fixed offset here would disagree with the code by an hour under EST.
+
+**This does not make the schedule reliable, it makes a dropped slot self-correcting** —
+worst case the site is stale by up to an hour instead of until someone looks. If the
+hourly cron itself stops being delivered, nothing here helps; that is GitHub-side and the
+only remedy is an external trigger this project does not have.
+
 ## Dependencies — both pins are bounded on purpose
 
 Two direct dependencies, in `requirements.txt`; everything else is transitive.
