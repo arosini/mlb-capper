@@ -6,6 +6,14 @@ on:
     - cron: '0 14 * * *'   # 10 AM ET
     - cron: '0 20 * * *'   # 4 PM ET
     - cron: '30 22 * * *'  # 6:30 PM ET — tomorrow's Handigraphs slate is usually posted by now
+    # Catch-up. GitHub's scheduler is best-effort and has been badly degraded for this
+    # repo: across 2026-08-27..29 not one delivery landed near its slot (03:28, 18:21,
+    # 23:17 / 03:58, 06:14, 19:30, 23:14 / 02:38, 03:48 UTC), and the ET morning was
+    # missed outright twice, leaving yesterday's slate on the site both mornings.
+    # Four chances a day is too few when each one can silently not happen. This fires
+    # hourly and the `decide` job below turns almost all of them into a no-op — it only
+    # lets a run through when today's ET slate has not been published at all.
+    - cron: '0 * * * *'
   workflow_dispatch:        # manual trigger
   push:
     branches: [main]        # redeploy on every push to main
@@ -13,8 +21,70 @@ on:
 permissions:
   contents: write
 
+# Never two publishes at once. A catch-up run can now coincide with a late scheduled
+# delivery, and concurrent runs race on the commit of history/ and picks/ — the retry
+# path handles that, but not racing is cheaper than recovering from it. Queue, never
+# cancel: a superseded publish is still a publish that needed to happen.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 jobs:
+  # Cheap gate, so the hourly catch-up costs a few seconds rather than a full run plus
+  # an Anthropic bill. Everything except the hourly cron passes straight through.
+  decide:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - id: gate
+        run: |
+          set -euo pipefail
+          # season.today_et() is the one Eastern clock this project shares; deriving the
+          # date any other way here would disagree with the code by an hour under EST.
+          read -r DATE HOUR < <(python3 -c "import season,datetime; n=datetime.datetime.now(season.ET); print(n.strftime('%Y-%m-%d'), n.hour)")
+          EVENT='${{ github.event_name }}'
+          CRON='${{ github.event.schedule }}'
+          if [ "$EVENT" != "schedule" ] || [ "$CRON" != "0 * * * *" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "$EVENT/$CRON is a first-class trigger — running."
+            exit 0
+          fi
+          # Hourly catch-up. history/{date}.json is written by the first run of each ET
+          # day, so its absence means today has not been published at all.
+          if [ -f "history/${DATE}.json" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "history/${DATE}.json exists — today is published, skipping."
+            exit 0
+          fi
+          if [ "$HOUR" -lt 3 ] || [ "$HOUR" -gt 21 ]; then
+            # Before the 3:30 AM ET slot there is nothing to catch up on and Handigraphs
+            # has not posted the slate; after 10 PM ET the day is over and the 6:30 PM
+            # slot owns tomorrow's board.
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "${HOUR}:00 ET is outside the catch-up window."
+            exit 0
+          fi
+          # An empty slate writes NO history file — history.py guards its write with
+          # `if records:` — so "file missing" also describes every off-season day, the
+          # All-Star break, and a full rainout. Without this the catch-up would fire a
+          # complete run every hour, all winter. has_games() answers from a date window
+          # outside the season without touching the network, and fails open in-season.
+          if [ "$(python3 -c 'import season; print(season.game_count(season.today_et()))')" = "0" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "no qualifying MLB games on ${DATE} — nothing to publish."
+            exit 0
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+          echo "CATCH-UP: no history/${DATE}.json at ${HOUR}:00 ET — a slot was dropped." 
+
   build-and-deploy:
+    needs: decide
+    if: needs.decide.outputs.run == 'true'
     runs-on: ubuntu-latest
     env:
       ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node24
