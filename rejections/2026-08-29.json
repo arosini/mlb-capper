@@ -1,0 +1,24 @@
+[
+  {
+    "date": "2026-08-29",
+    "game": "ARI @ SFG",
+    "bet_type": "Total",
+    "bet": "Game Total Over 7.5",
+    "odds": "-115",
+    "confidence": "medium",
+    "reason": "Merrill Kelly carries a 7.71 xERA and 14.1% walk rate over his last 3 starts into a San Francisco lineup posting a 132 wRC+ vs RHP over its last 6 games, backed by a 126 mark over its last 12 and a 45.6% hard-hit rate over the last 6. Anthony Molina has thrown just 7.1 innings across 3 starts, so Arizona's bullpen and its 5.17 xERA over the last 12 games handle most of the middle innings, and San Francisco's relievers are working on elevated usage. With the wind blowing out 18 mph, a posted 7.5 sits a full run below where this run environment projects.",
+    "reject_reason": "Nearly every figure is invented: the card's starters are Mitch Bratt (ARI) and Matt Wilkinson (SFG), not \"Merrill Kelly carries a 7.71 xERA\" or \"Anthony Molina,\" and SFG's offense is listed vs LHP at 117 (last 6) / 85 (last 12), not \"132 wRC+ vs RHP... 126 over its last 12\" with a \"45.6% hard-hit rate\"; the wind is 14 mph, not \"18 mph.\"",
+    "rejected_at": "2026-08-29T11:43:46.452332+00:00"
+  },
+  {
+    "date": "2026-08-29",
+    "game": "ARI @ SFG",
+    "bet_type": "Pitcher_Outs",
+    "bet": "Merrill Kelly Under 17.5 Outs",
+    "odds": "-130",
+    "confidence": "medium",
+    "reason": "Kelly has averaged 4.9 IP per start over his last 3, going 5.0, 4.0 and 5.2 innings \u2014 none of which reached 18 outs \u2014 while walking 14.1% of hitters and carrying a 7.71 xERA over that window. He needed 99 pitches to get 17 outs last time out, and today he faces a San Francisco lineup at 132 wRC+ vs RHP over its last 6 with a 45.6% hard-hit rate. The number asks him to work into the sixth against the best offense he has seen in a month, which his current pitch efficiency does not support.",
+    "reject_reason": "[mechanical] the card posts no Pitcher_Outs at 17.5 on that side",
+    "rejected_at": "2026-08-29T11:43:46.452367+00:00"
+  }
+]
