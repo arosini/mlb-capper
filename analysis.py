@@ -1286,6 +1286,7 @@ def analyze_game(
         "neutral_site":  bool(mlb_info.get("neutral_site")),
         "game_date":     mlb_info.get("game_date", ""),
         "game_number":   mlb_info.get("game_number") or 1,
+        "games_today":   mlb_info.get("games_today") or 1,
         "away_sp":       away_sp,
         "home_sp":       home_sp,
         "away_sp_id":    str(p_away.get("mlbam_id") or ""),

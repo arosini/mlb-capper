@@ -214,6 +214,7 @@ header{background:#030712}
 .ai-pick-inline .ai-reason{font-size:.73rem;color:#374151;margin-top:.2rem;line-height:1.45}
 .ai-pass-reason{font-size:.76rem;color:#6b7280;font-style:italic;padding:.1rem 0}
 .ai-found-at{font-size:.65rem;color:#9ca3af;margin-top:.15rem}
+.ai-pick-game{font-size:.68rem;font-weight:600;color:#6b7280;margin-bottom:.3rem;letter-spacing:.01em}
 .ai-active-wrap{padding:.55rem .875rem .5rem}
 .ai-started-wrap{padding:.45rem .875rem .5rem;border-top:1px solid #f0f0f0}
 .ai-started-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:.28rem}
@@ -241,6 +242,7 @@ header{background:#030712}
 .ai-pick-inline .ai-reason{color:#d1d5db}
 .ai-pass-reason{color:#9ca3af}
 .ai-found-at{color:#4b5563}
+.ai-pick-game{color:#9ca3af}
 .ai-started-wrap{border-top-color:#2a2a2a}
 .ai-started-label{color:#4b5563}
 .ai-conf-dim{background:#2a2a2a;color:#9ca3af}

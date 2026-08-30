@@ -31,7 +31,8 @@ def _h(text) -> str:
 
 def _pick_dom_id(pick: dict) -> str:
     """Stable DOM id for a pick <details> row, used for localStorage persistence."""
-    raw = f"pick-{pick.get('game','')} {pick.get('bet_type','')} {pick.get('bet','')}"
+    raw = (f"pick-{pick.get('game','')} g{pick.get('game_number') or 1} "
+           f"{pick.get('bet_type','')} {pick.get('bet','')}")
     return re.sub(r'[^a-z0-9]+', '-', raw.lower()).strip('-')[:64]
 
 
@@ -1639,7 +1640,13 @@ def _serialize_game_for_ai(g: dict) -> str:
         )
 
     neutral_tag = " | NEUTRAL SITE" if g.get("neutral_site") else ""
-    lines = [f"=== {away} @ {home}{time_s} | {venue} ({venue_tag}){neutral_tag} ==="]
+    # Doubleheader legs share a matchup string, so without this the two cards are
+    # distinguishable only by start time and every downstream key collides. The leg is
+    # stated as a fact; nothing about it is a reason to bet.
+    gn = g.get("game_number") or 1
+    gt = g.get("games_today") or 1
+    dh_tag = f" | GAME {gn} OF {gt} (DOUBLEHEADER)" if gt > 1 else ""
+    lines = [f"=== {away} @ {home}{time_s}{dh_tag} | {venue} ({venue_tag}){neutral_tag} ==="]
     if g.get("neutral_site"):
         city = g.get("venue_city", "")
         lines.append(
@@ -1851,6 +1858,11 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                         "type": "object",
                         "properties": {
                             "game":        {"type": "string", "description": "Exactly as shown in game header, e.g. 'TEX @ MIA'"},
+                    "game_number": {"type": "integer", "enum": [1, 2],
+                                    "description": "1 normally. If the game header says "
+                                                   "GAME 2 OF 2 (DOUBLEHEADER), use 2. Two legs of "
+                                                   "a doubleheader share a matchup string, so this "
+                                                   "is the only thing telling them apart."},
                             # Enumerated, not free text: picks.py routes on bet_type to
                             # pick a grading path and a correlated-slot key, and both
                             # match on exact tokens. A near-miss spelling grades as None
@@ -2090,10 +2102,28 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
         title   = _h(_pick_summary_title(pick))
         pid     = _pick_dom_id(pick)
         gt      = _h(pick.get("game_time_utc", ""))
+        # Which game this bet is on. The row showed the bet and the price and nothing
+        # else, so on a page of 5-15 picks the matchup had to be inferred from the
+        # pitcher's or team's name in the bet text — and on a doubleheader that is not
+        # inferable at all. Time and leg are both shown, since the matchup alone does
+        # not identify a game when the clubs play twice.
+        gl_parts = [pick.get("game", "")]
+        if pick.get("game_time_utc"):
+            try:
+                _gt = datetime.fromisoformat(
+                    pick["game_time_utc"].replace("Z", "+00:00")).astimezone(_ET)
+                gl_parts.append(f"{int(_gt.strftime('%I'))}:{_gt.strftime('%M %p')} ET")
+            except Exception:
+                pass
+        if (pick.get("games_today") or 1) > 1:
+            gl_parts.append(f"Game {pick.get('game_number') or 1} of {pick['games_today']}")
+        game_lbl = (f'<div class="ai-pick-game">{_h(" · ".join(x for x in gl_parts if x))}</div>'
+                    if gl_parts[0] else "")
         return (
             f'<details class="ai-pick-row" id="{pid}" data-game-time="{gt}">'
             f'<summary class="ai-pick-sum">{title}</summary>'
             f'<div class="ai-pick-body">'
+            f'{game_lbl}'
             f'<div class="ai-reason">{reason}</div>'
             f'{found_s}'
             f'{warn_s}'
@@ -2170,7 +2200,24 @@ def _lookup_ai_for_game(ai_by_game: dict, away: str, home: str, game_time_utc: s
     hit = ai_by_game.get((game, game_time_utc))
     if hit is not None:
         return hit
-    for (g, _t), val in ai_by_game.items():
-        if g == game:
-            return val
-    return None
+    # The old fallback matched ANY entry for the matchup, which is right for a single
+    # game whose time was never recorded and wrong for a doubleheader: it handed leg 1's
+    # picks to leg 2's card, so both legs rendered the same bets.
+    same = [(t, val) for (gm, t), val in ai_by_game.items() if gm == game]
+    if len(same) == 1:
+        return same[0][1]
+    if not same:
+        return None
+    # Two or more legs and no exact hit — the times drifted rather than being absent.
+    # Take the nearest start; picking a leg by clock is defensible, picking one
+    # arbitrarily is not.
+    def _ts(s: str):
+        try:
+            return datetime.fromisoformat((s or "").replace("Z", "+00:00")).timestamp()
+        except Exception:
+            return None
+    want = _ts(game_time_utc)
+    if want is None:
+        return None
+    scored = [(abs(t2 - want), v) for t, v in same if (t2 := _ts(t)) is not None]
+    return min(scored, key=lambda x: x[0])[1] if scored else None

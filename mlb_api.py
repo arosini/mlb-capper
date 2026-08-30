@@ -109,6 +109,14 @@ def get_mlb_schedule(target_date: date) -> dict:
                 "series_game_number": g.get("seriesGameNumber"),
                 "games_in_series":    g.get("gamesInSeries"),
             }
+    # How many legs this matchup has today. A doubleheader's two games share a matchup
+    # string ("ARI @ SFG"), which is the only game identity that reaches the AI card and
+    # the pick log — so every consumer needs to know a second leg exists.
+    legs: dict = {}
+    for (pair, _gn) in games:
+        legs[pair] = legs.get(pair, 0) + 1
+    for (pair, _gn), info in games.items():
+        info["games_today"] = legs[pair]
     return games
 
 

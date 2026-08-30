@@ -60,7 +60,7 @@ def _et_date(ts: str) -> str:
 
 
 def _build_game_info(history: list, date_str: str) -> dict:
-    """{(away_full, home_full): {game_time_utc, codes...}} for games played on date_str.
+    """{(away_full, home_full, leg): {game_time_utc, codes...}} for games on date_str.
 
     A slate file records every game the Odds API was serving that day, and the API
     serves one to three days ahead — so history/{date}.json holds several records per
@@ -73,17 +73,29 @@ def _build_game_info(history: list, date_str: str) -> dict:
     compare game_time_utc against now, and the timestamp really was hours away — it just
     belonged to a different day's game.
 
-    So: prefer the record whose own ET date matches the slate date, and fall back to the
-    earliest available only when nothing matches, rather than silently taking the latest.
+    So: prefer records whose own ET date matches the slate date, and fall back to the
+    off-date ones only when nothing matches, rather than silently taking the latest.
+
+    DOUBLEHEADERS. The key carries a leg number. History records come from the Odds API,
+    which has no MLB `gameNumber` — its only handle on the two legs is the start time —
+    so the leg is derived here: among a matchup's on-date records, sorted by first pitch,
+    the earliest is game 1. That matches MLB's own convention, where gameNumber 1 is the
+    earlier game.
+
+    Before this, the key was the matchup alone and the tie-break above took the earliest
+    start, so BOTH legs' picks were stamped with leg 1's first pitch. That is what made a
+    doubleheader show the same bets on both game cards and hold the late game's picks in
+    "upcoming" once the early one had finished.
     """
-    best: dict = {}
+    # Collect candidates per matchup, keeping one per distinct start time — a matchup can
+    # legitimately appear many times in a slate file as the odds were re-fetched.
+    by_match: dict = {}
     for rec in history:
         away_full = rec.get("away", "")
         home_full = rec.get("home", "")
         if not away_full or not home_full:
             continue
         gt = rec.get("game_time_utc", "")
-        key = (away_full, home_full)
         cand = {
             "game_time_utc": gt,
             "away_code": rec.get("away_code", "") or _NAME_TO_CODE.get(away_full, ""),
@@ -92,20 +104,19 @@ def _build_game_info(history: list, date_str: str) -> dict:
             "home": home_full,
             "_on_date": _et_date(gt) == date_str,
         }
-        prev = best.get(key)
-        if prev is None:
-            best[key] = cand
-            continue
-        # An on-date record always beats an off-date one; between two of the same kind
-        # take the earlier start (the first leg of a doubleheader, which picks carry no
-        # game number to distinguish anyway).
-        if cand["_on_date"] != prev["_on_date"]:
-            if cand["_on_date"]:
-                best[key] = cand
-        elif (cand["game_time_utc"] or "9") < (prev["game_time_utc"] or "9"):
-            best[key] = cand
-    for v in best.values():
-        v.pop("_on_date", None)
+        by_match.setdefault((away_full, home_full), {})[gt] = cand
+
+    best: dict = {}
+    for (away_full, home_full), cands in by_match.items():
+        on_date = sorted((c for c in cands.values() if c["_on_date"]),
+                         key=lambda c: c["game_time_utc"] or "9")
+        chosen = on_date or sorted(cands.values(),
+                                   key=lambda c: c["game_time_utc"] or "9")[:1]
+        for leg, cand in enumerate(chosen, start=1):
+            cand = dict(cand)
+            cand.pop("_on_date", None)
+            cand["games_today"] = len(chosen)
+            best[(away_full, home_full, leg)] = cand
     return best
 
 
@@ -138,7 +149,11 @@ def _canon_pick_key(pick: dict) -> tuple:
                    the same run environment; one per game across all four
     - "pitcherks" / "pitcherouts": one per pitcher (keyed on pitcher last name)
     """
-    game = pick.get("game", "")
+    # A doubleheader's legs share a matchup string, so keying the slot on `game` alone
+    # made a total on leg 1 and a total on leg 2 collide — the second was silently
+    # dropped as a duplicate. Leg 1 is the default, so this is a no-op for every
+    # single-game matchup and for every pick already logged before the field existed.
+    game = (pick.get("game", ""), pick.get("game_number") or 1)
     bt   = (pick.get("bet_type") or "").lower().replace("_", "").replace(" ", "")
     bet  = (pick.get("bet") or "").lower()
     # Normalize generic 'props' type by inferring from bet text
@@ -216,7 +231,14 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
         home_code = parts[1].strip() if len(parts) == 2 else ""
         away_full = _CODE_TO_FULL.get(away_code, away_code)
         home_full = _CODE_TO_FULL.get(home_code, home_code)
-        info = game_info.get((away_full, home_full), {})
+        leg  = pick.get("game_number") or 1
+        info = game_info.get((away_full, home_full, leg), {})
+        if not info and leg != 1:
+            # Model claimed leg 2 but the slate has only one game for this matchup.
+            info = game_info.get((away_full, home_full, 1), {})
+            if info:
+                leg = 1
+                pick["game_number"] = 1
 
         # The model occasionally emits the matchup backwards ("BOS @ ATH" for a game
         # that is really ATH @ BOS). Left alone that lands as a *second* copy of a bet
@@ -224,7 +246,7 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
         # team_side pointing at the wrong club. Snap it back to the real orientation so
         # it dedupes normally and grades against the right team.
         if not info:
-            flipped = game_info.get((home_full, away_full))
+            flipped = game_info.get((home_full, away_full, leg))
             if flipped:
                 info = flipped
                 away_code, home_code = home_code, away_code
@@ -255,6 +277,8 @@ def save_picks(data_dir: Path, picks_dir: Path, target_date: date,
         record = {
             "date":          date_str,
             "game":          game_key,
+            "game_number":   leg,
+            "games_today":   info.get("games_today", 1),
             "away":          info.get("away", away_full),
             "away_code":     info.get("away_code", away_code),
             "home":          info.get("home", home_full),
