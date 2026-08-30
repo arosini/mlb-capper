@@ -1525,11 +1525,6 @@ def _serialize_game_for_ai(g: dict) -> str:
     spl_a = g.get("away_sp_splits") or {}
     spl_h = g.get("home_sp_splits") or {}
 
-    # On a neutral site neither at-park split describes today's venue: the away
-    # starter's is filtered to starts at the HOME club's park, and the home starter's
-    # to his own home starts. Both are real numbers about a park this game is not
-    # being played in, offered under a Tier 1 heading — the same failure the park
-    # factor is already suppressed for.
     def _spl_line(name, spl, vs_label):
         # The at-park split is gone. It was never the venue it appeared to describe: the
         # AWAY starter's "at" split is his starts at the HOME club's park, which is a
