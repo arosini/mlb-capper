@@ -471,18 +471,39 @@ def team_situational_flags(
     opp = block[0].get("opp_abbr") if block else ""
     all_losses = bool(block) and all(not g["won"] for g in block)
 
-    if opp and all_losses and len(block) >= 2:
-        flags.append(f"just got swept by {opp} ({len(block)} games)")
-    elif (
-        opp and all_losses and opp == opp_abbr_today
-        and series_game_number and games_in_series
-        and series_game_number == games_in_series
-        and len(block) == series_game_number - 1
-    ):
-        flags.append(
-            f"already dropped all {len(block)} game(s) of this series vs {opp}; "
-            f"a loss today completes the sweep"
-        )
+    # Is the trailing block the series IN PROGRESS, or one that finished? The schedule
+    # numbers a series' games, so game N means N-1 of it are already played. Getting this
+    # wrong is not a missing flag but a false one: these branches used to be ordered with
+    # the general "just got swept" case FIRST, which made the in-progress case unreachable
+    # for any team that had lost two or more — exactly the case it was written for — and
+    # put "just got swept by TOR (2 games)" on the card of a club sitting 0-2 in a set
+    # still being played. Past tense, and it says the series is over.
+    in_current_series = bool(
+        opp and opp == opp_abbr_today
+        and series_game_number and len(block) == series_game_number - 1
+    )
+
+    if opp and all_losses:
+        n = len(block)
+        dropped = (f"lost the opener of this series vs {opp}" if n == 1
+                   else f"has lost all {n} games of this series vs {opp}")
+        if in_current_series:
+            # State the fact and stop. No "must-win", no "extra motivation to avoid the
+            # sweep", no lean toward the moneyline — those are the tails the 2026-08-24
+            # adversarial review stripped out of this very flag. §11 assigns the weight.
+            if games_in_series and series_game_number == games_in_series:
+                flags.append(f"{dropped}; today is the finale, so a loss completes the sweep")
+            else:
+                left = (games_in_series - series_game_number + 1
+                        if games_in_series and series_game_number else None)
+                flags.append(f"{dropped}, with {left} left to play" if left
+                             else f"{dropped} so far")
+        elif opp == opp_abbr_today and not series_game_number:
+            # Series numbers missing. The streak is against today's club, so this may well
+            # be a set in progress — do not call it finished.
+            flags.append(f"has lost the last {n} straight to {opp}, today's opponent")
+        elif n >= 2:
+            flags.append(f"just got swept by {opp} ({n} games)")
 
     return flags
 
