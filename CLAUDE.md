@@ -575,6 +575,86 @@ line/side/price bucket is reproducible without touching the API. Over/under has 
 parsed out of the `bet` string for props (`team_side` is null there) and off `team_side`
 for totals.
 
+## Evidence, Not Tiers — 2026-08-30
+
+`_AI_SYSTEM_PROMPT` §2 used to be a three-tier hierarchy: Tier 1 "decides the game",
+Tier 3 was "never the reason for a bet", head-to-head "cannot be the case", and §9 said
+weather "cannot create a bet". That framing was wrong about how handicapping works. It is
+now a **weighted-evidence** model, and every "Tier N" reference in both prompts is gone.
+
+- **Everything on the card is evidence.** What differs is WEIGHT, not permission to count.
+  HEAVIEST is starter xERA and opposing wRC+; MODERATE is starter ERA, head-to-head, box
+  scores, bullpen, team trends and the over/under block; LIGHT is weather, park, flags and
+  situational trends.
+- **A pick is a balance, not a hierarchy** — evidence for against evidence against. A
+  single heavy signal with several arguing back is a game you understand, not a mispriced
+  one.
+- **Light evidence accumulates and can form part of a real case.** A hot day in a hitter's
+  park with the wind out, behind two short starters and a tired bullpen, is a genuine
+  argument for runs with nothing heavy driving it.
+
+**The guard that makes accumulation honest is the independence rule, and it must stay.**
+Park factor, temperature and wind are three readings of ONE thing — the run environment —
+and citing all three is one piece of evidence, not three. §2 says so explicitly, §9
+repeats it for weather, and the test given is: ask what would have to be true for the
+stack to be wrong, and if one answer knocks all of it down, it is one signal. Without
+that, "weak signals add up" is a licence to manufacture a case from restatements.
+
+**The auditor was deliberately NOT given a correlation check.** Audit check 8 already says
+"do not reject a pick merely for being aggressive, thinly argued, or one you would have
+passed", which is what protects an accumulated case. Adding a correlation rule would make
+the binary auditor a hard filter on case *shape* — the same trap CLAUDE.md already records
+for the demanding-number list.
+
+## Volume — the edge threshold was never binding
+
+Measured 2026-08-30 over the four slates carrying both probability fields (57 picks):
+
+| | |
+|---|---|
+| picks/day | **14.2** |
+| games touched/day | 4–13 of a ~15-20 game slate |
+| **touched games carrying 2-3 picks** | **21 of 33 — 64%** |
+| props as a share of picks | 72% (Ks 44%, outs 28%) |
+| smallest stated edge | **5.0 points** |
+| median stated edge | **11.5 points** |
+
+Two things follow, and both were acted on.
+
+**The 4-point minimum edge never rejected anything.** The floor sat below the entire
+distribution — the smallest submitted edge was 5.0. `MIN_EDGE_PTS` is 6.0 now, but raising
+a *self-reported* number is only half a fix: the model can inflate past any threshold. So
+§4 also tells it what its own distribution looked like, points out that a median 11.5-point
+edge against a liquid market is not believable, and asks it to derive `win_probability`
+from the game BEFORE checking it against the bar. Re-measure the distribution after a week:
+if the median is still double digits, the estimates are the problem, not the market.
+
+**Multiple picks per game was the volume, and §4C was the multiplier.** The prompt said
+filling slots "should be rare"; it was the majority case. §4C allowed one prop per
+PITCHER, so both starters could carry one — and props are 72% of all picks. It is now
+**one prop per GAME**. §4 also states the measured 64% figure, because "rare" as an
+adjective did not bind and a number might.
+
+`_validate_pick` enforces the 6-point floor mechanically, before the paid audit call.
+
+## A malformed tool field took down a publish — 2026-08-30
+
+Run 402 failed with `AttributeError: 'str' object has no attribute 'items'` in
+`_ai_game_map`: the model returned `pass_reasons` as a bare **string** where the schema
+declares an object. The tool is not `strict`, so the API accepted it.
+
+`strict: true` is not the fix — it requires `additionalProperties: false`, and
+`pass_reasons` deliberately uses `additionalProperties` as an open `{game: reason}` string
+map. Instead `_normalize_tool_result()` now coerces the tool output at the point it is
+parsed (bad `picks` → `[]`, bad `pass_reasons` → `{}`, non-dict result → both empty), and
+`_ai_game_map` re-checks the type because a `suggestions_{date}.json` cached before this
+fix can still hold the bad value.
+
+**The step ordering did its job.** Picks were committed at 13:22 and the HTML step then
+died, so the run left a pick log with no page rather than publishing something
+unreproducible — the last good deploy (run 401, 13:14) stayed up. That is the invariant
+`publish.yml` is ordered for; the stranded picks render on the next successful run.
+
 ## Adversarial Review — 2026-08-24
 
 A red-team pass over `_AI_SYSTEM_PROMPT`, `_VERIFY_SYSTEM_PROMPT`, `_serialize_game_for_ai`

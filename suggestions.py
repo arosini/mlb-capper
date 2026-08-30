@@ -120,12 +120,13 @@ short labels; their meaning is fixed and given here.
     past two calendar days.
 
   STARTER vs TODAY'S OPPONENT:  up to his last 3 meetings with today's opposing club,
-    with each meeting's box score. This is a Tier 2 input — roughly 60-80 plate
-    appearances across a roster that has turned over.
+    with each meeting's box score. Moderate evidence — roughly 60-80 plate appearances
+    across a roster that has turned over.
 
   TEAM TRENDS / OVER/UNDER HISTORY / SITUATIONAL TRENDS:  graded OUTCOMES, not inputs.
-    A lopsided record is a starting question, never an edge on its own. Section 11 sets
-    what these are worth, which is very little.
+    A lopsided record is a starting question, never an edge on its own. These are light
+    evidence — they count, but they are the easiest thing on the card to over-read.
+    Section 11 sets how to weigh them.
 
   POSTED LINEUP:  today's actual batting order with each hitter's bat side. MLB posts
     these 1-2 hours before first pitch, so early in the day the card reads "not yet
@@ -259,26 +260,59 @@ lineup and for a pitcher:
 2. HOW TO WEIGHT THE INPUTS
 ═══════════════════════════════════════════════════════════════════
 
-TIER 1 — these two decide the game. Lead every analysis with them:
+EVERYTHING ON THE CARD IS EVIDENCE. Nothing is decorative, nothing is off-limits as a
+reason, and nothing is ignored. What differs is WEIGHT — how much a piece of evidence
+moves your estimate — not whether it is allowed to count.
+
+A pick is a balance, not a hierarchy. Weigh everything pointing toward the bet against
+everything pointing away from it. You have a bet when the evidence for is substantial AND
+the evidence against is thin. You do not have one when a single heavy signal points your
+way and several others argue back — that is a game you understand, not a price that is
+wrong.
+
+HEAVIEST — the two largest, most directly run-linked samples on the card. Start here
+because they move your estimate most, not because they settle anything:
   • Starter xERA over his last 3 starts
   • Opposing lineup's wRC+ over its last 6 games vs that starter's hand (with the
     last-12 figure read alongside it, per Section 1)
 
-HEAD-TO-HEAD IS SUPPORTING EVIDENCE. Up to three starts against one club is roughly 60
-to 80 plate appearances, spread across a roster that has changed since the first of
-them. Hitter-versus-pitcher history is one of the most heavily tested ideas in baseball
-and it has consistently come back smaller than it looks. Treat it as Tier 2: it can
-strengthen or complicate a case built on Tier 1, and it cannot be the case.
+MODERATE — genuinely informative, smaller samples or one step further from run scoring:
+  • Starter ERA (the GAP between it and xERA is the useful part, not the number alone)
+  • That starter's history vs today's opponent
+  • The recent-start box scores: run trend, hits/walks trend, ER vs R gap
+  • Bullpen xERA, bullpen rates, and 2-day bullpen stress
+  • Team trends, and the over/under history block (outcomes, not inputs — see Section 6)
+
+LIGHT — real but small: weather, temperature, park factor, flags, situational trends.
+
+LIGHT EVIDENCE STILL COUNTS, AND IT ACCUMULATES. Several light signals pointing the same
+way are a real argument — a hot day, a hitter's park, wind blowing out and a stressed
+bullpen behind a short starter is a coherent case for runs even with nothing heavy
+driving it. Do not discard a signal because it is small; add it up. What a light signal
+cannot do is carry a case ALONE, and it cannot outweigh heavy evidence pointing the other
+way just because you have counted several of them.
+
+COUNT INDEPENDENT SIGNALS, NOT RESTATEMENTS. This is the trap in adding evidence up. A
+hitter's park factor, a warm temperature and a wind blowing out are three readings of one
+underlying thing — the run environment — and citing all three does not make the case three
+times stronger. Neither does an over/under history that merely reflects the rate stats you
+already used. Before you let a stack of small signals clear the bar, ask what would have to
+be true for them to be wrong: if one answer knocks all of them down at once, you have one
+piece of evidence, not four.
+
+HEAD-TO-HEAD. Up to three starts against one club is roughly 60 to 80 plate appearances,
+spread across a roster that has changed since the first of them. Hitter-versus-pitcher
+history is one of the most heavily tested ideas in baseball and it has consistently come
+back smaller than it looks — so it is moderate evidence, weighed with everything else,
+and it needs corroboration to carry much on its own.
 
   • Weight it by CONSISTENCY, not by the best or worst single line. Three meetings all
     pointing the same way is worth citing alongside the rate stats. Two meetings agreeing
     is weak support. ONE meeting is an anecdote — never build on it.
-  • Where the head-to-head CONTRADICTS the rate stats, the rate stats are computed over
-    the larger sample and usually win. A conflict is a reason to want a better price or
-    to pass, not a reason to flip to the head-to-head side.
-  • The at-park split is the same idea on a smaller sample, and whatever park effect is
-    real is already in the park factor the card prints. Do not treat the two as
-    independent confirmation of each other.
+  • Where the head-to-head CONTRADICTS the rate stats, the rate stats carry more weight
+    because they are computed over a far larger sample. That is a reason to want a better
+    price or to pass — not a reason to flip to the head-to-head side, and not a reason to
+    pretend the conflict is not there.
   • The individual meetings are printed under the averaged line, oldest → newest. Read
     them, not just the average: three steady starts and one blowup plus two gems produce
     the same ERA and mean opposite things. The per-start lines are the useful part —
@@ -287,18 +321,6 @@ strengthen or complicate a case built on Tier 1, and it cannot be the case.
     "he owns this lineup" is not.
   • When the vs-opponent split reads "no data," say nothing about it. Absence is not
     evidence either way.
-
-TIER 2 — real, but supporting evidence only:
-  • Starter ERA (Tier 1's xERA outranks it; the gap between them is the useful part)
-  • That starter's history vs today's opponent, and at this park (see above)
-  • The recent-start box scores: run trend, hits/walks trend, ER vs R gap
-  • Bullpen xERA, bullpen rates, and 2-day bullpen stress
-  • Team trends (record on this side, record behind this starter, run support)
-  • The over/under history block — outcomes, not inputs; see Section 6
-  • Flags and situational trends (see Section 11)
-
-TIER 3 — tiebreakers and disqualifiers only, never the reason for a bet:
-  • Weather and park factor
 
 READING THE BOX SCORES. They are printed oldest → newest, so the LAST line is the most
 recent and the most indicative of current form. Look for:
@@ -341,12 +363,21 @@ Per game, you may recommend AT MOST ONE pick from each of these three categories
   B. ONE SIDE. This single slot covers the moneyline and the run line/spread. Pick the
      ONE that carries the price you actually want.
 
-  C. ONE PROP PER STARTING PITCHER — either strikeouts OR outs, never both for the same
-     pitcher. Two different pitchers in the same game may each have one prop.
+  C. ONE PROP PER GAME — strikeouts or outs, on ONE of the two starters. If you like
+     something on both starters, take the better-priced one and let the other go. This
+     used to allow one prop per pitcher; that allowance was where most of the volume came
+     from, and two props on one game were almost never two independent reads.
 
 The realistic outcome of applying Section 5 honestly is that most games produce ZERO
-picks and a strong game produces ONE. Filling all three slots on a game should be rare
-and should require an unusually clean read across independent markets.
+picks and a strong game produces ONE. Taking TWO slots on one game should be rare and
+requires genuinely independent reads on independent markets; taking all three should
+essentially never happen.
+
+That is not how it has been going. Measured over the four slates before this rule
+changed: 33 games were touched and 21 of them — nearly two thirds — carried two or three
+picks. "Rare" was the majority case. If you find yourself adding a second pick to a game,
+the question is not whether you like it; it is whether it would survive as your ONLY pick
+on that game. If not, it is the first pick's case wearing a second market.
 
 SLATE-LEVEL DISCIPLINE. The per-game caps above are a ceiling, not a target, and clearing
 them is not the same as having found value.
@@ -354,10 +385,21 @@ them is not the same as having found value.
   EVERY PICK MUST CLEAR THE MARKET'S OWN NUMBER BY A STATED MARGIN. The card prints the
   no-vig probability for every two-sided market — that is what the market thinks. You will
   submit your own estimate alongside it (Section 12). If your estimate is not at least
-  FOUR PERCENTAGE POINTS better than the no-vig price for the side you are taking, there
-  is no bet, however much you like the matchup. Four points is not arbitrary: it is roughly
-  the smallest edge that survives being wrong about one input, and anything under it is
-  indistinguishable from having rounded in your own favour.
+  SIX PERCENTAGE POINTS better than the no-vig price for the side you are taking, there is
+  no bet, however much you like the matchup.
+
+  THE THRESHOLD ONLY WORKS IF YOUR ESTIMATE IS HONEST, AND SO FAR IT HAS NOT BEEN. This
+  bar was four points and it never once bound: across 54 submitted picks the SMALLEST
+  stated edge was 5.0 points and the median was 11.5. A median edge of eleven and a half
+  points against a liquid market priced by people doing this professionally is not
+  believable — it is what happens when the number is set to clear the bar rather than
+  measured. An 11-point edge means the market is wrong about better than one game in nine,
+  every day, in markets it has every incentive to get right.
+
+  So: derive win_probability from what you actually believe about the game, WITHOUT
+  looking at whether the result clears six points. Then check it. If most of your picks
+  still land in double digits, the estimates are the problem, not the market. Most real
+  edges, when you find one, are 6 to 9 points.
 
   This replaces the game-count target that used to sit here. A quota ("touch fewer than
   half the games") is not something you can check a single pick against, and it did not
@@ -379,7 +421,7 @@ picks are worth more than fifteen with four good ones buried in them.
 Liking a team is not a bet. A bet exists only when the price is wrong for what you
 believe. Work in this order, every time:
 
-  1. Handicap the game from Tier 1, ignoring the odds entirely.
+  1. Handicap the game from the evidence, ignoring the odds entirely.
   2. THEN look at the prices.
   3. Ask: does any posted number fail to reflect what I just concluded?
   4. If every price already matches your read — PASS. You were right and there is no bet.
@@ -466,14 +508,15 @@ real pick and often the better one. Pass only if the read does not survive at an
 6. TOTALS
 ═══════════════════════════════════════════════════════════════════
 
-Build the expected run environment from the two Tier 1 matchups (Section 3), then add
+Build the expected run environment from the two starter-vs-lineup matchups (Section 3),
+then add
 bullpen quality and stress, then the park and the temperature. Only then look at the
 posted number, and compare it against the baselines in Section 1 before you compare it
 against your read — a total of 8.0 is below an average board, and knowing that is part
 of knowing whether your number disagrees with it.
 
   THE OVER/UNDER HISTORY BLOCK is outcomes, not inputs — how these clubs' totals have
-  actually landed. It is Tier 2 and it is easy to over-read: a 7-3 over record across ten
+  actually landed. It is moderate evidence, easy to over-read: a 7-3 over record across ten
   games is well inside what coin flips produce, and any effect it reflects is already in
   the rate stats you just used. Cite it as corroboration when it agrees with a read you
   already have. Never open a case with it, and never bet a total because a streak of them
@@ -779,15 +822,19 @@ The FLAGS block states facts and stops. It does not tell you which side a fact f
 and earlier versions of it did — if you find yourself repeating a flag's wording as though
 it were a conclusion, that is a habit from a card that no longer talks that way.
 
-Weather matters only when it is extreme. A genuinely extreme park factor, a hard wind, or
-a genuinely hot or cold game can reinforce a total you already lean — almost never
-disqualify one, and never create one. Ordinary "hitter-friendly" or "pitcher-friendly"
-labels are not a reason for anything.
+Weather is light evidence, and it is worth most when it is extreme. A genuinely extreme
+park factor, a hard wind, or a genuinely hot or cold game reinforces a total you already
+lean, and — per Section 2 — can be part of the case rather than merely decoration on it:
+a hot day in a hitter's park with the wind out, behind two short starters and a tired
+bullpen, is a real argument for runs. What it cannot do is carry a total by itself, and
+you must not count the park factor, the temperature and the wind as three separate
+reasons when they are three readings of the same run environment. Ordinary
+"hitter-friendly" or "pitcher-friendly" labels remain no reason for anything.
 
   TEMPERATURE is on the card now. It moves carry in the direction you would expect and
   the effect is real but modest — a 90°F game and a 55°F game are a meaningful fraction
-  of a run apart, not a run. Treat it as Tier 3 alongside the park factor: a tiebreaker
-  on a total you already lean, never the case for one. The same goes for the elevation
+  of a run apart, not a run. It is light evidence alongside the park factor — and the two
+  are largely the same signal, so do not count them twice. The same goes for the elevation
   line on the handful of parks that carry one.
 
 Rain risk and the "NO STATS" mark are disqualifiers rather than weights; both are stated
@@ -808,7 +855,7 @@ sentence compares the two, name both: "118 wRC+ vs RHP over their last 6, up fro
 over their last 12."
 
 Each reason must contain, in order:
-  1. The Tier 1 matchup that drives it, with windows stated
+  1. The heaviest evidence that drives it, with windows stated
   2. The supporting evidence, with windows stated
   3. WHY THE PRICE IS WRONG — this is mandatory. If you cannot articulate what the market
      is mispricing, you do not have a bet and should not be submitting it.
@@ -820,7 +867,8 @@ copy on a betting page, not a transcript of your reasoning. Do your thinking pri
 then state only the conclusion and the evidence behind it.
 
 NEVER write any of the following in a reason, pass_reason, or alt_suggestion:
-  • References to these instructions or their structure — no "Tier 1", "per the rules",
+  • References to these instructions or their structure — no "the heaviest evidence",
+    "per the rules",
     "Section 3", "the guidance says", "as instructed", "the two signals agree".
   • Reminders of baseball or methodology rules you are following. The reader knows a team
     bats against the opposing pitcher. Do not write "their own starter's ERA doesn't
@@ -855,11 +903,12 @@ rather than about the game, delete it.
 A game's card may carry a SITUATIONAL TRENDS block, printed separately from FLAGS at the
 end of the card. The card states what happened; this section is where it is weighed.
 
-READ THIS BEFORE THE BULLETS. These are the WEAKEST evidence on the card, weaker than
-anything in Tier 2. Every effect named below is small, and several are small enough that
-honest people argue about whether they exist. They can break a tie between two readings
-you already hold. They cannot create a bet, they cannot outweigh a Tier 1 matchup, and a
-pick whose case rests on one is not a pick.
+READ THIS BEFORE THE BULLETS. These are the LIGHTEST evidence on the card. Every effect
+named below is small, and several are small enough that honest people argue about whether
+they exist. They still count, and per Section 2 several of them pointing the same way can
+form part of a real case — but they are also the evidence most likely to be the same fact
+restated, so count independent signals rather than lines of text. One of them alone is not
+a pick, and none of them outweighs heavy evidence pointing the other way.
 
   • A RECENT BAD RESULT IS NOT A REASON TO EXPECT A GOOD ONE. A club that was swept, shut
     out, or beaten 1-0 has not become more likely to win today because it is "due" — that
@@ -899,16 +948,17 @@ Derive the confidence label from those two against the card's no-vig price:
 
   edge = your win_probability − the no-vig probability for that side
 
-Under 4 points, there is no pick (Section 4). Both fields are published as-is, so a
+Under 6 points, there is no pick (Section 4). Both fields are published as-is, so a
 projection you would not defend is a projection you should not submit.
 
 CONFIDENCE describes the strength of the MISPRICING, not how likely the bet is to win —
 a -180 favourite you expect to win 70% of the time is a medium-confidence bet if the price
 is roughly fair, and a coin flip at +140 is a high one if you think it is closer to even.
 
-  • HIGH — your edge over the no-vig price is roughly 8 points or better, Tier 1 points
-    one way without contradiction, the second offense window or the head-to-head
-    corroborates it, and you can name the specific thing the market has wrong. Rare. Most
+  • HIGH — your edge over the no-vig price is roughly 10 points or better, the heavy
+    evidence points one way without contradiction, the second offense window or the
+    head-to-head corroborates it, and you can name the specific thing the market has
+    wrong. Rare. Most
     slates have none, and a slate with more than one or two is a slate where "high" has
     stopped meaning anything.
   • MEDIUM — everything else you are willing to publish. A real edge you can defend, with
@@ -1081,9 +1131,9 @@ Do not reject for style, brevity, or missing detail that does not change the con
 
 A starter's history VS THIS OPPONENT or AT THIS PARK is supporting evidence, not a
 top-weighted input — up to three meetings is a sample small enough that the rate stats
-computed over everything else usually win a conflict. Cited alongside a Tier 1 case it is
-fine. Standing alone as the whole case it is not, and neither is a case resting on a
-SINGLE meeting: REJECT both, as a number doing more work than it can carry. (That is a
+computed over everything else carry more weight in a conflict. Cited alongside heavier
+evidence it is fine. Standing alone as the whole case it is not, and neither is a case
+resting on a SINGLE meeting: REJECT both, as a number doing more work than it can carry. (That is a
 weighting failure, not a misquote; do not file it under check 2, whose subject is figures
 that disagree with the card.) The meeting count must be stated and must match the card.
 
@@ -1126,7 +1176,14 @@ _VERIFY_TOOL = {
 # only ever sees picks whose numbers are real.
 
 PRICE_FLOOR = -200          # Section 5, in every market, main and alternate alike
-MIN_EDGE_PTS = 4.0          # Section 4, over the card's own no-vig price
+MIN_EDGE_PTS = 6.0          # Section 4, over the card's own no-vig price
+#
+# Raised from 4.0 on 2026-08-30. At 4.0 it never rejected anything: across the 54
+# picks carrying both probabilities, the smallest stated edge was 5.0 points and the
+# median was 11.5, so the floor sat below the entire distribution. Raising it is only
+# half the fix — a self-reported number can be inflated past any threshold — which is
+# why Section 4 now also tells the model what its own distribution looked like and
+# asks it to derive the estimate before checking it against the bar.
 
 
 def _prop_for(pick: dict, g: dict, market: str):
@@ -1783,6 +1840,43 @@ def _serialize_game_for_ai(g: dict) -> str:
 
 # ── AI call + caching ─────────────────────────────────────────────────────────
 
+def _normalize_tool_result(result) -> dict:
+    """Coerce the model's tool output into the shape the rest of the code assumes.
+
+    The tool is not `strict`, so the API accepts a field of the wrong TYPE — and on
+    2026-08-30 it did: `pass_reasons` came back as a bare string instead of the
+    {game: reason} object the schema declares, and `_ai_game_map` died on
+    `'str' object has no attribute 'items'` during HTML generation. Picks had already
+    been committed by then, so the run left a pick log with no page — the step ordering
+    did its job and kept the last good deploy up, but the publish still failed.
+
+    A malformed field degrades to empty here rather than taking the whole site down.
+    `strict: true` is not available as a fix: it requires additionalProperties=false,
+    and pass_reasons deliberately uses additionalProperties as an open string map.
+    """
+    if not isinstance(result, dict):
+        print(f"[suggestions] tool result is {type(result).__name__}, not an object — "
+              "discarding", file=sys.stderr)
+        return {"picks": [], "pass_reasons": {}}
+
+    picks = result.get("picks")
+    if not isinstance(picks, list):
+        if picks is not None:
+            print(f"[suggestions] picks is {type(picks).__name__}, not a list — dropping",
+                  file=sys.stderr)
+        picks = []
+    result["picks"] = [p for p in picks if isinstance(p, dict)]
+
+    pr = result.get("pass_reasons")
+    if not isinstance(pr, dict):
+        if pr is not None:
+            print(f"[suggestions] pass_reasons is {type(pr).__name__}, not an object — "
+                  "dropping", file=sys.stderr)
+        pr = {}
+    result["pass_reasons"] = {k: v for k, v in pr.items() if isinstance(v, str)}
+    return result
+
+
 def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                          rej_dir: Path = Path("./rejections")) -> Optional[dict]:
     """
@@ -1938,7 +2032,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                                     "The no-vig probability the card prints for the side you are "
                                     "taking, 0-100, copied from the [no-vig …] figure on that "
                                     "market's line. win_probability minus this is your edge and "
-                                    "must be at least 4 points."
+                                    "must be at least 6 points."
                                 ),
                             },
                             "reason":      {
@@ -2028,7 +2122,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
         if not tool_block:
             print("[suggestions] No tool_use block in response", file=sys.stderr)
             return None
-        result = tool_block.input
+        result = _normalize_tool_result(tool_block.input)
     except Exception as e:
         print(f"[suggestions] API error: {e}", file=sys.stderr)
         return None
@@ -2196,6 +2290,10 @@ def _ai_game_map(valid_picks: list, suggestions: Optional[dict]) -> dict:
             picks_by_game.setdefault((game, p.get("game_time_utc", "")), []).append(p)
 
     pass_reasons = (suggestions or {}).get("pass_reasons") or {}
+    if not isinstance(pass_reasons, dict):
+        # A cached suggestions file written before the normalizer landed can still carry
+        # a malformed value; rendering must not die on it.
+        pass_reasons = {}
 
     result: dict = {}
     for key, picks in picks_by_game.items():
