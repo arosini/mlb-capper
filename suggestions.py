@@ -289,9 +289,49 @@ LIGHT — real but small: weather, temperature, park factor, flags, situational 
 LIGHT EVIDENCE STILL COUNTS, AND IT ACCUMULATES. Several light signals pointing the same
 way are a real argument — a hot day, a hitter's park, wind blowing out and a stressed
 bullpen behind a short starter is a coherent case for runs even with nothing heavy
-driving it. Do not discard a signal because it is small; add it up. What a light signal
-cannot do is carry a case ALONE, and it cannot outweigh heavy evidence pointing the other
-way just because you have counted several of them.
+driving it. Do not discard a signal because it is small; add it up. An ORDINARY light
+signal cannot carry a case alone, and no number of ordinary ones outweighs heavy evidence
+pointing the other way just because you have counted them. An EXTREME one is a different
+object — see the next block.
+
+A CATEGORY IS A PRIOR, NOT A CEILING. The three groups above describe the TYPICAL
+reading in each block — how much a run-of-the-mill number there should move you. They do
+not cap it. Weight is the category MULTIPLIED BY how extreme the reading is, so an
+egregious figure in a light block can outweigh an unremarkable one in a heavy block. A
+team 10-1 over its last 10 is a much larger fact than the same team 6-5, even though
+"team trend" is the same input in both cases and is a weak input on average. Averages
+describe the block; you are handicapping THIS game, and the number in front of you is
+what you have.
+
+Before you promote a signal above its block, it must clear all four of these. Say in the
+reason which ones it clears:
+  • MAGNITUDE — it is far from the league baselines in Section 1, not merely on the right
+    side of them. "Above average" is not extreme. Near the edge of what the stat does is.
+  • CONSISTENCY — every observation says it, not an average dragged there by one. Five
+    straight outings of six-plus earned runs against a club is a pattern; a 6.00 ERA
+    across five starts built from one disaster and four decent ones is not the same
+    object and does not get the same weight.
+  • SAMPLE — enough observations that the extremity is not just a short sequence doing
+    what short sequences do. Three of three is thin. Ten of ten is not.
+  • MECHANISM — something on the card explains it. A lefty-heavy lineup against a starter
+    with a large platoon split, a fly-ball arm in a bandbox with the wind out. An extreme
+    number with no mechanism anywhere on the card is more likely a sample artifact than a
+    discovery, and it stays at its block's weight.
+
+AND THEN THE COUNTERWEIGHT, WHICH IS NOT OPTIONAL. The more extreme and the more visible
+a signal is, the more certainly the market has already priced it. A club on a ten-game
+winning streak is the single most conspicuous thing on the board; the book has seen it,
+the public has bet it, and the price in front of you is what is left AFTER all of that.
+So an extreme reading raises two estimates at once — your estimate of the team, and your
+estimate of what the number already contains — and those largely cancel. This is why a
+loud signal so often produces no bet. Promoting a signal above its block changes how
+confident you are in your read of the GAME; it does not by itself mean the PRICE is
+wrong, and only a wrong price is a bet. The bet still has to clear Section 4's threshold
+against the no-vig number.
+
+The corollary cuts the other way and is worth as much: an extreme reading pointing AWAY
+from your bet is heavier counter-evidence than its block suggests, and Section 4 requires
+you to name it.
 
 COUNT INDEPENDENT SIGNALS, NOT RESTATEMENTS. This is the trap in adding evidence up. A
 hitter's park factor, a warm temperature and a wind blowing out are three readings of one
@@ -310,6 +350,13 @@ and it needs corroboration to carry much on its own.
   • Weight it by CONSISTENCY, not by the best or worst single line. Three meetings all
     pointing the same way is worth citing alongside the rate stats. Two meetings agreeing
     is weak support. ONE meeting is an anecdote — never build on it.
+  • Consistency is the one thing a sample this small CAN establish, and it is where the
+    promotion test above applies most often. A starter shelled in the same way every time
+    he has faced this club — not a bad average, but every outing short and every outing
+    loud — is stronger evidence than the block's moderate default, because each meeting
+    is a separate failure rather than one number spread thin. Promote it only if it also
+    clears MAGNITUDE, SAMPLE and MECHANISM: if the roster that did the damage has turned
+    over, or nothing on today's card explains why it happened, it stays moderate.
   • Where the head-to-head CONTRADICTS the rate stats, the rate stats carry more weight
     because they are computed over a far larger sample. That is a reason to want a better
     price or to pass — not a reason to flip to the head-to-head side, and not a reason to
