@@ -24,10 +24,10 @@
     "market_probability": 49,
     "rung_rejected": null,
     "found_at": "2026-08-29T11:44:11.491669+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-30T12:22:01.563014+00:00"
   },
   {
     "date": "2026-08-29",
@@ -54,10 +54,10 @@
     "market_probability": 43,
     "rung_rejected": "4.5 over at -174",
     "found_at": "2026-08-29T11:44:11.491669+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-30T12:22:01.563014+00:00"
   },
   {
     "date": "2026-08-29",
@@ -324,10 +324,10 @@
     "market_probability": 50,
     "rung_rejected": "the 6.5 rung, which posts only an over at -220",
     "found_at": "2026-08-29T17:31:31.451356+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-08-30T12:22:01.563014+00:00"
   },
   {
     "date": "2026-08-29",
@@ -414,10 +414,10 @@
     "market_probability": 39,
     "rung_rejected": null,
     "found_at": "2026-08-29T17:31:31.451356+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-30T12:22:01.563014+00:00"
   },
   {
     "date": "2026-08-29",
@@ -564,10 +564,10 @@
     "market_probability": 52,
     "rung_rejected": "4.5 under is not posted; the 6.5 over at +207 is the wrong side of a pitcher who has not reached six",
     "found_at": "2026-08-29T22:18:00.520778+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 3,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-30T12:22:01.563014+00:00"
   },
   {
     "date": "2026-08-29",
@@ -594,9 +594,9 @@
     "market_probability": 47,
     "rung_rejected": "2.5 over at -250 \u2014 three strikeouts is close to a lock but the price eats the entire edge; 3.5 at even money is where the number and my estimate diverge most",
     "found_at": "2026-08-30T00:39:36.070877+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 4,
+    "home_score_final": 2,
+    "annotated_at": "2026-08-30T12:22:01.563014+00:00"
   }
 ]
