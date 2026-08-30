@@ -283,7 +283,19 @@ jobs:
           for _retry in 1 2; do
             git reset HEAD~1
             _restore
-            git pull origin main
+            # --ff-only, and the branch we are actually on.
+            #
+            # Two bugs lived on this line and both fired on 2026-08-30. A bare `git pull`
+            # is FATAL on git >= 2.27 when the branches have diverged and no pull.rebase
+            # is configured ("Need to specify how to reconcile divergent branches"), which
+            # is precisely the situation this retry exists to recover from — so the
+            # concurrent-push recovery CLAUDE.md documents had never actually worked. And
+            # `origin main` was hardcoded, so a run on any other branch pulled main into
+            # it. After the `git reset HEAD~1` above our HEAD is the commit we started
+            # from, so upstream can only be ahead: a fast-forward is the correct and only
+            # sound reconciliation, and --ff-only fails loudly if that assumption breaks
+            # rather than inventing a merge.
+            git pull --ff-only origin "${{ github.ref_name }}"
             _save_and_annotate
             _stage
             git diff --staged --quiet && exit 0

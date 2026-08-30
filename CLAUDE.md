@@ -264,6 +264,21 @@ Two ordering rules in `publish.yml` protect the invariant:
    deploy. Leaving the last good page up beats publishing picks that cannot be
    reproduced.
 
+**The retry path's `git pull` had never worked, and was fixed on 2026-08-30.** It read
+`git pull origin main`, which carries two faults. A bare `git pull` is *fatal* on git
+≥2.27 when the branches have diverged and no `pull.rebase` is set — "Need to specify how
+to reconcile divergent branches" — and divergence is exactly the case the retry exists to
+handle, so the concurrent-push recovery documented above had never once recovered
+anything. Separately, `main` was hardcoded, so a run on any other branch pulled main into
+it. It is `git pull --ff-only origin "${{ github.ref_name }}"` now: after the preceding
+`git reset HEAD~1` our HEAD is the commit the run started from, so upstream can only be
+ahead and a fast-forward is the only sound reconciliation — with `--ff-only` failing
+loudly if that assumption ever breaks instead of inventing a merge.
+
+It surfaced when a push to the branch landed mid-run, which is the same shape as two
+scheduled runs racing. The `concurrency: publish` group makes that rarer, not impossible:
+a push from a person or another workflow is not in the group.
+
 ## Deployment
 - **Repo**: `github.com/arosini/mlb-capper`
 - **Hosting**: Cloudflare Pages — project `mlb-capper`, custom domain `mlbautocap.com`
