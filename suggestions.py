@@ -93,9 +93,9 @@ def _pick_summary_title(pick: dict) -> str:
 
 # ── AI system prompt ──────────────────────────────────────────────────────────
 
-# One definition, interpolated into BOTH prompts below. The generator and the auditor
-# read the same card, so a divergence here would mean the auditor mis-reading what the
-# analyst was shown — and check 2 rejects figures "not on the card". Keep it single-source.
+# Interpolated into _AI_SYSTEM_PROMPT. It fed the auditor's prompt too until the audit
+# pass was removed on 2026-08-30; it stays a named constant because it describes the card
+# rather than the analysis, and the next thing that reads a card should reuse it.
 #
 # This text used to be printed inside every game card, ~366 tokens x 20 games on every
 # generation call, to say the same thing each time. It is identical per game, so it
@@ -704,10 +704,11 @@ OUTS. An outs prop is a bet on how long the manager lets him work, which is a di
 question from how well he pitches — a starter can be excellent and still get 15 outs, or
 mediocre and grind through 19. Use exactly these:
   1. How deep he normally goes (IP/gs, last 3)
-  2. His IP/gs VS THIS OPPONENT and AT THIS PARK (up to last 3 meetings) — a lineup that
-     runs his pitch count up has done it repeatedly, and it shows here before it shows
-     anywhere else. Where a consistent head-to-head depth differs from his overall
-     IP/gs, trust the head-to-head.
+  2. His IP/gs VS THIS OPPONENT (up to last 3 meetings) — a lineup that runs his pitch
+     count up has done it repeatedly, and it shows here before it shows anywhere else.
+     Where a consistent head-to-head depth differs from his overall IP/gs, weigh the
+     head-to-head heavily: depth against a specific lineup is one of the few places a
+     small head-to-head sample carries real information.
   3. How deep he went LAST time, and how recently that was
   4. Bullpen stress on his own team
   5. His BB% over the last 3 — walks are what end outings early. A command wobble caps
@@ -905,10 +906,10 @@ end of the card. The card states what happened; this section is where it is weig
 
 READ THIS BEFORE THE BULLETS. These are the LIGHTEST evidence on the card. Every effect
 named below is small, and several are small enough that honest people argue about whether
-they exist. They still count, and per Section 2 several of them pointing the same way can
-form part of a real case — but they are also the evidence most likely to be the same fact
-restated, so count independent signals rather than lines of text. One of them alone is not
-a pick, and none of them outweighs heavy evidence pointing the other way.
+they exist. They still count, and per Section 2 several of them pointing the same way can form part
+of a real case — subject to that section's independence rule, which these signals break
+more often than any others on the card. One of them alone is not a pick, and none of them
+outweighs heavy evidence pointing the other way.
 
   • A RECENT BAD RESULT IS NOT A REASON TO EXPECT A GOOD ONE. A club that was swept, shut
     out, or beaten 1-0 has not become more likely to win today because it is "due" — that
@@ -1004,167 +1005,6 @@ When your analysis is complete, call the report_betting_suggestions tool.
 
 # ── Verification pass ─────────────────────────────────────────────────────────
 
-_VERIFY_SYSTEM_PROMPT = f"""\
-You are an auditor reviewing a single proposed MLB bet. You did not make this pick. Your
-job is to catch reasoning that is internally broken — not to re-handicap the game and not
-to substitute your own opinion.
-
-You will be given the exact data card the analyst saw, plus their pick and their stated
-rationale. Return ACCEPT or REJECT.
-
-{_CARD_FORMAT}
-WINDOWS ON THE CARD. Every stat is a specific time window, and the card labels each one:
-SP xERA/ERA/K%/Whiff%/BB% are his LAST 3 STARTS; team offense — wRC+, K%, Whiff%, HH% —
-is the lineup's LAST 6 GAMES vs today's opposing starter's hand, AND each of those four
-stats is printed a second time for the SAME lineup and hand over its LAST 12 GAMES, for
-comparison; bullpens are the LAST 12 GAMES. Both windows of every offense stat are
-legitimately on the card, so a rationale citing either one is quoting real data — check
-which window it names, not just the number.
-
-ALTERNATE LINES ARE ON THE CARD. Where an "ALT LINES" block appears, the analyst had real
-prices at every number listed, not just the main one (marked `*`). A pick taken at a number
-other than the main line is normal and correct, and a price quoted from that block is
-quoted from the card. Check the rung against the block before calling any figure invented,
-and never reject a pick for being at a non-main number.
-
-MORE OF THE CARD IS REAL THAN YOU MAY EXPECT. Check 2 rejects figures that are not on the
-card, so know what is: the temperature and any elevation on the Weather line; each
-bullpen's K%/BB%/HH% and its "2d stress" innings; the starter's K-BB%; the OVER/UNDER
-HISTORY block, which is graded outcomes rather than projections; the SEASON SERIES line;
-and the "[no-vig NN% / NN%]" figures beside each market, which are the two posted prices
-with the book's margin divided out. All of those are quotable. The analyst also submits a
-projection and a win probability of its own — those are estimates, not card figures, and
-are not subject to check 2.
-
-═══════════════════════════════════════════════════════════════════
-REJECT if ANY of the following is true
-═══════════════════════════════════════════════════════════════════
-
-1. BACKWARDS BASEBALL LOGIC. This is the most important check and the most common failure.
-   Each team bats against the OPPOSING starter and the OPPOSING bullpen. A starter's xERA
-   or ERA says NOTHING about how his own team will hit.
-     • REJECT: backing Team A while citing Team A's own pitcher's HIGH/BAD xERA or ERA as
-       a reason. A bad pitcher is a reason to fade his team, not to back it.
-     • REJECT: backing Team A's offense by pointing at Team A's own pitcher's stats.
-     • REJECT: an under argued from the offenses being good, or an over argued from the
-       starters being good.
-     • REJECT: any claim that pairs a lineup's wRC+ against its OWN starter rather than
-       against the opposing starter.
-     • REJECT: a rationale that puts a starter on the wrong club. The STARTING PITCHERS
-       block names the team each one is throwing for today; check the pick's pitcher
-       against it rather than against what you know about his career. If the rationale
-       has him facing the lineup he is actually pitching for, the whole matchup is
-       inverted — REJECT even if every number quoted is otherwise real.
-
-2. THE NUMBERS DO NOT MATCH THE CARD. Any stat quoted in the rationale that contradicts
-   the data card, or that does not appear in it at all. The analyst may only use the
-   numbers provided. Invented, misread, or misattributed figures are a REJECT — including
-   attributing one team's number to the other.
-     • REJECT: a stat quoted with the WRONG WINDOW. The rationale is published as fact, so
-       calling a last-6 offense number "over their last 12" (or the reverse) states a false
-       time period to the reader. wRC+, K%, Whiff%, and HH% all carry both windows on the
-       card now — check the number against the window actually named, not just whether
-       that window exists for the stat.
-
-3. THE RATIONALE DOES NOT SUPPORT THE SIDE ACTUALLY BET. The reasoning argues for one
-   outcome and the bet is on a different one — an under rationale attached to an over, a
-   rationale about Team A attached to a bet on Team B, or a rationale about the starters
-   attached to a full-game bet whose case depends on the bullpens.
-
-4. THE JUICE IS NOT EXPLAINED. Between -150 and -200 the rationale must say what the
-   price is buying; REJECT if it never engages with the price at all.
-   Do NOT reject a bet merely for being juiced inside that range. A short alternate number
-   at -175 is a legitimate bet and this check is not a juice filter. You do not need to
-   check the -200 floor, whether the quoted price appears on the card, or whether the
-   stated edge clears its minimum — all three are enforced in code before a pick reaches
-   you, so anything you are looking at has already passed them.
-
-5. NO PRICING ARGUMENT AT ALL. The rationale handicaps the game but never says what the
-   market has wrong. "Team A is better" is not a bet. If there is no claim of a
-   mispricing, REJECT.
-
-6. K PROP FIGHTING THE LINEUP. The opponent's K% (last 6 vs that hand) is the strongest
-   input on a strikeout prop, and the two signals must agree.
-     • REJECT: a K OVER into a lineup that does not strike out, unless the rationale
-       explicitly confronts the low K% and explains why the number is beatable anyway.
-       Two arguments are legitimate and neither is a REJECT on its own: a lineup's Whiff%
-       running notably above its K%, or an alternate rung low enough that the lineup's
-       contact rate stops mattering. The second must actually name the number it is
-       relying on.
-     • REJECT: a K UNDER against a high-K lineup on the same terms.
-     • REJECT: a K prop justified ONLY by the pitcher's own K% with no mention at all of
-       what the opposing lineup does against that hand.
-   A prop where both signals align, or where one is middling and the rationale accounts
-   for it, is fine — do not reject those.
-
-7. K OVER WITH NO INNINGS TO GET THERE. A strikeout total is rate × length. If the card
-   posts an outs line of roughly 15.5 or below and the pick is a K OVER, the rationale
-   must say why he pitches deeper than the market expects. REJECT if it never engages
-   with the short outing at all. Do not apply this where the card posts no outs line, and
-   do not reject a K UNDER on these grounds — a short outs line supports an under.
-
-8. THE RATIONALE'S OWN EVIDENCE ARGUES AGAINST THE BET. Not a judgment that the bet is
-   thin — a rationale that states a fact and then bets the other way from it.
-     • REJECT: a K OVER supported by a hot strikeout streak where the rationale itself
-       notes, or the card plainly shows, that those totals came against HIGHER-K lineups
-       than today's opponent. Recent totals built against strikeout-prone opposition are
-       evidence against the over into a contact lineup, not for it.
-     • REJECT: any pick that concedes the number is a stretch — "he has only cleared this
-       once," "they rarely score five" — and recommends it anyway without naming something
-       that changes the picture.
-   This check is about self-contradiction only. A demanding number (a team total over at
-   4.5+, a K over at 7.5+, a K under at 3.5-, an outs over at 18.5+) is NOT a reject on
-   size. Those numbers get their scrutiny at generation time; if a pick reaches you having
-   made a coherent case, ACCEPT it even if you would have wanted a bigger case. Do not
-   reject a pick merely for being aggressive, thinly argued, or one you would have passed.
-
-═══════════════════════════════════════════════════════════════════
-ACCEPT otherwise
-═══════════════════════════════════════════════════════════════════
-
-ACCEPT means the reasoning is coherent, the numbers are real and correctly attributed,
-and the bet follows from the argument. You are NOT judging whether the bet will win, and
-you are NOT judging whether you would have made it. A defensible pick you personally
-disagree with is an ACCEPT. Reserve REJECT for genuine breakage.
-
-Do not reject for style, brevity, or missing detail that does not change the conclusion.
-
-A starter's history VS THIS OPPONENT or AT THIS PARK is supporting evidence, not a
-top-weighted input — up to three meetings is a sample small enough that the rate stats
-computed over everything else carry more weight in a conflict. Cited alongside heavier
-evidence it is fine. Standing alone as the whole case it is not, and neither is a case
-resting on a SINGLE meeting: REJECT both, as a number doing more work than it can carry. (That is a
-weighting failure, not a misquote; do not file it under check 2, whose subject is figures
-that disagree with the card.) The meeting count must be stated and must match the card.
-
-When rejecting, state the specific flaw in one or two sentences — quote the offending
-phrase from the rationale so the prompt can be fixed later. On ACCEPT, no reason needed.
-"""
-
-_VERIFY_TOOL = {
-    "name": "report_verdict",
-    "description": "Report whether the proposed bet's reasoning holds up.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "verdict": {
-                "type": "string",
-                "enum": ["ACCEPT", "REJECT"],
-                "description": "ACCEPT if the reasoning is coherent and correctly attributed; REJECT if broken.",
-            },
-            "reason": {
-                "type": ["string", "null"],
-                "description": (
-                    "REQUIRED when verdict is REJECT: the specific flaw in 1-2 sentences, "
-                    "quoting the offending phrase. Omit or null when ACCEPT."
-                ),
-            },
-        },
-        "required": ["verdict"],
-    },
-}
-
-
 # ── Mechanical validation ─────────────────────────────────────────────────────
 #
 # Everything here used to be enforced by asking a model nicely. The -200 floor was a
@@ -1208,7 +1048,7 @@ def _posted_prices(pick: dict, g: dict) -> Optional[list]:
     """Every price the card posts for this exact (market, line, side), or None.
 
     None means "could not identify the market" and is NOT a rejection — an unrecognised
-    shape fails open, same as the audit pass does on an API error. An empty list means
+    shape fails open rather than rejecting on a shape we did not anticipate. An empty list means
     the market was found and this line/side is not on it.
     """
     od   = g.get("odds") or {}
@@ -1282,7 +1122,12 @@ def _posted_prices(pick: dict, g: dict) -> Optional[list]:
 
 
 def _validate_pick(pick: dict, g: dict) -> Optional[str]:
-    """Deterministic pre-audit checks. Returns a rejection reason, or None to pass."""
+    """Deterministic checks. Returns a rejection reason, or None to pass.
+
+    Since the AI audit pass was removed these are the ONLY automated checks standing
+    between the model's output and the published page, so they are the place to add any
+    new check that can be expressed mechanically.
+    """
     bt = pick.get("bet_type") or ""
 
     # 1. The price floor is an `if` now, not a sentence in two prompts.
@@ -1336,68 +1181,6 @@ def _validate_pick(pick: dict, g: dict) -> Optional[str]:
     return None
 
 
-def _verify_pick(client, pick: dict, game_block: str) -> tuple[bool, str]:
-    """
-    Audit one pick against the data card it came from. Returns (accepted, reject_reason).
-    Fails OPEN — an API error keeps the pick rather than silently dropping it.
-    """
-    bet_line = " | ".join(
-        f"{k}: {pick.get(k)}"
-        for k in ("bet_type", "bet", "team_side", "line", "period", "odds", "confidence")
-        if pick.get(k) not in (None, "")
-    )
-    user_msg = (
-        f"DATA CARD THE ANALYST SAW:\n\n{game_block}\n\n"
-        f"{'=' * 67}\n\nPROPOSED BET\n{bet_line}\n\n"
-        f"ANALYST'S RATIONALE\n{pick.get('reason', '(none given)')}\n\n"
-        f"{'=' * 67}\n\nAudit this pick and call report_verdict."
-    )
-    try:
-        resp = client.messages.create(
-            model="claude-opus-5",
-            max_tokens=4000,
-            thinking={"type": "adaptive"},
-            # A bounded task — read one card, check one rationale against it, return a
-            # verdict — so it runs at low effort. WATCH THE REJECTION RATE: the audit's
-            # value is cross-referencing quoted figures against the card (misquoted ERAs,
-            # a stat attributed to the wrong club, a lineup claim the card contradicts),
-            # and that is precisely what effort buys. The baseline is 16 audit rejections
-            # over 2026-08-09..08-27, 6.2% of picks submitted, countable from rejections/
-            # by excluding the "[mechanical]" prefix. If it falls well below that, put
-            # this back to "medium".
-            output_config={"effort": "low"},
-            # The audit runs once per pick in a sequential loop, so ~7 calls a run go out
-            # back to back with an identical prefix — same tools, same system prompt, only
-            # the card and rationale differ. Caching that prefix turns 6 of every 7 full-
-            # price sends into cache reads at a tenth the rate. Render order is tools ->
-            # system -> messages, so the breakpoint here covers both constants and the
-            # per-pick user message stays outside it.
-            #
-            # Opus 5's minimum cacheable prefix is 512 tokens and this prompt is ~2.2K, so
-            # it does cache; below the minimum it would silently no-op. Do NOT copy this to
-            # the generation call — that fires once per run, six hours apart, so its cache
-            # would never be read and the 1.25x write premium would be a pure loss.
-            system=[{"type": "text", "text": _VERIFY_SYSTEM_PROMPT,
-                     "cache_control": {"type": "ephemeral"}}],
-            tools=[_VERIFY_TOOL],
-            messages=[{"role": "user", "content": user_msg}],
-        )
-        record_claude("claude-opus-5", getattr(resp, "usage", None))
-        block = next((b for b in resp.content if getattr(b, "type", "") == "tool_use"), None)
-        if not block:
-            # No structured verdict — fail open rather than discard a possibly-good pick.
-            print("[verify] no verdict block returned — keeping pick", file=sys.stderr)
-            return True, ""
-        data = block.input or {}
-        verdict = str(data.get("verdict", "")).strip().upper()
-        if verdict == "REJECT":
-            return False, (data.get("reason") or "").strip() or "(no reason given)"
-        return True, ""
-    except Exception as e:
-        print(f"[verify] API error ({e}) — keeping pick", file=sys.stderr)
-        return True, ""
-
-
 def _log_rejections(rejections: list[dict], rej_dir: Path, date_str: str) -> None:
     """Append rejected picks to rejections/{date}.json for later prompt tuning."""
     if not rejections:
@@ -1418,9 +1201,9 @@ def _log_rejections(rejections: list[dict], rej_dir: Path, date_str: str) -> Non
                  if (r.get("game"), r.get("bet"), r.get("reject_reason")) not in seen]
         if added:
             path.write_text(json.dumps(existing + added, indent=2))
-            print(f"[verify] logged {len(added)} rejection(s) → {path}", file=sys.stderr)
+            print(f"[validate] logged {len(added)} rejection(s) → {path}", file=sys.stderr)
     except Exception as e:
-        print(f"[verify] could not write rejection log: {e}", file=sys.stderr)
+        print(f"[validate] could not write rejection log: {e}", file=sys.stderr)
 
 
 # ── Game serialization for AI prompt ─────────────────────────────────────────
@@ -1883,8 +1666,8 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
     Call Claude to generate betting suggestions. Caches to data/suggestions_{date}.json
     and regenerates whenever odds are updated. Returns parsed dict or None on failure.
 
-    Every pick is audited by a second, independent model call before being returned;
-    picks whose reasoning doesn't hold up are dropped and logged to rejections/{date}.json.
+    Picks are checked by _validate_pick — deterministic, no API call — and anything it
+    rejects is dropped and logged to rejections/{date}.json.
     """
     date_str = target_date.strftime("%Y-%m-%d")
     sugg_path = data_dir / f"suggestions_{date_str}.json"
@@ -2127,59 +1910,48 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
         print(f"[suggestions] API error: {e}", file=sys.stderr)
         return None
 
-    # ── Verification pass: audit each pick against the card it came from ──────
+    # ── Validation: the deterministic checks only ─────────────────────────────
+    #
+    # The per-pick AI audit was removed on 2026-08-30. It worked — 16 rejections over
+    # 2026-08-09..08-27, 6.2% of picks, catching fabricated figures, a stat attributed to
+    # the wrong club and one inverted matchup — but it was ~26 of ~30 daily calls and
+    # roughly $47 of the ~$121/month bill, and the decision was that a weak pick is
+    # acceptable output. What is lost with it is the check on FACTUAL claims in published
+    # copy; what remains is _validate_pick, which is free, deterministic, and covers the
+    # price floor, a line or price the card does not post, the stated-edge minimum and the
+    # two Section 8 disqualifiers. rejections/ keeps accruing from those, so the weekly
+    # prompt review still has input.
     picks = result.get("picks") or []
     if picks:
-        blocks_by_game = {f"{g['away']} @ {g['home']}": b
-                          for g, b in zip(unstarted, serialized)}
-        games_by_key   = {f"{g['away']} @ {g['home']}": g for g in unstarted}
+        games_by_key = {f"{g['away']} @ {g['home']}": g for g in unstarted}
         kept, rejections = [], []
         for pick in picks:
             game = pick.get("game", "")
-            block = blocks_by_game.get(game)
-            if not block:
-                # Can't audit what we can't match — keep it rather than drop blind.
-                print(f"[verify] no card for '{game}' — keeping unaudited", file=sys.stderr)
+            g = games_by_key.get(game)
+            if g is None:
+                # Cannot check a pick we cannot match to a card — keep rather than drop blind.
+                print(f"[validate] no card for '{game}' — keeping unchecked", file=sys.stderr)
                 kept.append(pick)
                 continue
-            # Deterministic checks first: a pick quoting a price the card does not post
-            # should never reach the paid audit call, let alone the page.
-            why = _validate_pick(pick, games_by_key[game])
-            if why:
-                print(f"[validate] REJECT {game} | {pick.get('bet')} — {why}", file=sys.stderr)
-                rejections.append({
-                    "date":          date_str,
-                    "game":          game,
-                    "bet_type":      pick.get("bet_type", ""),
-                    "bet":           pick.get("bet", ""),
-                    "odds":          pick.get("odds", ""),
-                    "confidence":    pick.get("confidence", ""),
-                    "reason":        pick.get("reason", ""),
-                    "reject_reason": f"[mechanical] {why}",
-                    "rejected_at":   datetime.now(timezone.utc).isoformat(),
-                })
-                continue
-            ok, why = _verify_pick(client, pick, block)
-            if ok:
+            why = _validate_pick(pick, g)
+            if not why:
                 kept.append(pick)
-            else:
-                print(f"[verify] REJECT {game} | {pick.get('bet')} — {why}", file=sys.stderr)
-                rejections.append({
-                    "date":          date_str,
-                    "game":          game,
-                    "bet_type":      pick.get("bet_type", ""),
-                    "bet":           pick.get("bet", ""),
-                    "odds":          pick.get("odds", ""),
-                    "confidence":    pick.get("confidence", ""),
-                    "reason":        pick.get("reason", ""),
-                    "reject_reason": why,
-                    "rejected_at":   datetime.now(timezone.utc).isoformat(),
-                })
+                continue
+            print(f"[validate] REJECT {game} | {pick.get('bet')} — {why}", file=sys.stderr)
+            rejections.append({
+                "date":          date_str,
+                "game":          game,
+                "bet_type":      pick.get("bet_type", ""),
+                "bet":           pick.get("bet", ""),
+                "odds":          pick.get("odds", ""),
+                "confidence":    pick.get("confidence", ""),
+                "reason":        pick.get("reason", ""),
+                "reject_reason": f"[mechanical] {why}",
+                "rejected_at":   datetime.now(timezone.utc).isoformat(),
+            })
         result["picks"] = kept
         _log_rejections(rejections, rej_dir, date_str)
-        n_mech = sum(1 for r in rejections if r["reject_reason"].startswith("[mechanical]"))
-        print(f"[verify] {len(kept)} kept, {len(rejections)} rejected of {len(picks)} "
-              f"({n_mech} mechanically, {len(rejections) - n_mech} by audit)",
+        print(f"[validate] {len(kept)} kept, {len(rejections)} rejected of {len(picks)}",
               file=sys.stderr)
 
     try:

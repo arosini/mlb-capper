@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Weekly prompt review — read the picks the verification pass threw out, look for
+Weekly prompt review — read the picks that were rejected before publication, look for
 recurring failure patterns, and propose an edit to the generation prompt.
+
+Since the AI audit pass was removed on 2026-08-30 these are all MECHANICAL rejections
+from suggestions._validate_pick: a price past the floor, a line or price the card does
+not post, a stated edge under the minimum, or one of the Section 8 disqualifiers. They
+say less about reasoning than the audit rejections did, but a recurring one still points
+at a prompt that is asking for something the card cannot support.
 
 This NEVER edits the prompt in place on main. It writes the proposed replacement to
 disk and prints a report; the workflow turns that into a pull request for a human to
@@ -82,12 +88,16 @@ def splice_prompt(text: str, new_body: str) -> str:
 
 
 _REVIEW_SYSTEM = """\
-You maintain the system prompt of an automated MLB betting analyst. A second model audits
-every pick that prompt produces and rejects the ones whose reasoning is broken. You are
-reading a week of those rejections to decide whether the PROMPT should change.
+You maintain the system prompt of an automated MLB betting analyst. Deterministic checks
+screen every pick that prompt produces and reject any that quote a price or line the card
+does not post, fall below the price floor or the minimum stated edge, or trip one of the
+Section 8 disqualifiers. You are reading a week of those rejections to decide whether the
+PROMPT should change.
 
 You are diagnosing a prompt, not a slate. A pick was already correctly thrown out — the
-question is whether the prompt's wording allowed a mistake it should have prevented.
+question is whether the prompt's wording allowed a mistake it should have prevented. These
+are mechanical rejections, so the usual answer is that the prompt invited the model to
+reason about something the card does not actually carry.
 
 ═══════════════════════════════════════════════════════════
 WHEN TO RECOMMEND A CHANGE
@@ -225,7 +235,7 @@ def main() -> int:
     ]
     user_msg = (
         f"Window: last {args.days} days ending {today.isoformat()}.\n"
-        f"{len(trimmed)} pick(s) were rejected by the verification pass.\n\n"
+        f"{len(trimmed)} pick(s) were rejected before publication.\n\n"
         f"REJECTIONS\n{json.dumps(trimmed, indent=2)}\n\n"
         f"{'=' * 70}\n\nCURRENT GENERATION PROMPT\n\n{current_prompt}\n\n"
         f"{'=' * 70}\n\nAnalyze and call report_prompt_review."

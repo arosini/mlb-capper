@@ -3,8 +3,9 @@
 Measure where the AI data card's tokens go, block by block.
 
 The card is the dominant input-token term in this project's Anthropic bill: it is sent
-once per game in the generation call, and then AGAIN in full for every pick the audit
-pass checks. CLAUDE.md's API Budget section models it at ~550 tokens; that figure was
+once per game in the generation call. (It used to be re-sent in full for every pick the
+audit pass checked; that pass was removed on 2026-08-30, so the generation call is now
+the only place the card is paid for.) CLAUDE.md's API Budget section models it at ~550 tokens; that figure was
 written before the adversarial review added weather detail, bullpen rates, ou_trends,
 head-to-head, no-vig probabilities, posted lineups and the alternate ladders, and it
 has never been re-measured.
@@ -186,7 +187,7 @@ def main() -> int:
     # The card is paid for twice: once per game in generation, once per PICK in the
     # audit pass. The audit multiplier is what makes the card the dominant term.
     print(f"Per generation call : {whole:,} input tok  (~${whole/1e6*5:.2f})")
-    print(f"Per verification call: {total/n:,.0f} input tok  (~${total/n/1e6*5:.3f}) — one card, re-sent\n")
+    print(f"Per game on that call: {total/n:,.0f} input tok  (~${total/n/1e6*5:.3f})\n")
 
     if args.json_out:
         _pathlib.Path(args.json_out).write_text(json.dumps(
