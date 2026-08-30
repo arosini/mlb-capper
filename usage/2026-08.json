@@ -423,23 +423,23 @@
     },
     "2026-08-29": {
       "claude": {
-        "cache_read_tokens": 101612,
-        "cache_write_tokens": 14516,
-        "calls": 40,
-        "cost_usd": 5.910464,
-        "input_tokens": 663332,
+        "cache_read_tokens": 112499,
+        "cache_write_tokens": 18145,
+        "calls": 45,
+        "cost_usd": 6.558059,
+        "input_tokens": 708751,
         "models": {
-          "claude-opus-5": 40
+          "claude-opus-5": 45
         },
-        "output_tokens": 98091
+        "output_tokens": 113786
       },
       "odds": {
-        "observed_at": "2026-08-29T22:12:51.366379+00:00",
+        "observed_at": "2026-08-30T00:35:46.734814+00:00",
         "remaining_first": 6433,
-        "remaining_last": 6107,
-        "remaining_min": 6107,
+        "remaining_last": 5889,
+        "remaining_min": 5889,
         "used_first": 13567,
-        "used_last": 13893
+        "used_last": 14111
       }
     }
   },

@@ -84,10 +84,10 @@
     "market_probability": 53,
     "rung_rejected": null,
     "found_at": "2026-08-29T11:44:11.491669+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 2,
+    "annotated_at": "2026-08-30T00:39:38.819495+00:00"
   },
   {
     "date": "2026-08-29",
@@ -234,10 +234,10 @@
     "market_probability": 44,
     "rung_rejected": "4.5 under was not posted; 5.5 is the only rung with an under price offered",
     "found_at": "2026-08-29T13:23:15.789485+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-30T00:39:38.819495+00:00"
   },
   {
     "date": "2026-08-29",
@@ -294,10 +294,10 @@
     "market_probability": 42,
     "rung_rejected": null,
     "found_at": "2026-08-29T17:31:31.451356+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 3,
+    "annotated_at": "2026-08-30T00:39:38.819495+00:00"
   },
   {
     "date": "2026-08-29",
@@ -354,10 +354,10 @@
     "market_probability": 55,
     "rung_rejected": "the 3.5 rung, which posts only an over at -205",
     "found_at": "2026-08-29T17:31:31.451356+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-30T00:39:38.819495+00:00"
   },
   {
     "date": "2026-08-29",
@@ -475,9 +475,9 @@
     "rung_rejected": null,
     "found_at": "2026-08-29T22:18:00.520778+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 7,
+    "home_score_final": 1,
+    "annotated_at": "2026-08-30T00:39:38.819495+00:00"
   },
   {
     "date": "2026-08-29",
@@ -504,10 +504,10 @@
     "market_probability": 49,
     "rung_rejected": "4.5 over at +150 \u2014 five runs is a 42% outcome and the park is too cold for that reach",
     "found_at": "2026-08-29T22:18:00.520778+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 1,
+    "annotated_at": "2026-08-30T00:39:38.819495+00:00"
   },
   {
     "date": "2026-08-29",
@@ -564,6 +564,36 @@
     "market_probability": 52,
     "rung_rejected": "4.5 under is not posted; the 6.5 over at +207 is the wrong side of a pitcher who has not reached six",
     "found_at": "2026-08-29T22:18:00.520778+00:00",
+    "result": null,
+    "away_score_final": null,
+    "home_score_final": null,
+    "annotated_at": null
+  },
+  {
+    "date": "2026-08-29",
+    "game": "PHI @ LAA",
+    "away": "Philadelphia Phillies",
+    "away_code": "PHI",
+    "home": "Los Angeles Angels",
+    "home_code": "LAA",
+    "game_time_utc": "2026-08-30T02:08:00Z",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Ryan Johnson Over 3.5 Strikeouts",
+    "team_side": null,
+    "line": 3.5,
+    "period": "props",
+    "odds": "+103",
+    "odds_num": 103,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Johnson has an 18.8% K rate and a 20.3% whiff rate over his last 3, producing 5, 4 and 3 strikeouts \u2014 two of three clear this number. Philadelphia is striking out 23.9% of the time vs RHP over their last 6, up from 18.9% over their last 12, with a 22.7% whiff rate over the last 6, and today's order runs six left-handed bats at him. His 4.04 xERA over his last 3 against a 1.62 ERA and a 44.4% hard-hit rate over that window point to traffic and pitch counts that keep him facing hitters into the fifth even when the run column looks quiet. Four strikeouts against a lineup whiffing this much is close to his median outing, and it is being priced as a slight underdog.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "projection": 4.1,
+    "win_probability": 55,
+    "market_probability": 47,
+    "rung_rejected": "2.5 over at -250 \u2014 three strikeouts is close to a lock but the price eats the entire edge; 3.5 at even money is where the number and my estimate diverge most",
+    "found_at": "2026-08-30T00:39:36.070877+00:00",
     "result": null,
     "away_score_final": null,
     "home_score_final": null,
