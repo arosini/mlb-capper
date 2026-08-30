@@ -220,8 +220,8 @@ published and displayed every day, which is why the site keeps showing picks ove
 weekend that does not count toward the number.
 
 > An earlier version of this file said the old pick files were the input to
-> `scripts/review_rejections.py`. They are not — that script reads `rejections/`.
-> Archiving or deleting `picks/` does not affect the weekly prompt review.
+> `scripts/review_rejections.py`. They were not — that script read `rejections/`, and it
+> has since been removed (see "The weekly prompt review is removed" below).
 
 A handful of older picks have `odds_num: null` (~14 of 448 as of 2026-08-08). They count
 in the W-L record but contribute 0 units, so P&L is very slightly understated rather than
@@ -350,7 +350,7 @@ successful Claude calls a day on 8/21–8/23, recorded in `usage/2026-08.json`.
 `anthropic` 1.x is a narrow break and this project touches none of it — no Text
 Completions, no `temperature`/`top_p`/`top_k`, no raw `output_format={...}` dict, no
 `.with_raw_response`, no direct `httpx` use, no Bedrock client. All three call sites
-(`suggestions.py` ×2, `scripts/review_rejections.py` ×1) pass only `model`,
+(`suggestions.py`, one call site) passes only `model`,
 `max_tokens`, `thinking`, `output_config`, `system`, `tools`, `tool_choice`, and
 `messages`, none of which changed; `messages.stream()` + `get_final_message()` is
 likewise unchanged. 1.x raises the Python floor to 3.10 and the workflows pin 3.11,
@@ -376,7 +376,7 @@ patch releases arrive on their own. Check with
 `gh api repos/{owner}/{repo}/releases/latest`.
 
 > ⚠️ **The model id is not a dependency and is not covered by these pins.**
-> `suggestions.py` and `scripts/review_rejections.py` hardcode `claude-opus-5` as of
+> `suggestions.py` hardcodes `claude-opus-5` as of
 > 2026-08-24 (previously `claude-opus-4-8`; same price, $5/$25 per MTok). Moving is a
 > deliberate change, not a version bump, and `usage.PRICING` must carry a rate for
 > whatever id is used — it already carries both. `PRICING` keeps the `claude-opus-4-8`
@@ -430,9 +430,9 @@ deterministic, and now the ONLY automated gate:
 4. the two §8 disqualifiers — a pitcher **OVER into rain risk**, and any bet on a **NO
    STATS** pitcher.
 
-Anything it rejects is logged to `rejections/` with a `[mechanical]` prefix, so the weekly
-prompt review still has input — but that input is now only ever mechanical, and
-`scripts/review_rejections.py` says so in its own prompt.
+Anything it rejects is logged to `rejections/` with a `[mechanical]` prefix. Nothing reads
+that log automatically any more — the weekly prompt review was removed the same day — so
+it is now a record for a human to look at, not an input to anything.
 
 **Cost after removal**, against the measured before:
 
@@ -782,7 +782,8 @@ comparing a submitted price against the card, and the rejection log has the fail
 (a pick citing "an 18.5 outs line" against a card posting 17.5). Audit checks 4 and 6 were
 removed as redundant and the remaining checks renumbered **1-8**; the audit call now spends
 its tokens only on reasoning. Mechanical rejections are logged to `rejections/` with a
-`[mechanical]` prefix so the weekly review can tell the two causes apart.
+`[mechanical]` prefix so the two causes could be told apart. (Moot since 2026-08-30:
+the audit pass is gone, so every rejection is mechanical.)
 
 ### Umpires — measured, not shipped
 
@@ -1036,15 +1037,29 @@ that: `Weekly Prompt Review` ran `python3 scripts/review_rejections.py`, whose
 ad-hoc CLI, and the job died on `module 'inspect' has no attribute 'signature'`. It had
 been broken since the file landed (commit `3a874af`) and only surfaced on the Monday cron.
 
-The CLI is `scripts/inspect_data.py` now, and `review_rejections.py` strips its own
-directory from `sys.path` before importing anything else — neither script imports a
-sibling by name, so the repo root it inserts is the only path either needs.
+The CLI is `scripts/inspect_data.py` now. `review_rejections.py` (since removed) also
+stripped its own directory from `sys.path` before importing anything else, and any new
+script in `scripts/` that imports from the repo root should do the same — nothing here
+imports a sibling by name, so the repo root is the only path such a script needs.
 
-`review_rejections.py` also **streams**: `max_tokens=32000` is deliberate (the tool
-returns a whole rewritten prompt) and the SDK refuses a non-streaming request it estimates
-could run past ~10 minutes. `get_final_message()` returns the same Message `create()`
-would have. The client runs with `max_retries=6` because a single `overloaded_error` fails
-a job that only gets one shot a week.
+## The weekly prompt review is removed — 2026-08-30
+
+`.github/workflows/prompt-review.yml` and `scripts/review_rejections.py` are deleted.
+Both are recoverable from git history if it is wanted back.
+
+Two reasons it was not worth keeping running:
+
+1. **It never worked.** Two runs are recorded and both failed — 2026-08-08 (the first
+   dispatch) and 2026-08-10 (the first Monday cron). There is no successful run in the
+   history. The stdlib-shadowing bug documented above is why the second one died.
+2. **Its input mostly went away.** It read `rejections/` for reasoning failures the audit
+   pass had caught. With the audit pass removed, every entry in `rejections/` is a
+   mechanical rejection — a price past the floor, a line not on the card — which says
+   much less about the prompt's wording.
+
+`rejections/` is still written and still git-tracked. `_stage()` in `publish.yml` still
+covers it, and the directory still only exists on days something was rejected, so the
+`mkdir -p` in that function is still load-bearing.
 
 ## Adding New Data Fields
 1. Check what's available: `python3 download.py --inspect`

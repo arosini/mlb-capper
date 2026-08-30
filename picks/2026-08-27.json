@@ -24,10 +24,10 @@
     "market_probability": 52,
     "rung_rejected": "1.5 over at -550, which pays nothing for the part of the range I am confident in",
     "found_at": "2026-08-27T11:19:05.456447+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-28T06:21:16.170664+00:00"
   },
   {
     "date": "2026-08-27",
@@ -54,10 +54,10 @@
     "market_probability": 46,
     "rung_rejected": null,
     "found_at": "2026-08-27T11:19:05.456447+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-28T06:21:16.170664+00:00"
   },
   {
     "date": "2026-08-27",
@@ -84,10 +84,10 @@
     "market_probability": 43,
     "rung_rejected": "5.5 over at -179, which needs 64% to break even for one fewer strikeout",
     "found_at": "2026-08-27T11:19:05.456447+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 1,
+    "annotated_at": "2026-08-28T03:58:59.889442+00:00"
   },
   {
     "date": "2026-08-27",
@@ -114,10 +114,10 @@
     "market_probability": 46,
     "rung_rejected": "2.5 under, which the book does not price on this ladder",
     "found_at": "2026-08-27T11:19:05.456447+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-27T23:20:33.095903+00:00"
   },
   {
     "date": "2026-08-27",
@@ -144,10 +144,10 @@
     "market_probability": 48,
     "rung_rejected": null,
     "found_at": "2026-08-27T11:19:05.456447+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 8,
+    "home_score_final": 2,
+    "annotated_at": "2026-08-28T03:58:59.889442+00:00"
   },
   {
     "date": "2026-08-27",
@@ -174,9 +174,69 @@
     "market_probability": 48,
     "rung_rejected": "9.5, where only the over is priced (+160) \u2014 the 8.5 under is the rung with the number and the price both on my side",
     "found_at": "2026-08-27T11:19:05.456447+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 2,
+    "annotated_at": "2026-08-28T03:58:59.889442+00:00"
+  },
+  {
+    "date": "2026-08-27",
+    "game": "HOU @ NYY",
+    "away": "Houston Astros",
+    "away_code": "HOU",
+    "home": "New York Yankees",
+    "home_code": "NYY",
+    "game_time_utc": "2026-08-27T23:06:00Z",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Gerrit Cole Over 5.5 Ks",
+    "team_side": null,
+    "line": 5.5,
+    "period": "props",
+    "odds": "-122",
+    "odds_num": -122,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Cole carries a 29.7 K% with a 4.0 BB% over his last 3 starts and has gone 6.3 innings per start, striking out 9, 5 and 8 in that stretch. Houston strikes out at a 24.1% clip vs RHP over their last 6 and 25.0% over their last 12, so the contact profile that would cap this number is not there, and his outs line at 17.5 has the market expecting a full six innings of work. At roughly 24 batters faced and his current rate, six strikeouts is the middle of his range rather than the ceiling this price implies.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "projection": 6.7,
+    "win_probability": 63,
+    "market_probability": 53,
+    "rung_rejected": "6.5 over at +168 \u2014 more upside but it needs seven, and six is the part of the range I trust",
+    "found_at": "2026-08-27T18:26:44.725188+00:00",
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 1,
+    "annotated_at": "2026-08-28T03:58:59.889442+00:00"
+  },
+  {
+    "date": "2026-08-27",
+    "game": "ARI @ SFG",
+    "away": "Arizona Diamondbacks",
+    "away_code": "ARI",
+    "home": "San Francisco Giants",
+    "home_code": "SFG",
+    "game_time_utc": "2026-08-28T01:46:00Z",
+    "bet_type": "Pitcher_Ks",
+    "bet": "Landen Roupp Under 4.5 Strikeouts",
+    "team_side": null,
+    "line": 4.5,
+    "period": "props",
+    "odds": "-138",
+    "odds_num": -138,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Arizona has struck out in only 14.2% of its plate appearances vs RHP over its last 6 games (17.4% over its last 12) with a 15.0% whiff rate last 6 \u2014 a contact lineup that blunts Roupp's swing-and-miss. Roupp has a 13.3% K rate and a -2.7% K-BB% over his last 3 starts, producing 3, 5 and 2 strikeouts, and across 3 meetings with Arizona he has averaged 4.4 IP and 4.7 K, clearing four strikeouts in only one of them. His outs line at 16.5 means the innings are there and the bats still are not being missed. Paying the juice buys a number his own recent starts and his history against this specific lineup have topped once in six tries, and the price implies that happens far more often.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "projection": 3.4,
+    "win_probability": 66,
+    "market_probability": 55,
+    "rung_rejected": "the 3.5 rung, which the card prices only on the over at -200 \u2014 no under is available there",
+    "found_at": "2026-08-27T23:20:32.461465+00:00",
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-08-28T06:21:16.170664+00:00"
   }
 ]

@@ -26,9 +26,9 @@ Exit codes:
 """
 import sys as _sys, pathlib as _pathlib
 
-# Drop scripts/ from sys.path before importing anything else — see the same guard in
-# review_rejections.py. A module in here whose name matches a stdlib one shadows it for
-# every later import, including ones made inside third-party packages.
+# Drop scripts/ from sys.path before importing anything else. A module in here whose name
+# matches a stdlib one shadows it for every later import, including ones made deep inside
+# third-party packages — see "never name a file after a stdlib module" in CLAUDE.md.
 _HERE = str(_pathlib.Path(__file__).resolve().parent)
 _sys.path[:] = [p for p in _sys.path if p not in ("", ".", _HERE)]
 _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent.parent))
