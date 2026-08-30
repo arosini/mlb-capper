@@ -736,6 +736,58 @@ lives in the prompt, where it can be applied with judgement, and nowhere else. (
 written when the AI auditor still existed and would have been the place to put such a
 check; the reasoning survives the auditor's removal.)
 
+## Head-to-Head Carries a Season and a Clock — 2026-08-30
+
+`get_recent_starts()` fetches the current **and prior** season, so the "STARTER vs
+TODAY'S OPPONENT" block reaches back two years — and every date on it read `"%b %-d"`.
+A meeting from last September and one from this April were the same string shape with
+nothing to tell them apart, on a card whose §1 forbids the model supplying any figure
+it cannot read. Three changes, and only the first is cosmetic.
+
+**1. Every outing date carries its year.** `extract_outings()` emits `date`
+(`Aug 21 '26`, for the HTML tables) and `date_long` (`Aug 21, 2026`, for the AI card),
+plus a numeric `year`; `date_iso` stays the field that sorts and subtracts. The HTML
+outing grid's Date column went 3rem → 4.1rem, paid for out of Opp/Res/PC, so the row
+still fits a 360px phone — it was already within ~10px of overflowing.
+
+**2. This season's meetings outweigh last season's.** `analysis.meeting_recency()`
+marks each meeting with `prior_season` / `days_ago` and returns the counts both cards
+print. §2's HEAD-TO-HEAD block now demotes a prior-season meeting to **light** evidence
+— different roster, possibly a different pitch mix, different coaching — while a
+current-season one is the moderate evidence the block was always describing. The prompt
+also warns that the **averaged** line pools the seasons together, so where they are
+mixed the average is partly a description of last year and the individual current-season
+box scores are the thing to cite.
+
+**3. A meeting inside 14 days is the exception, and it points ONE WAY.** `FAMILIAR_DAYS
+= 14` in `analysis.py`. When a lineup has faced this arm that recently it has current
+looks at his stuff and his sequencing, and the advantage there sits with the hitters —
+so recency argues the starter **struggles** and the offense hits, not that whatever
+happened last time happens again. §2 states it that way explicitly, including the case
+that matters most: **if he shut them out nine days ago, the recency argues against a
+repeat.** §8 points at it from both the K inputs and the outs inputs, where it cuts
+toward the UNDER.
+
+**The card states the fact; the prompt assigns the direction.** `_spl_line()` and
+`_spl_meta()` print only "1 of these 3 meetings is from THIS season, 2 from last; most
+recent meeting was 9 days ago". No lean, no "due", no "favour the under" — that would
+be the same mistake the 2026-08-24 adversarial review found in the bullpen-stress and
+park-factor flags, where a card line beat a prompt rule because it was specific to the
+game. Do not put the direction back into the card.
+
+**§2 is now as long as §8** (10,893 chars against 11,006; it was ~7,600). That is a
+deliberate rebalance — §2 is where evidence weighting lives and this is a weighting
+change — but CLAUDE.md's own rule is that section length maps onto what the model
+reaches for, so re-measure with `parts = _AI_SYSTEM_PROMPT.split("═"*67)` before adding
+more there. Cost of all of it is about **+55 card tokens per game and +850 system-prompt
+tokens per call**, roughly $1/month at 4 calls/day.
+
+**Not fixed, and pre-existing:** `_situational_split()` does `_qualifying_starts(entries[-n:])`
+— it slices the last 3 meetings and *then* drops relief appearances, so a starter who
+relieved against this club inside those three shows two rows, not his last three starts
+against them. Also, `meeting_recency()` measures recency off the **rendered starts only**;
+a relief appearance against this club last week is real familiarity and is invisible to it.
+
 ## Volume — the edge threshold was never binding
 
 Measured 2026-08-30 over the four slates carrying both probability fields (57 picks):

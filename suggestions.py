@@ -122,7 +122,10 @@ short labels; their meaning is fixed and given here.
 
   STARTER vs TODAY'S OPPONENT:  up to his last 3 meetings with today's opposing club,
     with each meeting's box score. Moderate evidence — roughly 60-80 plate appearances
-    across a roster that has turned over.
+    across a roster that has turned over. These reach back TWO SEASONS, so every date
+    carries its year and a parenthesis under the averaged line says how many of the
+    meetings are from this season and how many days ago the most recent one was. Both
+    change what the block is worth: see Section 2.
 
   TEAM TRENDS / OVER/UNDER HISTORY / SITUATIONAL TRENDS:  graded OUTCOMES, not inputs.
     A lopsided record is a starting question, never an edge on its own. These are light
@@ -167,7 +170,9 @@ do NOT invent any figure that is not printed in the card.
   Bullpen stress                                →  relief innings over the past 2 days
   "Recent starts:"                              →  actual box scores, OLDEST → NEWEST
   "vs <TEAM>"                                   →  this starter against today's opponent,
-                                                    up to his last 3 starts vs them
+                                                    up to his last 3 starts vs them, which
+                                                    may reach into LAST season — the year
+                                                    is printed on every one of those dates
   "at <park>"                                   →  this starter at this venue, last 3
   "2d stress"                                   →  that bullpen's relief innings over the
                                                     past 2 calendar days
@@ -370,6 +375,45 @@ and it needs corroboration to carry much on its own.
     "he owns this lineup" is not.
   • When the vs-opponent split reads "no data," say nothing about it. Absence is not
     evidence either way.
+
+  THIS SEASON'S MEETINGS ARE THE ONES THAT COUNT. The meetings block reaches back two
+  seasons and every date carries its year, with the split stated in the parenthesis under
+  the averaged line. A meeting from LAST season is LIGHT evidence, not moderate: the
+  lineup that did the damage has turned over, the arm may have changed its pitch mix or
+  lost a tick, and neither coaching staff is running the same plan. A meeting from THIS
+  season is the moderate evidence this block is describing.
+    • Weigh the current-season meetings first, and treat prior-season ones as context
+      behind them rather than as extra sample. Two starts vs them this year is a better
+      case than one this year plus two from last, even though the second reads as "3
+      starts vs them."
+    • The averaged line pools every meeting shown, so where the seasons are mixed the
+      average is partly a description of last year. Cite the individual current-season
+      box scores instead of the pooled ERA when they disagree.
+    • Where ALL the meetings are from last season, the block is light evidence. It can
+      support a case; it cannot be the case.
+    • Say the season in the reason whenever you use one of these numbers. "5.2 IP/gs
+      across two starts vs them this season" is usable; the same sentence covering a
+      start from last August without saying so states a false time period as fact.
+
+  THE ONE EXCEPTION, AND IT POINTS ONE WAY: A MEETING INSIDE THE LAST TWO WEEKS. When the
+  parenthesis says the most recent meeting was 14 days ago or fewer, that meeting is worth
+  MORE than an ordinary current-season one — and unlike the rest of head-to-head it carries
+  a direction of its own. The hitters have current looks at this arm: his actual stuff on
+  the day, his sequencing, what he goes to when behind. Familiarity that fresh sits with
+  the LINEUP, so a starter facing a club he has just faced is more likely to struggle, and
+  that club more likely to hit, than the season-long numbers imply.
+    • This holds REGARDLESS OF HOW THAT MEETING WENT. If he shut them out nine days ago,
+      the recency argues AGAINST a repeat rather than for one — that is the case where
+      the temptation to extrapolate is strongest and the effect cuts hardest against it.
+      If they hit him nine days ago, recency and the result point the same way, and that
+      is the strongest form this signal takes.
+    • What it supports: the offense side. Opposing team total or game total OVER, the
+      offense's side or run line, a K UNDER or an outs UNDER on that starter. It is a
+      reason to fade the arm, not a reason to back him.
+    • It is one signal, not a case. It still has to clear Section 4's threshold against
+      the no-vig price, and the market has often seen the same recent meeting.
+    • Name it in the reason when you use it — "these clubs met 9 days ago" — because the
+      date on the card is what makes the claim checkable.
 
 READING THE BOX SCORES. They are printed oldest → newest, so the LAST line is the most
 recent and the most indicative of current form. Look for:
@@ -708,7 +752,9 @@ Use exactly five inputs, then the price:
   4. His K/gs and IP/gs VS THIS OPPONENT (up to last 3 meetings) — how many he has
      actually gotten against these hitters, over how long an outing. A consistent
      head-to-head pattern outweighs input 3, and where it conflicts with his overall K%
-     it is usually the better guide (see Section 2).
+     it is usually the better guide (see Section 2). Weigh this season's meetings ahead
+     of last season's, and if they met inside the last two weeks apply Section 2's
+     recency exception — that cuts toward the UNDER, including when he dominated them.
   5. The K totals in his recent box scores and who they came against, plus any flag about
      recent opponents being unusually high-K or low-K — if his recent K totals were built
      against strikeout-prone lineups and today's opponent makes more contact, discount
@@ -787,7 +833,9 @@ mediocre and grind through 19. Use exactly these:
      Where a consistent head-to-head depth differs from his overall IP/gs, weigh the
      head-to-head heavily: depth against a specific lineup is one of the few places a
      small head-to-head sample carries real information.
-  3. How deep he went LAST time, and how recently that was
+  3. How deep he went LAST time, and how recently that was. If the last time was against
+     THIS club inside the last two weeks, Section 2's recency exception applies and cuts
+     toward the UNDER — a lineup with fresh looks runs the pitch count up sooner.
   4. Bullpen stress on his own team
   5. His BB% over the last 3 — walks are what end outings early. A command wobble caps
      depth even when the runs look fine, and the box scores show it as pitch count
@@ -1377,7 +1425,9 @@ def _serialize_game_for_ai(g: dict) -> str:
     def _outing_str(o):
         """One outing, in the format the recent-starts block uses. Shared so the
         head-to-head outings read identically to the last-3 lines above them."""
-        date_s = o.get("date") or "?"
+        # The long form ("Aug 12, 2026"), because these lists span two seasons and the
+        # model is writing public copy that states dates as fact.
+        date_s = o.get("date_long") or o.get("date") or "?"
         ha     = "@" if o.get("ha") == "@" else "vs "
         opp_s  = f"{ha}{o['opp']}" if o.get("opp") and o["opp"] != "?" else "?"
         seg = [f"{o['ip']}IP"]
@@ -1634,7 +1684,30 @@ def _serialize_game_for_ai(g: dict) -> str:
         vs_ot = list(reversed(spl.get("vs_outings") or []))
         if not vs_ot:
             return base
+
+        # Which SEASON these meetings are from, and how long ago the last one was. Both
+        # are facts the dates already carry, stated once so the model does not have to
+        # do arithmetic on them — and the two things section 2 weighs head-to-head by.
+        meta  = spl.get("vs_meta") or {}
+        notes = []
+        n, ty, py = meta.get("n", 0), meta.get("this_year", 0), meta.get("prior_year", 0)
+        if n == 1:
+            notes.append("this single meeting is from THIS season" if ty
+                         else "this single meeting is from LAST season")
+        elif n and ty == n:
+            notes.append(f"all {n} of these meetings are from THIS season")
+        elif n and ty:
+            notes.append(f"{ty} of these {n} meetings {'is' if ty == 1 else 'are'} from "
+                         f"THIS season, {py} from last")
+        elif n:
+            notes.append(f"NONE of these {n} meetings are from this season — "
+                         f"all {py} are from last season")
+        last = meta.get("last_days")
+        if last is not None:
+            notes.append(f"most recent meeting was {last} day{'' if last == 1 else 's'} ago")
         return base + (
+            f"\n    ({'; '.join(notes)})" if notes else ""
+        ) + (
             "\n    each meeting (oldest → newest):\n"
             + "\n".join(f"      {_outing_str(o)}" for o in vs_ot)
         )

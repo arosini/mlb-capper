@@ -732,6 +732,47 @@ def _merge_outings(*lists: list[dict]) -> list[dict]:
     return merged
 
 
+# A lineup that has faced this arm inside two weeks has current looks at his stuff and
+# his sequencing. That is the one part of head-to-head that points somewhere on its own;
+# _AI_SYSTEM_PROMPT section 2 says which way, this file only measures it.
+FAMILIAR_DAYS = 14
+
+
+def meeting_recency(outings: list[dict], today: Optional[date] = None) -> dict:
+    """Season mix and recency for a starter's meetings with today's opponent.
+
+    Marks each outing with `prior_season` and `days_ago` in place and returns the
+    summary the cards print. The game log reaches back two seasons, so a meetings block
+    can mix them — and a start against this club last September describes a roster, an
+    arsenal and a coaching staff that have all moved since. The card states the split;
+    the prompt decides what it is worth.
+    """
+    ref       = today or datetime.now(_ET).date()
+    this_year = prior = 0
+    last_days = None
+    for o in outings:
+        yr = o.get("year")
+        o["prior_season"] = bool(yr and yr < ref.year)
+        if yr == ref.year:
+            this_year += 1
+        elif yr:
+            prior += 1
+        try:
+            days = (ref - datetime.strptime(o["date_iso"], "%Y-%m-%d").date()).days
+        except Exception:
+            days = None
+        o["days_ago"] = days
+        if days is not None and days >= 0 and (last_days is None or days < last_days):
+            last_days = days
+    return {
+        "n":          len(outings),
+        "this_year":  this_year,
+        "prior_year": prior,
+        "last_days":  last_days,
+        "familiar":   last_days is not None and last_days <= FAMILIAR_DAYS,
+    }
+
+
 def _situational_split(entries: list[dict], n: int = 3) -> tuple[Optional[dict], list[dict]]:
     """The averaged line for a situational split, plus the outings behind it.
 
@@ -896,11 +937,18 @@ def extract_outings(history: list[dict], n: int = 5) -> list[dict]:
         if not stat:
             continue
         raw_date = s.get("date") or s.get("game", {}).get("officialDate", "")
+        # The game log spans TWO seasons (get_recent_starts fetches the prior year as
+        # well), so a bare "Sep 24" on a vs-opponent meeting could be this September or
+        # last one — and those are not equal evidence. Every outing carries its year:
+        # the compact form for the HTML tables, the long one for the AI card.
         try:
             dt     = datetime.strptime(raw_date[:10], "%Y-%m-%d")
-            date_s = dt.strftime("%b %-d")
+            date_s = dt.strftime("%b %-d '%y")
+            date_l = dt.strftime("%b %-d, %Y")
+            year   = dt.year
         except Exception:
-            date_s = raw_date[:10]
+            date_s = date_l = raw_date[:10]
+            year   = None
 
         is_win = s.get("isWin")
         if is_win is True:
@@ -917,8 +965,10 @@ def extract_outings(history: list[dict], n: int = 5) -> list[dict]:
 
         result.append({
             "date":      date_s,
-            # Kept alongside the display string because that one is "%b %-d" with no
-            # year — unsortable across the two seasons these splits reach back over.
+            "date_long": date_l,
+            "year":      year,
+            # Kept alongside the display strings because those are formatted for people
+            # — this is the one that sorts and subtracts.
             "date_iso":  raw_date[:10],
             "ha":        "H" if is_home else ("@" if is_home is False else "?"),
             "opp":       opp_code,
@@ -1151,6 +1201,7 @@ def analyze_game(
     )
     away_sp_splits = {
         "vs": away_vs_avg, "vs_outings": away_vs_ot,
+        "vs_meta": meeting_recency(away_vs_ot, today),
         "at": away_at_avg, "at_outings": away_at_ot,
         "outings": _merge_outings(away_vs_ot, away_at_ot),
     }
@@ -1163,6 +1214,7 @@ def analyze_game(
     )
     home_sp_splits = {
         "vs": home_vs_avg, "vs_outings": home_vs_ot,
+        "vs_meta": meeting_recency(home_vs_ot, today),
         "at": home_at_avg, "at_outings": home_at_ot,
         "outings": _merge_outings(home_vs_ot, home_at_ot),
     }
