@@ -21,7 +21,7 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHR
 | Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L6RHP/LHP primary + L12RHP/LHP for the comparison wRC+, plus unsplit L6G/L12G for bullpen games), bullpen stats (last 12), ballpark weather |
 | MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs, posted lineups + bat sides (`get_lineups`/`get_bat_sides`), home plate umpire (recorded to `history/`, not on the card — see Adversarial Review) |
 | The Odds API | API key (query param) | Full-game ML/spread/total + F5 ML/spread/total + team totals + pitcher K/outs props for DK, FanDuel, Fanatics. Paid plan (~20K credits/month); billed per market × region, **not** per call — see API Budget |
-| Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Opus 4.8 for AI Picks — one generation call per odds refresh plus one audit call per pick, cached to `data/suggestions_{date}.json` |
+| Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Opus 5 for AI Picks — ONE generation call per odds refresh, cached to `data/suggestions_{date}.json`. The per-pick audit call was removed 2026-08-30 |
 
 ## Module Structure
 
@@ -105,7 +105,8 @@ Run locally: `python3 handicap.py` (terminal) or `python3 handicap.py --html > o
 - `venue_{id}.json` — cached venue geo (coords, azimuth, elevation)
 
 Outside `data/`: `picks/{date}.json` (git-tracked pick log) and `rejections/{date}.json`
-(git-tracked log of picks the verification pass threw out, for prompt tuning).
+(git-tracked log of picks rejected before publication — mechanical rejections only
+since the audit pass was removed, for prompt tuning).
 
 ## Openers and Bullpen Games
 
@@ -219,8 +220,8 @@ published and displayed every day, which is why the site keeps showing picks ove
 weekend that does not count toward the number.
 
 > An earlier version of this file said the old pick files were the input to
-> `scripts/review_rejections.py`. They are not — that script reads `rejections/`.
-> Archiving or deleting `picks/` does not affect the weekly prompt review.
+> `scripts/review_rejections.py`. They were not — that script read `rejections/`, and it
+> has since been removed (see "The weekly prompt review is removed" below).
 
 A handful of older picks have `odds_num: null` (~14 of 448 as of 2026-08-08). They count
 in the W-L record but contribute 0 units, so P&L is very slightly understated rather than
@@ -262,6 +263,21 @@ Two ordering rules in `publish.yml` protect the invariant:
 2. **The commit step `exit 1`s when the push fails after retries**, which skips the
    deploy. Leaving the last good page up beats publishing picks that cannot be
    reproduced.
+
+**The retry path's `git pull` had never worked, and was fixed on 2026-08-30.** It read
+`git pull origin main`, which carries two faults. A bare `git pull` is *fatal* on git
+≥2.27 when the branches have diverged and no `pull.rebase` is set — "Need to specify how
+to reconcile divergent branches" — and divergence is exactly the case the retry exists to
+handle, so the concurrent-push recovery documented above had never once recovered
+anything. Separately, `main` was hardcoded, so a run on any other branch pulled main into
+it. It is `git pull --ff-only origin "${{ github.ref_name }}"` now: after the preceding
+`git reset HEAD~1` our HEAD is the commit the run started from, so upstream can only be
+ahead and a fast-forward is the only sound reconciliation — with `--ff-only` failing
+loudly if that assumption ever breaks instead of inventing a merge.
+
+It surfaced when a push to the branch landed mid-run, which is the same shape as two
+scheduled runs racing. The `concurrency: publish` group makes that rarer, not impossible:
+a push from a person or another workflow is not in the group.
 
 ## Deployment
 - **Repo**: `github.com/arosini/mlb-capper`
@@ -349,7 +365,7 @@ successful Claude calls a day on 8/21–8/23, recorded in `usage/2026-08.json`.
 `anthropic` 1.x is a narrow break and this project touches none of it — no Text
 Completions, no `temperature`/`top_p`/`top_k`, no raw `output_format={...}` dict, no
 `.with_raw_response`, no direct `httpx` use, no Bedrock client. All three call sites
-(`suggestions.py` ×2, `scripts/review_rejections.py` ×1) pass only `model`,
+(`suggestions.py`, one call site) passes only `model`,
 `max_tokens`, `thinking`, `output_config`, `system`, `tools`, `tool_choice`, and
 `messages`, none of which changed; `messages.stream()` + `get_final_message()` is
 likewise unchanged. 1.x raises the Python floor to 3.10 and the workflows pin 3.11,
@@ -375,42 +391,76 @@ patch releases arrive on their own. Check with
 `gh api repos/{owner}/{repo}/releases/latest`.
 
 > ⚠️ **The model id is not a dependency and is not covered by these pins.**
-> `suggestions.py` and `scripts/review_rejections.py` hardcode `claude-opus-5` as of
+> `suggestions.py` hardcodes `claude-opus-5` as of
 > 2026-08-24 (previously `claude-opus-4-8`; same price, $5/$25 per MTok). Moving is a
 > deliberate change, not a version bump, and `usage.PRICING` must carry a rate for
 > whatever id is used — it already carries both. `PRICING` keeps the `claude-opus-4-8`
 > key as the unknown-model fallback and so historical `usage/*.json` days still price
 > correctly; do not delete it.
 >
-> **The prompts have not been re-tuned for Opus 5.** `_AI_SYSTEM_PROMPT` and
-> `_VERIFY_SYSTEM_PROMPT` were written and calibrated against 4.8, including the
-> selectivity language in `## Selectivity`. The swap was verified for API contract and
+> **The prompt has not been re-tuned for Opus 5.** `_AI_SYSTEM_PROMPT` was written and
+> calibrated against 4.8, including the selectivity language in `## Selectivity`. The swap was verified for API contract and
 > output shape, not for pick quality or pick volume. Re-tune against real Opus 5
 > rejections in `rejections/` once a few days have accumulated.
 
-## AI Picks — generation and verification
+## AI Picks — one generation call
 
-Two model calls, both Claude Opus 5 with `thinking: {"type": "adaptive"}` (Opus 4.8
-until the 2026-08-24 swap):
+**The per-pick AI audit was removed on 2026-08-30.** There is now exactly ONE model call
+per scheduled run: `generate_suggestions`, Claude Opus 5 with `thinking: {"type":
+"adaptive"}`, one call for the whole slate.
 
-1. **Generation** (`generate_suggestions`) — one call for the whole slate. Runs with
-   `tool_choice: auto`, **not** forced. Forcing the tool suppresses thinking entirely,
-   which would defeat the point of using Opus. Verified on Opus 4.8, and **re-verified on
-   Opus 5 on 2026-08-24** against this exact system prompt and tool schema: `auto`
-   returned `['thinking', 'text', 'tool_use']` and 7345 output tokens with 4 picks, while
-   a forced call returned a bare `['tool_use']` — no thinking block — and 2684 tokens.
-   The suppression is not a 4.8 quirk; do not "simplify" this to a single forced call.
-   If the model answers in prose instead of calling the tool, a follow-up turn re-asks
-   with the tool forced — the reasoning is already in context, so nothing is lost.
-2. **Verification** (`_verify_pick`) — one call *per pick*. Re-sends the exact data card
-   that pick came from plus its rationale to a fresh context, and returns ACCEPT/REJECT.
-   Rejected picks are dropped before anything is saved and logged to
-   `rejections/{date}.json` for prompt tuning. **Fails open**: an API error or a missing
-   verdict keeps the pick rather than silently discarding it.
+It ran with `tool_choice: auto`, **not** forced. Forcing the tool suppresses thinking
+entirely, which would defeat the point of using Opus. Verified on Opus 4.8, and
+re-verified on Opus 5 on 2026-08-24 against this exact system prompt and tool schema:
+`auto` returned `['thinking', 'text', 'tool_use']` and 7345 output tokens with 4 picks,
+while a forced call returned a bare `['tool_use']` — no thinking block — and 2684 tokens.
+The suppression is not a 4.8 quirk; do not "simplify" this to a single forced call. If the
+model answers in prose instead of calling the tool, a follow-up turn re-asks with the tool
+forced — the reasoning is already in context, so nothing is lost.
 
-The auditor's top check is backwards baseball logic — backing a team while citing that
-team's *own* pitcher's bad xERA/ERA. Each team bats against the OPPOSING pitcher; this
-was the most common failure in the pre-rewrite prompt.
+### What removing the auditor cost, so it is not re-litigated by accident
+
+The audit pass worked. Over 2026-08-09..08-27 it rejected 16 picks, 6.2% of everything
+submitted, and the catches were not style — they were **false statements of fact** headed
+for public copy:
+
+- a rationale pairing Baltimore's own starter against Baltimore's own lineup (the
+  backwards-baseball failure this project has fought since the beginning);
+- "he struck out 9 and 9 in two of those three" against a card showing 9 and 8;
+- "a 2.84 ERA" against a card listing 3.18; "an 18.5 outs line" against a posted 17.5;
+- DET's 18.2 Whiff% quoted as Tampa Bay's, where the real figure cut against the bet;
+- "five left-handed or switch bats" against a posted lineup with four and no switch hitters.
+
+It was removed anyway, deliberately: it was ~26 of ~30 daily calls and roughly **$48 of a
+$127/month bill**, and the operator's judgement is that a weak pick is acceptable output.
+**The thing that is gone is the check on factual claims, not the check on pick quality.**
+If published rationales start carrying numbers that are not on the card, this is why.
+
+What still stands between the model and the page is `_validate_pick()` — free,
+deterministic, and now the ONLY automated gate:
+
+1. price worse than the **-200 floor**;
+2. a **price or line the card does not post** for that market and side (the alt ladder counts);
+3. **stated edge under `MIN_EDGE_PTS`** (6.0) over the card's no-vig price;
+4. the two §8 disqualifiers — a pitcher **OVER into rain risk**, and any bet on a **NO
+   STATS** pitcher.
+
+Anything it rejects is logged to `rejections/` with a `[mechanical]` prefix. Nothing reads
+that log automatically any more — the weekly prompt review was removed the same day — so
+it is now a record for a human to look at, not an input to anything.
+
+**Cost after removal**, against the measured before:
+
+| | before | after |
+|---|---|---|
+| calls/day | 30 | **4** |
+| input tok/day | 423,000 | 268,000 |
+| output tok/day | 85,000 | 52,000 |
+| **$/month** | **127** | **79** |
+
+`_CARD_FORMAT` remains a named constant even though only one prompt now interpolates it —
+it describes the card rather than the analysis, and the next thing that reads a card
+should reuse it rather than re-describe it.
 
 **The card must name each starter's club, because nothing else does.** `_sp_line()` used
 to print `  Dean Kremer (R): xERA …` with no team — the offense, bullpen and trend lines
@@ -421,12 +471,13 @@ Kremer had moved BAL → MIN; the data was correct end to end (`team: MIN`, `opp
 `analyze_game` put him on the home side) and the published rationale still had him facing
 Minnesota — the matchup inverted, with a strikeout rate attributed to the wrong lineup.
 Lines now read `MIN (home) — Dean Kremer (R): …`, the props line carries the team too, and
-both prompts say the card's club is authoritative over prior knowledge. The auditor rejects
-a rationale that has a starter facing the lineup he is actually pitching for.
+`_CARD_FORMAT` says the card's club is authoritative over prior knowledge.
 
-Note the failure was invisible to the audit pass for the same reason it was invisible to
-generation: the verifier is re-sent the *same card*, so an unlabelled pitcher block gave it
-no way to catch the swap either. Anything the model must not get wrong has to be **on the
+Note the failure was invisible to the audit pass (while it existed) for the same reason it
+was invisible to generation: the verifier was re-sent the *same card*, so an unlabelled
+pitcher block gave it no way to catch the swap either. That is the general lesson, and it
+matters more now that no audit pass exists at all — anything the model must not get wrong
+has to be **on the
 card** — a second opinion over identical data does not add a fact.
 
 **Rationales are public-facing copy, not a reasoning transcript.** Section 10 of
@@ -434,8 +485,8 @@ card** — a second opinion over identical data does not add a fact.
 leaking the prompt's own rules into the output: no "Tier 1"/"per the rules", no reminders
 of methodology ("their own starter's ERA doesn't affect how they hit"), no self-correction
 or process narration ("Calibrating:", "Note:", "that is irrelevant here"), no defending
-stats the model chose not to use. The auditor does **not** reject on this — style is not
-worth dropping an otherwise sound pick — so it is enforced only at generation time.
+stats the model chose not to use. This was never enforced downstream — style is not worth
+dropping an otherwise sound pick — so it lives at generation time and nowhere else.
 
 **Stat windows are temporal and the prompt depends on it.** SP xERA/ERA/K%/BB% are the
 last 3 starts (`starters_last3g_*`), team wRC+/K%/HH% are the **last 6** games split by
@@ -537,14 +588,15 @@ recommended (is the edge in the number's direction; does the recent box-score re
 actually clear it; does the published reason name what clears it) and points at the cheaper
 line carrying the same read as the usual alternative to passing.
 
-> **Do not turn these into hard filters** — not in the prompt's wording, not in the
-> auditor, and not in code. The samples are 8-26 picks wide, and a ban would have thrown
-> out the K over 6.5 bucket's +33.8% along with the 8.5 bucket's losses. This was tightened
-> once during the original change and walked back deliberately: an earlier draft made the
-> three questions a checklist ("ALL THREE must hold") and had audit check 9 (now **8**)
-> REJECT any
-> demanding number argued only directionally. That is a hard stop wearing scrutiny's
-> clothes — the auditor is a binary, so *any* size-based reject rule is a ban.
+> **Do not turn these into hard filters** — not in the prompt's wording and not in code
+> (`_validate_pick` is now the only place a filter could live, which makes this easier to
+> violate by accident, not harder). The samples are 8-26 picks wide, and a ban would have
+> thrown out the K over 6.5 bucket's +33.8% along with the 8.5 bucket's losses. This was
+> tightened once during the original change and walked back deliberately: an earlier draft
+> made the three questions a checklist ("ALL THREE must hold") and had the audit pass
+> REJECT any demanding number argued only directionally. That is a hard stop wearing
+> scrutiny's
+> clothes: a mechanical check is a binary, so *any* size-based reject rule is a ban.
 > **Audit check 8 (was 9) is scoped to self-contradiction only**: a rationale whose own cited
 > evidence points away from the bet (a K over sold on a streak built against higher-K
 > lineups than today's), or one that concedes the number is a stretch and bets it anyway.
@@ -574,6 +626,90 @@ consequence rather than as an instruction.
 line/side/price bucket is reproducible without touching the API. Over/under has to be
 parsed out of the `bet` string for props (`team_side` is null there) and off `team_side`
 for totals.
+
+## Evidence, Not Tiers — 2026-08-30
+
+`_AI_SYSTEM_PROMPT` §2 used to be a three-tier hierarchy: Tier 1 "decides the game",
+Tier 3 was "never the reason for a bet", head-to-head "cannot be the case", and §9 said
+weather "cannot create a bet". That framing was wrong about how handicapping works. It is
+now a **weighted-evidence** model, and every "Tier N" reference in both prompts is gone.
+
+- **Everything on the card is evidence.** What differs is WEIGHT, not permission to count.
+  HEAVIEST is starter xERA and opposing wRC+; MODERATE is starter ERA, head-to-head, box
+  scores, bullpen, team trends and the over/under block; LIGHT is weather, park, flags and
+  situational trends.
+- **A pick is a balance, not a hierarchy** — evidence for against evidence against. A
+  single heavy signal with several arguing back is a game you understand, not a mispriced
+  one.
+- **Light evidence accumulates and can form part of a real case.** A hot day in a hitter's
+  park with the wind out, behind two short starters and a tired bullpen, is a genuine
+  argument for runs with nothing heavy driving it.
+
+**The guard that makes accumulation honest is the independence rule, and it must stay.**
+Park factor, temperature and wind are three readings of ONE thing — the run environment —
+and citing all three is one piece of evidence, not three. §2 says so explicitly, §9
+repeats it for weather, and the test given is: ask what would have to be true for the
+stack to be wrong, and if one answer knocks all of it down, it is one signal. Without
+that, "weak signals add up" is a licence to manufacture a case from restatements.
+
+**No mechanical correlation check exists, and adding one would be a mistake.** Whether
+several signals are independent or one fact restated is a judgement about a specific
+game; a rule that tried to enforce it would become a hard filter on case *shape* — the
+same trap this file already records for the demanding-number list. The independence rule
+lives in the prompt, where it can be applied with judgement, and nowhere else. (This was
+written when the AI auditor still existed and would have been the place to put such a
+check; the reasoning survives the auditor's removal.)
+
+## Volume — the edge threshold was never binding
+
+Measured 2026-08-30 over the four slates carrying both probability fields (57 picks):
+
+| | |
+|---|---|
+| picks/day | **14.2** |
+| games touched/day | 4–13 of a ~15-20 game slate |
+| **touched games carrying 2-3 picks** | **21 of 33 — 64%** |
+| props as a share of picks | 72% (Ks 44%, outs 28%) |
+| smallest stated edge | **5.0 points** |
+| median stated edge | **11.5 points** |
+
+Two things follow, and both were acted on.
+
+**The 4-point minimum edge never rejected anything.** The floor sat below the entire
+distribution — the smallest submitted edge was 5.0. `MIN_EDGE_PTS` is 6.0 now, but raising
+a *self-reported* number is only half a fix: the model can inflate past any threshold. So
+§4 also tells it what its own distribution looked like, points out that a median 11.5-point
+edge against a liquid market is not believable, and asks it to derive `win_probability`
+from the game BEFORE checking it against the bar. Re-measure the distribution after a week:
+if the median is still double digits, the estimates are the problem, not the market.
+
+**Multiple picks per game was the volume, and §4C was the multiplier.** The prompt said
+filling slots "should be rare"; it was the majority case. §4C allowed one prop per
+PITCHER, so both starters could carry one — and props are 72% of all picks. It is now
+**one prop per GAME**. §4 also states the measured 64% figure, because "rare" as an
+adjective did not bind and a number might.
+
+`_validate_pick` enforces the 6-point floor mechanically. Since the audit pass was
+removed it is the only automated gate left, so a check that can be expressed
+deterministically belongs there rather than in the prompt.
+
+## A malformed tool field took down a publish — 2026-08-30
+
+Run 402 failed with `AttributeError: 'str' object has no attribute 'items'` in
+`_ai_game_map`: the model returned `pass_reasons` as a bare **string** where the schema
+declares an object. The tool is not `strict`, so the API accepted it.
+
+`strict: true` is not the fix — it requires `additionalProperties: false`, and
+`pass_reasons` deliberately uses `additionalProperties` as an open `{game: reason}` string
+map. Instead `_normalize_tool_result()` now coerces the tool output at the point it is
+parsed (bad `picks` → `[]`, bad `pass_reasons` → `{}`, non-dict result → both empty), and
+`_ai_game_map` re-checks the type because a `suggestions_{date}.json` cached before this
+fix can still hold the bad value.
+
+**The step ordering did its job.** Picks were committed at 13:22 and the HTML step then
+died, so the run left a pick log with no page rather than publishing something
+unreproducible — the last good deploy (run 401, 13:14) stayed up. That is the invariant
+`publish.yml` is ordered for; the stranded picks render on the next successful run.
 
 ## Adversarial Review — 2026-08-24
 
@@ -661,7 +797,8 @@ comparing a submitted price against the card, and the rejection log has the fail
 (a pick citing "an 18.5 outs line" against a card posting 17.5). Audit checks 4 and 6 were
 removed as redundant and the remaining checks renumbered **1-8**; the audit call now spends
 its tokens only on reasoning. Mechanical rejections are logged to `rejections/` with a
-`[mechanical]` prefix so the weekly review can tell the two causes apart.
+`[mechanical]` prefix so the two causes could be told apart. (Moot since 2026-08-30:
+the audit pass is gone, so every rejection is mechanical.)
 
 ### Umpires — measured, not shipped
 
@@ -915,15 +1052,29 @@ that: `Weekly Prompt Review` ran `python3 scripts/review_rejections.py`, whose
 ad-hoc CLI, and the job died on `module 'inspect' has no attribute 'signature'`. It had
 been broken since the file landed (commit `3a874af`) and only surfaced on the Monday cron.
 
-The CLI is `scripts/inspect_data.py` now, and `review_rejections.py` strips its own
-directory from `sys.path` before importing anything else — neither script imports a
-sibling by name, so the repo root it inserts is the only path either needs.
+The CLI is `scripts/inspect_data.py` now. `review_rejections.py` (since removed) also
+stripped its own directory from `sys.path` before importing anything else, and any new
+script in `scripts/` that imports from the repo root should do the same — nothing here
+imports a sibling by name, so the repo root is the only path such a script needs.
 
-`review_rejections.py` also **streams**: `max_tokens=32000` is deliberate (the tool
-returns a whole rewritten prompt) and the SDK refuses a non-streaming request it estimates
-could run past ~10 minutes. `get_final_message()` returns the same Message `create()`
-would have. The client runs with `max_retries=6` because a single `overloaded_error` fails
-a job that only gets one shot a week.
+## The weekly prompt review is removed — 2026-08-30
+
+`.github/workflows/prompt-review.yml` and `scripts/review_rejections.py` are deleted.
+Both are recoverable from git history if it is wanted back.
+
+Two reasons it was not worth keeping running:
+
+1. **It never worked.** Two runs are recorded and both failed — 2026-08-08 (the first
+   dispatch) and 2026-08-10 (the first Monday cron). There is no successful run in the
+   history. The stdlib-shadowing bug documented above is why the second one died.
+2. **Its input mostly went away.** It read `rejections/` for reasoning failures the audit
+   pass had caught. With the audit pass removed, every entry in `rejections/` is a
+   mechanical rejection — a price past the floor, a line not on the card — which says
+   much less about the prompt's wording.
+
+`rejections/` is still written and still git-tracked. `_stage()` in `publish.yml` still
+covers it, and the directory still only exists on days something was rejected, so the
+`mkdir -p` in that function is still load-bearing.
 
 ## Adding New Data Fields
 1. Check what's available: `python3 download.py --inspect`
@@ -939,9 +1090,14 @@ a job that only gets one shot a week.
    `ou_trends()` block and the season head-to-head were all computed and rendered on the
    page while the model never saw any of them. A field that reaches `analyze_game` and
    stops at the HTML is a field the picks are made without.
-6. If it needs a new prompt rule to be usable, that rule goes in `_AI_SYSTEM_PROMPT` — and
-   the auditor's check 2 rejects figures not on the card, so anything new must also be
-   named in `_VERIFY_SYSTEM_PROMPT`'s preamble or good picks quoting it get thrown out.
+6. If it needs a new prompt rule to be usable, that rule goes in `_AI_SYSTEM_PROMPT`, and
+   its meaning goes in `_CARD_FORMAT` alongside the other blocks. **The converse still
+   binds: anything REMOVED from the card must also come out of what the prompt invites the
+   model to quote.** That pairing used to be enforced by the auditor rejecting figures not
+   on the card; with the auditor gone nothing catches it, so a stale invitation now
+   produces a fabricated number in published copy instead of a rejection. Two such misses
+   have already happened (F5 and the at-park split) — grep the prompt for the block name
+   before you consider a card cut finished.
 
 ## Season Window — regular + postseason only
 
@@ -1150,6 +1306,11 @@ Measured from `picks/`, the model returns ~7–8 picks per run (~4 survive dedup
 | Output tokens/day | 75,000 | ~112,000 |
 | Input share of the bill | **53%** | ~16% |
 
+> Superseded 2026-08-30: with the audit pass removed the bill is **~$2.64/day,
+> ~$79/month, 4 calls/day**. The measurement below is kept because it is what identified
+> the audit pass as ~$48 of the bill, and because the per-call arithmetic still applies to
+> the one remaining call.
+
 **~$121/month.** The headline was close; the composition was inverted. The old table
 said "output is ~84% of the bill" — it is 47%, and **input is now the majority**. Two
 things drifted after it was written and neither was re-measured:
@@ -1166,16 +1327,17 @@ pick. That multiplier is why the card — not the system prompt — is the thing
 
 Two things follow, and both are load-bearing:
 
-- **The audit pass is ~26 of the ~30 daily calls and roughly $3 of the $4/day.**
-- **`_verify_pick` caches its prefix; `generate_suggestions` deliberately does not.**
-  The audit runs a sequential loop, so ~7 calls a run share an identical tools+system
-  prefix and 6 of 7 become cache reads at 0.1x. Generation fires once per run, six hours
-  apart — its cache could never be read, so a breakpoint there would only add the 1.25x
-  write premium on ~13K tokens. **Do not "make it consistent" by caching both.**
-  Opus 5's minimum cacheable prefix is 512 tokens (`_VERIFY_SYSTEM_PROMPT` is ~2.2K, so
-  it caches); below the minimum the marker silently no-ops rather than erroring.
-  `usage.cost_usd()` already prices reads at 0.10x and writes at 1.25x, so the saving
-  shows up in the ledger and on `/budget/` with no further change.
+- **That analysis is why the audit pass was removed on 2026-08-30.** It was ~26 of the
+  ~30 daily calls and roughly $48/month; see `## AI Picks — one generation call` for what
+  the removal cost in accuracy. The bill is ~$79/month after it.
+- **Prompt caching went with it, and there is nothing left to cache.** `_verify_pick`
+  marked its tools+system prefix ephemeral and got real value from it — the audit was a
+  sequential loop, so 6 of every 7 calls were cache reads at 0.1x. `generate_suggestions`
+  deliberately did NOT cache and still should not: it fires once per run, six hours apart,
+  so its cache could never be read and a breakpoint would only add the 1.25x write premium
+  on ~14K tokens. **Do not add `cache_control` to the generation call.** With one call per
+  run there is no repeated prefix to amortise. (`usage.cost_usd()` still prices reads at
+  0.10x and writes at 1.25x, so if a second call is ever reintroduced the ledger is ready.)
 
 36 calls/day is nowhere near any rate limit — spend is the only constraint.
 
@@ -1287,10 +1449,10 @@ input tokens/day, less ~566 tokens of system-prompt growth per call for `_CARD_F
 (absorbed on the audit side by the cache). The card was never the $50/month line the
 regression implied — at 2,926 tokens there was only so much in it.
 
-**`_CARD_FORMAT` is interpolated into both prompts from one constant.** Both are
-f-strings now. The generator and the auditor read the same card and audit check 2 rejects
-figures "not on the card", so a divergence would mean the auditor mis-reading what the
-analyst was shown. Do not copy-paste it into one prompt and edit it there.
+**`_CARD_FORMAT` is a named constant interpolated into `_AI_SYSTEM_PROMPT`.** It fed the
+auditor's prompt too until that pass was removed; it stays a constant because it describes
+the *card* rather than the analysis, so the next thing that reads a card should reuse it
+rather than re-describe it.
 
 **Anything cut from the card must also come out of what a rationale may quote.** Audit
 check 2 rejects figures not on the card, so a block removed from `_serialize_game_for_ai`

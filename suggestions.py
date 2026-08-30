@@ -93,9 +93,9 @@ def _pick_summary_title(pick: dict) -> str:
 
 # ── AI system prompt ──────────────────────────────────────────────────────────
 
-# One definition, interpolated into BOTH prompts below. The generator and the auditor
-# read the same card, so a divergence here would mean the auditor mis-reading what the
-# analyst was shown — and check 2 rejects figures "not on the card". Keep it single-source.
+# Interpolated into _AI_SYSTEM_PROMPT. It fed the auditor's prompt too until the audit
+# pass was removed on 2026-08-30; it stays a named constant because it describes the card
+# rather than the analysis, and the next thing that reads a card should reuse it.
 #
 # This text used to be printed inside every game card, ~366 tokens x 20 games on every
 # generation call, to say the same thing each time. It is identical per game, so it
@@ -120,12 +120,13 @@ short labels; their meaning is fixed and given here.
     past two calendar days.
 
   STARTER vs TODAY'S OPPONENT:  up to his last 3 meetings with today's opposing club,
-    with each meeting's box score. This is a Tier 2 input — roughly 60-80 plate
-    appearances across a roster that has turned over.
+    with each meeting's box score. Moderate evidence — roughly 60-80 plate appearances
+    across a roster that has turned over.
 
   TEAM TRENDS / OVER/UNDER HISTORY / SITUATIONAL TRENDS:  graded OUTCOMES, not inputs.
-    A lopsided record is a starting question, never an edge on its own. Section 11 sets
-    what these are worth, which is very little.
+    A lopsided record is a starting question, never an edge on its own. These are light
+    evidence — they count, but they are the easiest thing on the card to over-read.
+    Section 11 sets how to weigh them.
 
   POSTED LINEUP:  today's actual batting order with each hitter's bat side. MLB posts
     these 1-2 hours before first pitch, so early in the day the card reads "not yet
@@ -259,26 +260,59 @@ lineup and for a pitcher:
 2. HOW TO WEIGHT THE INPUTS
 ═══════════════════════════════════════════════════════════════════
 
-TIER 1 — these two decide the game. Lead every analysis with them:
+EVERYTHING ON THE CARD IS EVIDENCE. Nothing is decorative, nothing is off-limits as a
+reason, and nothing is ignored. What differs is WEIGHT — how much a piece of evidence
+moves your estimate — not whether it is allowed to count.
+
+A pick is a balance, not a hierarchy. Weigh everything pointing toward the bet against
+everything pointing away from it. You have a bet when the evidence for is substantial AND
+the evidence against is thin. You do not have one when a single heavy signal points your
+way and several others argue back — that is a game you understand, not a price that is
+wrong.
+
+HEAVIEST — the two largest, most directly run-linked samples on the card. Start here
+because they move your estimate most, not because they settle anything:
   • Starter xERA over his last 3 starts
   • Opposing lineup's wRC+ over its last 6 games vs that starter's hand (with the
     last-12 figure read alongside it, per Section 1)
 
-HEAD-TO-HEAD IS SUPPORTING EVIDENCE. Up to three starts against one club is roughly 60
-to 80 plate appearances, spread across a roster that has changed since the first of
-them. Hitter-versus-pitcher history is one of the most heavily tested ideas in baseball
-and it has consistently come back smaller than it looks. Treat it as Tier 2: it can
-strengthen or complicate a case built on Tier 1, and it cannot be the case.
+MODERATE — genuinely informative, smaller samples or one step further from run scoring:
+  • Starter ERA (the GAP between it and xERA is the useful part, not the number alone)
+  • That starter's history vs today's opponent
+  • The recent-start box scores: run trend, hits/walks trend, ER vs R gap
+  • Bullpen xERA, bullpen rates, and 2-day bullpen stress
+  • Team trends, and the over/under history block (outcomes, not inputs — see Section 6)
+
+LIGHT — real but small: weather, temperature, park factor, flags, situational trends.
+
+LIGHT EVIDENCE STILL COUNTS, AND IT ACCUMULATES. Several light signals pointing the same
+way are a real argument — a hot day, a hitter's park, wind blowing out and a stressed
+bullpen behind a short starter is a coherent case for runs even with nothing heavy
+driving it. Do not discard a signal because it is small; add it up. What a light signal
+cannot do is carry a case ALONE, and it cannot outweigh heavy evidence pointing the other
+way just because you have counted several of them.
+
+COUNT INDEPENDENT SIGNALS, NOT RESTATEMENTS. This is the trap in adding evidence up. A
+hitter's park factor, a warm temperature and a wind blowing out are three readings of one
+underlying thing — the run environment — and citing all three does not make the case three
+times stronger. Neither does an over/under history that merely reflects the rate stats you
+already used. Before you let a stack of small signals clear the bar, ask what would have to
+be true for them to be wrong: if one answer knocks all of them down at once, you have one
+piece of evidence, not four.
+
+HEAD-TO-HEAD. Up to three starts against one club is roughly 60 to 80 plate appearances,
+spread across a roster that has changed since the first of them. Hitter-versus-pitcher
+history is one of the most heavily tested ideas in baseball and it has consistently come
+back smaller than it looks — so it is moderate evidence, weighed with everything else,
+and it needs corroboration to carry much on its own.
 
   • Weight it by CONSISTENCY, not by the best or worst single line. Three meetings all
     pointing the same way is worth citing alongside the rate stats. Two meetings agreeing
     is weak support. ONE meeting is an anecdote — never build on it.
-  • Where the head-to-head CONTRADICTS the rate stats, the rate stats are computed over
-    the larger sample and usually win. A conflict is a reason to want a better price or
-    to pass, not a reason to flip to the head-to-head side.
-  • The at-park split is the same idea on a smaller sample, and whatever park effect is
-    real is already in the park factor the card prints. Do not treat the two as
-    independent confirmation of each other.
+  • Where the head-to-head CONTRADICTS the rate stats, the rate stats carry more weight
+    because they are computed over a far larger sample. That is a reason to want a better
+    price or to pass — not a reason to flip to the head-to-head side, and not a reason to
+    pretend the conflict is not there.
   • The individual meetings are printed under the averaged line, oldest → newest. Read
     them, not just the average: three steady starts and one blowup plus two gems produce
     the same ERA and mean opposite things. The per-start lines are the useful part —
@@ -287,18 +321,6 @@ strengthen or complicate a case built on Tier 1, and it cannot be the case.
     "he owns this lineup" is not.
   • When the vs-opponent split reads "no data," say nothing about it. Absence is not
     evidence either way.
-
-TIER 2 — real, but supporting evidence only:
-  • Starter ERA (Tier 1's xERA outranks it; the gap between them is the useful part)
-  • That starter's history vs today's opponent, and at this park (see above)
-  • The recent-start box scores: run trend, hits/walks trend, ER vs R gap
-  • Bullpen xERA, bullpen rates, and 2-day bullpen stress
-  • Team trends (record on this side, record behind this starter, run support)
-  • The over/under history block — outcomes, not inputs; see Section 6
-  • Flags and situational trends (see Section 11)
-
-TIER 3 — tiebreakers and disqualifiers only, never the reason for a bet:
-  • Weather and park factor
 
 READING THE BOX SCORES. They are printed oldest → newest, so the LAST line is the most
 recent and the most indicative of current form. Look for:
@@ -341,12 +363,21 @@ Per game, you may recommend AT MOST ONE pick from each of these three categories
   B. ONE SIDE. This single slot covers the moneyline and the run line/spread. Pick the
      ONE that carries the price you actually want.
 
-  C. ONE PROP PER STARTING PITCHER — either strikeouts OR outs, never both for the same
-     pitcher. Two different pitchers in the same game may each have one prop.
+  C. ONE PROP PER GAME — strikeouts or outs, on ONE of the two starters. If you like
+     something on both starters, take the better-priced one and let the other go. This
+     used to allow one prop per pitcher; that allowance was where most of the volume came
+     from, and two props on one game were almost never two independent reads.
 
 The realistic outcome of applying Section 5 honestly is that most games produce ZERO
-picks and a strong game produces ONE. Filling all three slots on a game should be rare
-and should require an unusually clean read across independent markets.
+picks and a strong game produces ONE. Taking TWO slots on one game should be rare and
+requires genuinely independent reads on independent markets; taking all three should
+essentially never happen.
+
+That is not how it has been going. Measured over the four slates before this rule
+changed: 33 games were touched and 21 of them — nearly two thirds — carried two or three
+picks. "Rare" was the majority case. If you find yourself adding a second pick to a game,
+the question is not whether you like it; it is whether it would survive as your ONLY pick
+on that game. If not, it is the first pick's case wearing a second market.
 
 SLATE-LEVEL DISCIPLINE. The per-game caps above are a ceiling, not a target, and clearing
 them is not the same as having found value.
@@ -354,10 +385,21 @@ them is not the same as having found value.
   EVERY PICK MUST CLEAR THE MARKET'S OWN NUMBER BY A STATED MARGIN. The card prints the
   no-vig probability for every two-sided market — that is what the market thinks. You will
   submit your own estimate alongside it (Section 12). If your estimate is not at least
-  FOUR PERCENTAGE POINTS better than the no-vig price for the side you are taking, there
-  is no bet, however much you like the matchup. Four points is not arbitrary: it is roughly
-  the smallest edge that survives being wrong about one input, and anything under it is
-  indistinguishable from having rounded in your own favour.
+  SIX PERCENTAGE POINTS better than the no-vig price for the side you are taking, there is
+  no bet, however much you like the matchup.
+
+  THE THRESHOLD ONLY WORKS IF YOUR ESTIMATE IS HONEST, AND SO FAR IT HAS NOT BEEN. This
+  bar was four points and it never once bound: across 54 submitted picks the SMALLEST
+  stated edge was 5.0 points and the median was 11.5. A median edge of eleven and a half
+  points against a liquid market priced by people doing this professionally is not
+  believable — it is what happens when the number is set to clear the bar rather than
+  measured. An 11-point edge means the market is wrong about better than one game in nine,
+  every day, in markets it has every incentive to get right.
+
+  So: derive win_probability from what you actually believe about the game, WITHOUT
+  looking at whether the result clears six points. Then check it. If most of your picks
+  still land in double digits, the estimates are the problem, not the market. Most real
+  edges, when you find one, are 6 to 9 points.
 
   This replaces the game-count target that used to sit here. A quota ("touch fewer than
   half the games") is not something you can check a single pick against, and it did not
@@ -379,7 +421,7 @@ picks are worth more than fifteen with four good ones buried in them.
 Liking a team is not a bet. A bet exists only when the price is wrong for what you
 believe. Work in this order, every time:
 
-  1. Handicap the game from Tier 1, ignoring the odds entirely.
+  1. Handicap the game from the evidence, ignoring the odds entirely.
   2. THEN look at the prices.
   3. Ask: does any posted number fail to reflect what I just concluded?
   4. If every price already matches your read — PASS. You were right and there is no bet.
@@ -466,14 +508,15 @@ real pick and often the better one. Pass only if the read does not survive at an
 6. TOTALS
 ═══════════════════════════════════════════════════════════════════
 
-Build the expected run environment from the two Tier 1 matchups (Section 3), then add
+Build the expected run environment from the two starter-vs-lineup matchups (Section 3),
+then add
 bullpen quality and stress, then the park and the temperature. Only then look at the
 posted number, and compare it against the baselines in Section 1 before you compare it
 against your read — a total of 8.0 is below an average board, and knowing that is part
 of knowing whether your number disagrees with it.
 
   THE OVER/UNDER HISTORY BLOCK is outcomes, not inputs — how these clubs' totals have
-  actually landed. It is Tier 2 and it is easy to over-read: a 7-3 over record across ten
+  actually landed. It is moderate evidence, easy to over-read: a 7-3 over record across ten
   games is well inside what coin flips produce, and any effect it reflects is already in
   the rate stats you just used. Cite it as corroboration when it agrees with a read you
   already have. Never open a case with it, and never bet a total because a streak of them
@@ -661,10 +704,11 @@ OUTS. An outs prop is a bet on how long the manager lets him work, which is a di
 question from how well he pitches — a starter can be excellent and still get 15 outs, or
 mediocre and grind through 19. Use exactly these:
   1. How deep he normally goes (IP/gs, last 3)
-  2. His IP/gs VS THIS OPPONENT and AT THIS PARK (up to last 3 meetings) — a lineup that
-     runs his pitch count up has done it repeatedly, and it shows here before it shows
-     anywhere else. Where a consistent head-to-head depth differs from his overall
-     IP/gs, trust the head-to-head.
+  2. His IP/gs VS THIS OPPONENT (up to last 3 meetings) — a lineup that runs his pitch
+     count up has done it repeatedly, and it shows here before it shows anywhere else.
+     Where a consistent head-to-head depth differs from his overall IP/gs, weigh the
+     head-to-head heavily: depth against a specific lineup is one of the few places a
+     small head-to-head sample carries real information.
   3. How deep he went LAST time, and how recently that was
   4. Bullpen stress on his own team
   5. His BB% over the last 3 — walks are what end outings early. A command wobble caps
@@ -779,15 +823,19 @@ The FLAGS block states facts and stops. It does not tell you which side a fact f
 and earlier versions of it did — if you find yourself repeating a flag's wording as though
 it were a conclusion, that is a habit from a card that no longer talks that way.
 
-Weather matters only when it is extreme. A genuinely extreme park factor, a hard wind, or
-a genuinely hot or cold game can reinforce a total you already lean — almost never
-disqualify one, and never create one. Ordinary "hitter-friendly" or "pitcher-friendly"
-labels are not a reason for anything.
+Weather is light evidence, and it is worth most when it is extreme. A genuinely extreme
+park factor, a hard wind, or a genuinely hot or cold game reinforces a total you already
+lean, and — per Section 2 — can be part of the case rather than merely decoration on it:
+a hot day in a hitter's park with the wind out, behind two short starters and a tired
+bullpen, is a real argument for runs. What it cannot do is carry a total by itself, and
+you must not count the park factor, the temperature and the wind as three separate
+reasons when they are three readings of the same run environment. Ordinary
+"hitter-friendly" or "pitcher-friendly" labels remain no reason for anything.
 
   TEMPERATURE is on the card now. It moves carry in the direction you would expect and
   the effect is real but modest — a 90°F game and a 55°F game are a meaningful fraction
-  of a run apart, not a run. Treat it as Tier 3 alongside the park factor: a tiebreaker
-  on a total you already lean, never the case for one. The same goes for the elevation
+  of a run apart, not a run. It is light evidence alongside the park factor — and the two
+  are largely the same signal, so do not count them twice. The same goes for the elevation
   line on the handful of parks that carry one.
 
 Rain risk and the "NO STATS" mark are disqualifiers rather than weights; both are stated
@@ -808,7 +856,7 @@ sentence compares the two, name both: "118 wRC+ vs RHP over their last 6, up fro
 over their last 12."
 
 Each reason must contain, in order:
-  1. The Tier 1 matchup that drives it, with windows stated
+  1. The heaviest evidence that drives it, with windows stated
   2. The supporting evidence, with windows stated
   3. WHY THE PRICE IS WRONG — this is mandatory. If you cannot articulate what the market
      is mispricing, you do not have a bet and should not be submitting it.
@@ -820,7 +868,8 @@ copy on a betting page, not a transcript of your reasoning. Do your thinking pri
 then state only the conclusion and the evidence behind it.
 
 NEVER write any of the following in a reason, pass_reason, or alt_suggestion:
-  • References to these instructions or their structure — no "Tier 1", "per the rules",
+  • References to these instructions or their structure — no "the heaviest evidence",
+    "per the rules",
     "Section 3", "the guidance says", "as instructed", "the two signals agree".
   • Reminders of baseball or methodology rules you are following. The reader knows a team
     bats against the opposing pitcher. Do not write "their own starter's ERA doesn't
@@ -855,11 +904,12 @@ rather than about the game, delete it.
 A game's card may carry a SITUATIONAL TRENDS block, printed separately from FLAGS at the
 end of the card. The card states what happened; this section is where it is weighed.
 
-READ THIS BEFORE THE BULLETS. These are the WEAKEST evidence on the card, weaker than
-anything in Tier 2. Every effect named below is small, and several are small enough that
-honest people argue about whether they exist. They can break a tie between two readings
-you already hold. They cannot create a bet, they cannot outweigh a Tier 1 matchup, and a
-pick whose case rests on one is not a pick.
+READ THIS BEFORE THE BULLETS. These are the LIGHTEST evidence on the card. Every effect
+named below is small, and several are small enough that honest people argue about whether
+they exist. They still count, and per Section 2 several of them pointing the same way can form part
+of a real case — subject to that section's independence rule, which these signals break
+more often than any others on the card. One of them alone is not a pick, and none of them
+outweighs heavy evidence pointing the other way.
 
   • A RECENT BAD RESULT IS NOT A REASON TO EXPECT A GOOD ONE. A club that was swept, shut
     out, or beaten 1-0 has not become more likely to win today because it is "due" — that
@@ -899,16 +949,17 @@ Derive the confidence label from those two against the card's no-vig price:
 
   edge = your win_probability − the no-vig probability for that side
 
-Under 4 points, there is no pick (Section 4). Both fields are published as-is, so a
+Under 6 points, there is no pick (Section 4). Both fields are published as-is, so a
 projection you would not defend is a projection you should not submit.
 
 CONFIDENCE describes the strength of the MISPRICING, not how likely the bet is to win —
 a -180 favourite you expect to win 70% of the time is a medium-confidence bet if the price
 is roughly fair, and a coin flip at +140 is a high one if you think it is closer to even.
 
-  • HIGH — your edge over the no-vig price is roughly 8 points or better, Tier 1 points
-    one way without contradiction, the second offense window or the head-to-head
-    corroborates it, and you can name the specific thing the market has wrong. Rare. Most
+  • HIGH — your edge over the no-vig price is roughly 10 points or better, the heavy
+    evidence points one way without contradiction, the second offense window or the
+    head-to-head corroborates it, and you can name the specific thing the market has
+    wrong. Rare. Most
     slates have none, and a slate with more than one or two is a slate where "high" has
     stopped meaning anything.
   • MEDIUM — everything else you are willing to publish. A real edge you can defend, with
@@ -954,167 +1005,6 @@ When your analysis is complete, call the report_betting_suggestions tool.
 
 # ── Verification pass ─────────────────────────────────────────────────────────
 
-_VERIFY_SYSTEM_PROMPT = f"""\
-You are an auditor reviewing a single proposed MLB bet. You did not make this pick. Your
-job is to catch reasoning that is internally broken — not to re-handicap the game and not
-to substitute your own opinion.
-
-You will be given the exact data card the analyst saw, plus their pick and their stated
-rationale. Return ACCEPT or REJECT.
-
-{_CARD_FORMAT}
-WINDOWS ON THE CARD. Every stat is a specific time window, and the card labels each one:
-SP xERA/ERA/K%/Whiff%/BB% are his LAST 3 STARTS; team offense — wRC+, K%, Whiff%, HH% —
-is the lineup's LAST 6 GAMES vs today's opposing starter's hand, AND each of those four
-stats is printed a second time for the SAME lineup and hand over its LAST 12 GAMES, for
-comparison; bullpens are the LAST 12 GAMES. Both windows of every offense stat are
-legitimately on the card, so a rationale citing either one is quoting real data — check
-which window it names, not just the number.
-
-ALTERNATE LINES ARE ON THE CARD. Where an "ALT LINES" block appears, the analyst had real
-prices at every number listed, not just the main one (marked `*`). A pick taken at a number
-other than the main line is normal and correct, and a price quoted from that block is
-quoted from the card. Check the rung against the block before calling any figure invented,
-and never reject a pick for being at a non-main number.
-
-MORE OF THE CARD IS REAL THAN YOU MAY EXPECT. Check 2 rejects figures that are not on the
-card, so know what is: the temperature and any elevation on the Weather line; each
-bullpen's K%/BB%/HH% and its "2d stress" innings; the starter's K-BB%; the OVER/UNDER
-HISTORY block, which is graded outcomes rather than projections; the SEASON SERIES line;
-and the "[no-vig NN% / NN%]" figures beside each market, which are the two posted prices
-with the book's margin divided out. All of those are quotable. The analyst also submits a
-projection and a win probability of its own — those are estimates, not card figures, and
-are not subject to check 2.
-
-═══════════════════════════════════════════════════════════════════
-REJECT if ANY of the following is true
-═══════════════════════════════════════════════════════════════════
-
-1. BACKWARDS BASEBALL LOGIC. This is the most important check and the most common failure.
-   Each team bats against the OPPOSING starter and the OPPOSING bullpen. A starter's xERA
-   or ERA says NOTHING about how his own team will hit.
-     • REJECT: backing Team A while citing Team A's own pitcher's HIGH/BAD xERA or ERA as
-       a reason. A bad pitcher is a reason to fade his team, not to back it.
-     • REJECT: backing Team A's offense by pointing at Team A's own pitcher's stats.
-     • REJECT: an under argued from the offenses being good, or an over argued from the
-       starters being good.
-     • REJECT: any claim that pairs a lineup's wRC+ against its OWN starter rather than
-       against the opposing starter.
-     • REJECT: a rationale that puts a starter on the wrong club. The STARTING PITCHERS
-       block names the team each one is throwing for today; check the pick's pitcher
-       against it rather than against what you know about his career. If the rationale
-       has him facing the lineup he is actually pitching for, the whole matchup is
-       inverted — REJECT even if every number quoted is otherwise real.
-
-2. THE NUMBERS DO NOT MATCH THE CARD. Any stat quoted in the rationale that contradicts
-   the data card, or that does not appear in it at all. The analyst may only use the
-   numbers provided. Invented, misread, or misattributed figures are a REJECT — including
-   attributing one team's number to the other.
-     • REJECT: a stat quoted with the WRONG WINDOW. The rationale is published as fact, so
-       calling a last-6 offense number "over their last 12" (or the reverse) states a false
-       time period to the reader. wRC+, K%, Whiff%, and HH% all carry both windows on the
-       card now — check the number against the window actually named, not just whether
-       that window exists for the stat.
-
-3. THE RATIONALE DOES NOT SUPPORT THE SIDE ACTUALLY BET. The reasoning argues for one
-   outcome and the bet is on a different one — an under rationale attached to an over, a
-   rationale about Team A attached to a bet on Team B, or a rationale about the starters
-   attached to a full-game bet whose case depends on the bullpens.
-
-4. THE JUICE IS NOT EXPLAINED. Between -150 and -200 the rationale must say what the
-   price is buying; REJECT if it never engages with the price at all.
-   Do NOT reject a bet merely for being juiced inside that range. A short alternate number
-   at -175 is a legitimate bet and this check is not a juice filter. You do not need to
-   check the -200 floor, whether the quoted price appears on the card, or whether the
-   stated edge clears its minimum — all three are enforced in code before a pick reaches
-   you, so anything you are looking at has already passed them.
-
-5. NO PRICING ARGUMENT AT ALL. The rationale handicaps the game but never says what the
-   market has wrong. "Team A is better" is not a bet. If there is no claim of a
-   mispricing, REJECT.
-
-6. K PROP FIGHTING THE LINEUP. The opponent's K% (last 6 vs that hand) is the strongest
-   input on a strikeout prop, and the two signals must agree.
-     • REJECT: a K OVER into a lineup that does not strike out, unless the rationale
-       explicitly confronts the low K% and explains why the number is beatable anyway.
-       Two arguments are legitimate and neither is a REJECT on its own: a lineup's Whiff%
-       running notably above its K%, or an alternate rung low enough that the lineup's
-       contact rate stops mattering. The second must actually name the number it is
-       relying on.
-     • REJECT: a K UNDER against a high-K lineup on the same terms.
-     • REJECT: a K prop justified ONLY by the pitcher's own K% with no mention at all of
-       what the opposing lineup does against that hand.
-   A prop where both signals align, or where one is middling and the rationale accounts
-   for it, is fine — do not reject those.
-
-7. K OVER WITH NO INNINGS TO GET THERE. A strikeout total is rate × length. If the card
-   posts an outs line of roughly 15.5 or below and the pick is a K OVER, the rationale
-   must say why he pitches deeper than the market expects. REJECT if it never engages
-   with the short outing at all. Do not apply this where the card posts no outs line, and
-   do not reject a K UNDER on these grounds — a short outs line supports an under.
-
-8. THE RATIONALE'S OWN EVIDENCE ARGUES AGAINST THE BET. Not a judgment that the bet is
-   thin — a rationale that states a fact and then bets the other way from it.
-     • REJECT: a K OVER supported by a hot strikeout streak where the rationale itself
-       notes, or the card plainly shows, that those totals came against HIGHER-K lineups
-       than today's opponent. Recent totals built against strikeout-prone opposition are
-       evidence against the over into a contact lineup, not for it.
-     • REJECT: any pick that concedes the number is a stretch — "he has only cleared this
-       once," "they rarely score five" — and recommends it anyway without naming something
-       that changes the picture.
-   This check is about self-contradiction only. A demanding number (a team total over at
-   4.5+, a K over at 7.5+, a K under at 3.5-, an outs over at 18.5+) is NOT a reject on
-   size. Those numbers get their scrutiny at generation time; if a pick reaches you having
-   made a coherent case, ACCEPT it even if you would have wanted a bigger case. Do not
-   reject a pick merely for being aggressive, thinly argued, or one you would have passed.
-
-═══════════════════════════════════════════════════════════════════
-ACCEPT otherwise
-═══════════════════════════════════════════════════════════════════
-
-ACCEPT means the reasoning is coherent, the numbers are real and correctly attributed,
-and the bet follows from the argument. You are NOT judging whether the bet will win, and
-you are NOT judging whether you would have made it. A defensible pick you personally
-disagree with is an ACCEPT. Reserve REJECT for genuine breakage.
-
-Do not reject for style, brevity, or missing detail that does not change the conclusion.
-
-A starter's history VS THIS OPPONENT or AT THIS PARK is supporting evidence, not a
-top-weighted input — up to three meetings is a sample small enough that the rate stats
-computed over everything else usually win a conflict. Cited alongside a Tier 1 case it is
-fine. Standing alone as the whole case it is not, and neither is a case resting on a
-SINGLE meeting: REJECT both, as a number doing more work than it can carry. (That is a
-weighting failure, not a misquote; do not file it under check 2, whose subject is figures
-that disagree with the card.) The meeting count must be stated and must match the card.
-
-When rejecting, state the specific flaw in one or two sentences — quote the offending
-phrase from the rationale so the prompt can be fixed later. On ACCEPT, no reason needed.
-"""
-
-_VERIFY_TOOL = {
-    "name": "report_verdict",
-    "description": "Report whether the proposed bet's reasoning holds up.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "verdict": {
-                "type": "string",
-                "enum": ["ACCEPT", "REJECT"],
-                "description": "ACCEPT if the reasoning is coherent and correctly attributed; REJECT if broken.",
-            },
-            "reason": {
-                "type": ["string", "null"],
-                "description": (
-                    "REQUIRED when verdict is REJECT: the specific flaw in 1-2 sentences, "
-                    "quoting the offending phrase. Omit or null when ACCEPT."
-                ),
-            },
-        },
-        "required": ["verdict"],
-    },
-}
-
-
 # ── Mechanical validation ─────────────────────────────────────────────────────
 #
 # Everything here used to be enforced by asking a model nicely. The -200 floor was a
@@ -1126,7 +1016,14 @@ _VERIFY_TOOL = {
 # only ever sees picks whose numbers are real.
 
 PRICE_FLOOR = -200          # Section 5, in every market, main and alternate alike
-MIN_EDGE_PTS = 4.0          # Section 4, over the card's own no-vig price
+MIN_EDGE_PTS = 6.0          # Section 4, over the card's own no-vig price
+#
+# Raised from 4.0 on 2026-08-30. At 4.0 it never rejected anything: across the 54
+# picks carrying both probabilities, the smallest stated edge was 5.0 points and the
+# median was 11.5, so the floor sat below the entire distribution. Raising it is only
+# half the fix — a self-reported number can be inflated past any threshold — which is
+# why Section 4 now also tells the model what its own distribution looked like and
+# asks it to derive the estimate before checking it against the bar.
 
 
 def _prop_for(pick: dict, g: dict, market: str):
@@ -1151,7 +1048,7 @@ def _posted_prices(pick: dict, g: dict) -> Optional[list]:
     """Every price the card posts for this exact (market, line, side), or None.
 
     None means "could not identify the market" and is NOT a rejection — an unrecognised
-    shape fails open, same as the audit pass does on an API error. An empty list means
+    shape fails open rather than rejecting on a shape we did not anticipate. An empty list means
     the market was found and this line/side is not on it.
     """
     od   = g.get("odds") or {}
@@ -1225,7 +1122,12 @@ def _posted_prices(pick: dict, g: dict) -> Optional[list]:
 
 
 def _validate_pick(pick: dict, g: dict) -> Optional[str]:
-    """Deterministic pre-audit checks. Returns a rejection reason, or None to pass."""
+    """Deterministic checks. Returns a rejection reason, or None to pass.
+
+    Since the AI audit pass was removed these are the ONLY automated checks standing
+    between the model's output and the published page, so they are the place to add any
+    new check that can be expressed mechanically.
+    """
     bt = pick.get("bet_type") or ""
 
     # 1. The price floor is an `if` now, not a sentence in two prompts.
@@ -1279,68 +1181,6 @@ def _validate_pick(pick: dict, g: dict) -> Optional[str]:
     return None
 
 
-def _verify_pick(client, pick: dict, game_block: str) -> tuple[bool, str]:
-    """
-    Audit one pick against the data card it came from. Returns (accepted, reject_reason).
-    Fails OPEN — an API error keeps the pick rather than silently dropping it.
-    """
-    bet_line = " | ".join(
-        f"{k}: {pick.get(k)}"
-        for k in ("bet_type", "bet", "team_side", "line", "period", "odds", "confidence")
-        if pick.get(k) not in (None, "")
-    )
-    user_msg = (
-        f"DATA CARD THE ANALYST SAW:\n\n{game_block}\n\n"
-        f"{'=' * 67}\n\nPROPOSED BET\n{bet_line}\n\n"
-        f"ANALYST'S RATIONALE\n{pick.get('reason', '(none given)')}\n\n"
-        f"{'=' * 67}\n\nAudit this pick and call report_verdict."
-    )
-    try:
-        resp = client.messages.create(
-            model="claude-opus-5",
-            max_tokens=4000,
-            thinking={"type": "adaptive"},
-            # A bounded task — read one card, check one rationale against it, return a
-            # verdict — so it runs at low effort. WATCH THE REJECTION RATE: the audit's
-            # value is cross-referencing quoted figures against the card (misquoted ERAs,
-            # a stat attributed to the wrong club, a lineup claim the card contradicts),
-            # and that is precisely what effort buys. The baseline is 16 audit rejections
-            # over 2026-08-09..08-27, 6.2% of picks submitted, countable from rejections/
-            # by excluding the "[mechanical]" prefix. If it falls well below that, put
-            # this back to "medium".
-            output_config={"effort": "low"},
-            # The audit runs once per pick in a sequential loop, so ~7 calls a run go out
-            # back to back with an identical prefix — same tools, same system prompt, only
-            # the card and rationale differ. Caching that prefix turns 6 of every 7 full-
-            # price sends into cache reads at a tenth the rate. Render order is tools ->
-            # system -> messages, so the breakpoint here covers both constants and the
-            # per-pick user message stays outside it.
-            #
-            # Opus 5's minimum cacheable prefix is 512 tokens and this prompt is ~2.2K, so
-            # it does cache; below the minimum it would silently no-op. Do NOT copy this to
-            # the generation call — that fires once per run, six hours apart, so its cache
-            # would never be read and the 1.25x write premium would be a pure loss.
-            system=[{"type": "text", "text": _VERIFY_SYSTEM_PROMPT,
-                     "cache_control": {"type": "ephemeral"}}],
-            tools=[_VERIFY_TOOL],
-            messages=[{"role": "user", "content": user_msg}],
-        )
-        record_claude("claude-opus-5", getattr(resp, "usage", None))
-        block = next((b for b in resp.content if getattr(b, "type", "") == "tool_use"), None)
-        if not block:
-            # No structured verdict — fail open rather than discard a possibly-good pick.
-            print("[verify] no verdict block returned — keeping pick", file=sys.stderr)
-            return True, ""
-        data = block.input or {}
-        verdict = str(data.get("verdict", "")).strip().upper()
-        if verdict == "REJECT":
-            return False, (data.get("reason") or "").strip() or "(no reason given)"
-        return True, ""
-    except Exception as e:
-        print(f"[verify] API error ({e}) — keeping pick", file=sys.stderr)
-        return True, ""
-
-
 def _log_rejections(rejections: list[dict], rej_dir: Path, date_str: str) -> None:
     """Append rejected picks to rejections/{date}.json for later prompt tuning."""
     if not rejections:
@@ -1361,9 +1201,9 @@ def _log_rejections(rejections: list[dict], rej_dir: Path, date_str: str) -> Non
                  if (r.get("game"), r.get("bet"), r.get("reject_reason")) not in seen]
         if added:
             path.write_text(json.dumps(existing + added, indent=2))
-            print(f"[verify] logged {len(added)} rejection(s) → {path}", file=sys.stderr)
+            print(f"[validate] logged {len(added)} rejection(s) → {path}", file=sys.stderr)
     except Exception as e:
-        print(f"[verify] could not write rejection log: {e}", file=sys.stderr)
+        print(f"[validate] could not write rejection log: {e}", file=sys.stderr)
 
 
 # ── Game serialization for AI prompt ─────────────────────────────────────────
@@ -1708,7 +1548,7 @@ def _serialize_game_for_ai(g: dict) -> str:
         if not vs_ot:
             return base
         return base + (
-            f"\n    each meeting (oldest → newest):\n"
+            "\n    each meeting (oldest → newest):\n"
             + "\n".join(f"      {_outing_str(o)}" for o in vs_ot)
         )
 
@@ -1783,14 +1623,51 @@ def _serialize_game_for_ai(g: dict) -> str:
 
 # ── AI call + caching ─────────────────────────────────────────────────────────
 
+def _normalize_tool_result(result) -> dict:
+    """Coerce the model's tool output into the shape the rest of the code assumes.
+
+    The tool is not `strict`, so the API accepts a field of the wrong TYPE — and on
+    2026-08-30 it did: `pass_reasons` came back as a bare string instead of the
+    {game: reason} object the schema declares, and `_ai_game_map` died on
+    `'str' object has no attribute 'items'` during HTML generation. Picks had already
+    been committed by then, so the run left a pick log with no page — the step ordering
+    did its job and kept the last good deploy up, but the publish still failed.
+
+    A malformed field degrades to empty here rather than taking the whole site down.
+    `strict: true` is not available as a fix: it requires additionalProperties=false,
+    and pass_reasons deliberately uses additionalProperties as an open string map.
+    """
+    if not isinstance(result, dict):
+        print(f"[suggestions] tool result is {type(result).__name__}, not an object — "
+              "discarding", file=sys.stderr)
+        return {"picks": [], "pass_reasons": {}}
+
+    picks = result.get("picks")
+    if not isinstance(picks, list):
+        if picks is not None:
+            print(f"[suggestions] picks is {type(picks).__name__}, not a list — dropping",
+                  file=sys.stderr)
+        picks = []
+    result["picks"] = [p for p in picks if isinstance(p, dict)]
+
+    pr = result.get("pass_reasons")
+    if not isinstance(pr, dict):
+        if pr is not None:
+            print(f"[suggestions] pass_reasons is {type(pr).__name__}, not an object — "
+                  "dropping", file=sys.stderr)
+        pr = {}
+    result["pass_reasons"] = {k: v for k, v in pr.items() if isinstance(v, str)}
+    return result
+
+
 def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                          rej_dir: Path = Path("./rejections")) -> Optional[dict]:
     """
     Call Claude to generate betting suggestions. Caches to data/suggestions_{date}.json
     and regenerates whenever odds are updated. Returns parsed dict or None on failure.
 
-    Every pick is audited by a second, independent model call before being returned;
-    picks whose reasoning doesn't hold up are dropped and logged to rejections/{date}.json.
+    Picks are checked by _validate_pick — deterministic, no API call — and anything it
+    rejects is dropped and logged to rejections/{date}.json.
     """
     date_str = target_date.strftime("%Y-%m-%d")
     sugg_path = data_dir / f"suggestions_{date_str}.json"
@@ -1938,7 +1815,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                                     "The no-vig probability the card prints for the side you are "
                                     "taking, 0-100, copied from the [no-vig …] figure on that "
                                     "market's line. win_probability minus this is your edge and "
-                                    "must be at least 4 points."
+                                    "must be at least 6 points."
                                 ),
                             },
                             "reason":      {
@@ -2028,64 +1905,53 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
         if not tool_block:
             print("[suggestions] No tool_use block in response", file=sys.stderr)
             return None
-        result = tool_block.input
+        result = _normalize_tool_result(tool_block.input)
     except Exception as e:
         print(f"[suggestions] API error: {e}", file=sys.stderr)
         return None
 
-    # ── Verification pass: audit each pick against the card it came from ──────
+    # ── Validation: the deterministic checks only ─────────────────────────────
+    #
+    # The per-pick AI audit was removed on 2026-08-30. It worked — 16 rejections over
+    # 2026-08-09..08-27, 6.2% of picks, catching fabricated figures, a stat attributed to
+    # the wrong club and one inverted matchup — but it was ~26 of ~30 daily calls and
+    # roughly $47 of the ~$121/month bill, and the decision was that a weak pick is
+    # acceptable output. What is lost with it is the check on FACTUAL claims in published
+    # copy; what remains is _validate_pick, which is free, deterministic, and covers the
+    # price floor, a line or price the card does not post, the stated-edge minimum and the
+    # two Section 8 disqualifiers. rejections/ keeps accruing from those, so the weekly
+    # prompt review still has input.
     picks = result.get("picks") or []
     if picks:
-        blocks_by_game = {f"{g['away']} @ {g['home']}": b
-                          for g, b in zip(unstarted, serialized)}
-        games_by_key   = {f"{g['away']} @ {g['home']}": g for g in unstarted}
+        games_by_key = {f"{g['away']} @ {g['home']}": g for g in unstarted}
         kept, rejections = [], []
         for pick in picks:
             game = pick.get("game", "")
-            block = blocks_by_game.get(game)
-            if not block:
-                # Can't audit what we can't match — keep it rather than drop blind.
-                print(f"[verify] no card for '{game}' — keeping unaudited", file=sys.stderr)
+            g = games_by_key.get(game)
+            if g is None:
+                # Cannot check a pick we cannot match to a card — keep rather than drop blind.
+                print(f"[validate] no card for '{game}' — keeping unchecked", file=sys.stderr)
                 kept.append(pick)
                 continue
-            # Deterministic checks first: a pick quoting a price the card does not post
-            # should never reach the paid audit call, let alone the page.
-            why = _validate_pick(pick, games_by_key[game])
-            if why:
-                print(f"[validate] REJECT {game} | {pick.get('bet')} — {why}", file=sys.stderr)
-                rejections.append({
-                    "date":          date_str,
-                    "game":          game,
-                    "bet_type":      pick.get("bet_type", ""),
-                    "bet":           pick.get("bet", ""),
-                    "odds":          pick.get("odds", ""),
-                    "confidence":    pick.get("confidence", ""),
-                    "reason":        pick.get("reason", ""),
-                    "reject_reason": f"[mechanical] {why}",
-                    "rejected_at":   datetime.now(timezone.utc).isoformat(),
-                })
-                continue
-            ok, why = _verify_pick(client, pick, block)
-            if ok:
+            why = _validate_pick(pick, g)
+            if not why:
                 kept.append(pick)
-            else:
-                print(f"[verify] REJECT {game} | {pick.get('bet')} — {why}", file=sys.stderr)
-                rejections.append({
-                    "date":          date_str,
-                    "game":          game,
-                    "bet_type":      pick.get("bet_type", ""),
-                    "bet":           pick.get("bet", ""),
-                    "odds":          pick.get("odds", ""),
-                    "confidence":    pick.get("confidence", ""),
-                    "reason":        pick.get("reason", ""),
-                    "reject_reason": why,
-                    "rejected_at":   datetime.now(timezone.utc).isoformat(),
-                })
+                continue
+            print(f"[validate] REJECT {game} | {pick.get('bet')} — {why}", file=sys.stderr)
+            rejections.append({
+                "date":          date_str,
+                "game":          game,
+                "bet_type":      pick.get("bet_type", ""),
+                "bet":           pick.get("bet", ""),
+                "odds":          pick.get("odds", ""),
+                "confidence":    pick.get("confidence", ""),
+                "reason":        pick.get("reason", ""),
+                "reject_reason": f"[mechanical] {why}",
+                "rejected_at":   datetime.now(timezone.utc).isoformat(),
+            })
         result["picks"] = kept
         _log_rejections(rejections, rej_dir, date_str)
-        n_mech = sum(1 for r in rejections if r["reject_reason"].startswith("[mechanical]"))
-        print(f"[verify] {len(kept)} kept, {len(rejections)} rejected of {len(picks)} "
-              f"({n_mech} mechanically, {len(rejections) - n_mech} by audit)",
+        print(f"[validate] {len(kept)} kept, {len(rejections)} rejected of {len(picks)}",
               file=sys.stderr)
 
     try:
@@ -2196,6 +2062,10 @@ def _ai_game_map(valid_picks: list, suggestions: Optional[dict]) -> dict:
             picks_by_game.setdefault((game, p.get("game_time_utc", "")), []).append(p)
 
     pass_reasons = (suggestions or {}).get("pass_reasons") or {}
+    if not isinstance(pass_reasons, dict):
+        # A cached suggestions file written before the normalizer landed can still carry
+        # a malformed value; rendering must not die on it.
+        pass_reasons = {}
 
     result: dict = {}
     for key, picks in picks_by_game.items():
