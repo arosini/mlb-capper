@@ -298,25 +298,72 @@ def get_team_schedule(team_id: int, season: int) -> list[dict]:
     return results
 
 
+def _relief_ip_by_team(game_pk, t_home, t_away) -> dict:
+    """Relief innings by team id for one completed game, from its boxscore.
+
+    Returns {} if the boxscore cannot be read, so the caller neither caches nor
+    counts the game rather than recording it as zero relief innings.
+    """
+    try:
+        rb = requests.get(f"{MLB_API}/game/{game_pk}/boxscore", timeout=10)
+        rb.raise_for_status()
+        bs = rb.json()
+    except Exception:
+        return {}
+
+    out: dict = {}
+    for side, team_id in [("home", t_home), ("away", t_away)]:
+        if team_id is None:
+            continue
+        t = bs.get("teams", {}).get(side, {})
+        out[str(team_id)] = round(sum(
+            mlb_ip_to_real(str(
+                t.get("players", {}).get(f"ID{pid}", {})
+                 .get("stats", {}).get("pitching", {}).get("inningsPitched", "0")
+            ))
+            for pid in t.get("pitchers", [])
+            if int(t.get("players", {}).get(f"ID{pid}", {})
+                    .get("stats", {}).get("pitching", {}).get("gamesStarted", 0)) == 0
+        ), 2)
+    return out
+
+
 def get_bullpen_stress(team_mlb_ids: set, target_date: date, data_dir: Path) -> dict:
     """Fetch 2-day bullpen usage via MLB boxscores.
 
     Returns {team_mlb_id: {"ip": float, "games": int, "label": str, "css": str}}.
-    Caches to data_dir/bullpen_stress_{date}.json — written once per calendar date.
+
+    The cache in data_dir/bullpen_stress_{date}.json holds relief innings PER GAME,
+    and only games that have reached Final are ever written to it. The aggregate is
+    recomputed on every call from the games the window currently contains.
+
+    That structure is load-bearing, and a whole-window cache written once per date
+    was silently wrong. `/tomorrow/` is rendered on every deploy, including the 3:30
+    AM ET run, and its target date is tomorrow — so it wrote bullpen_stress_{D+1}
+    with the window [D-1, D] at a moment when none of day D's games had been played.
+    The workflow's cleanup step preserves tomorrow-dated files, so that file survived
+    into day D+1 as *today's* file and was served straight from cache: every club's
+    "2d stress" on D+1 described one game from D-1 and omitted D entirely.
+    Caching per game means an in-progress day simply completes on the next run.
     """
     if not HAS_REQUESTS or not team_mlb_ids:
         return {}
 
-    cache_path = data_dir / f"bullpen_stress_{target_date.isoformat()}.json"
-    if cache_path.exists():
-        try:
-            cached = json.loads(cache_path.read_text())
-            return {int(k): v for k, v in cached.items()}
-        except Exception:
-            pass
-
     start = (target_date - timedelta(days=2)).isoformat()
     end   = (target_date - timedelta(days=1)).isoformat()
+
+    cache_path = data_dir / f"bullpen_stress_{target_date.isoformat()}.json"
+    by_game: dict = {}
+    if cache_path.exists():
+        try:
+            blob = json.loads(cache_path.read_text())
+            # Pre-2026-08-30 files hold a team-keyed aggregate with no "by_game";
+            # they read as empty and are simply refetched.
+            for pk, rec in (blob.get("by_game") or {}).items():
+                if isinstance(rec, dict) and isinstance(rec.get("teams"), dict):
+                    by_game[str(pk)] = rec
+        except Exception:
+            pass
 
     try:
         r = requests.get(
@@ -325,43 +372,44 @@ def get_bullpen_stress(team_mlb_ids: set, target_date: date, data_dir: Path) -> 
             timeout=10,
         )
         r.raise_for_status()
+        dates = r.json().get("dates", [])
     except Exception as e:
+        # Fall through on whatever the cache already holds rather than blanking the
+        # stress line on every card for a transient statsapi failure.
         print(f"Warning: bullpen stress fetch failed: {e}", file=sys.stderr)
-        return {}
+        dates = []
 
-    ip_by_team: dict    = {}
-    games_by_team: dict = {}
-
-    for date_entry in r.json().get("dates", []):
+    for date_entry in dates:
+        game_date = date_entry.get("date", "")
         for g in date_entry.get("games", []):
             if g.get("status", {}).get("abstractGameState") != "Final":
                 continue
-            t_home = g.get("teams", {}).get("home", {}).get("team", {}).get("id")
-            t_away = g.get("teams", {}).get("away", {}).get("team", {}).get("id")
-            if t_home not in team_mlb_ids and t_away not in team_mlb_ids:
+            pk = str(g.get("gamePk"))
+            if pk in by_game:
                 continue
-            pk = g.get("gamePk")
+            teams  = g.get("teams", {})
+            t_home = teams.get("home", {}).get("team", {}).get("id")
+            t_away = teams.get("away", {}).get("team", {}).get("id")
+            relief = _relief_ip_by_team(pk, t_home, t_away)
+            if relief:
+                by_game[pk] = {"date": game_date, "teams": relief}
+
+    # Aggregate fresh every call: the cache is per game, so it serves any team set
+    # and any window without being rewritten for each of them.
+    in_window = {
+        pk: rec for pk, rec in by_game.items()
+        if start <= str(rec.get("date", "")) <= end
+    }
+    ip_by_team: dict    = {}
+    games_by_team: dict = {}
+    for rec in in_window.values():
+        for tid_s, ip in rec["teams"].items():
             try:
-                rb = requests.get(f"{MLB_API}/game/{pk}/boxscore", timeout=10)
-                rb.raise_for_status()
-                bs = rb.json()
-            except Exception:
+                tid = int(tid_s)
+            except (TypeError, ValueError):
                 continue
-            for side, team_id in [("home", t_home), ("away", t_away)]:
-                if team_id is None:
-                    continue
-                t = bs.get("teams", {}).get(side, {})
-                relief_ip = sum(
-                    mlb_ip_to_real(str(
-                        t.get("players", {}).get(f"ID{pid}", {})
-                         .get("stats", {}).get("pitching", {}).get("inningsPitched", "0")
-                    ))
-                    for pid in t.get("pitchers", [])
-                    if int(t.get("players", {}).get(f"ID{pid}", {})
-                            .get("stats", {}).get("pitching", {}).get("gamesStarted", 0)) == 0
-                )
-                ip_by_team[team_id]    = ip_by_team.get(team_id, 0.0) + relief_ip
-                games_by_team[team_id] = games_by_team.get(team_id, 0) + 1
+            ip_by_team[tid]    = ip_by_team.get(tid, 0.0) + float(ip or 0.0)
+            games_by_team[tid] = games_by_team.get(tid, 0) + 1
 
     result: dict = {}
     for team_id in team_mlb_ids:
@@ -371,7 +419,8 @@ def get_bullpen_stress(team_mlb_ids: set, target_date: date, data_dir: Path) -> 
         result[team_id] = {"ip": round(ip, 1), "games": games, "label": label, "css": css}
 
     try:
-        cache_path.write_text(json.dumps({str(k): v for k, v in result.items()}))
+        # Pruned to the window so the file does not grow across a season of reruns.
+        cache_path.write_text(json.dumps({"by_game": in_window}))
     except Exception:
         pass
 
