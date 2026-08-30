@@ -676,6 +676,51 @@ now a **weighted-evidence** model, and every "Tier N" reference in both prompts 
   park with the wind out, behind two short starters and a tired bullpen, is a genuine
   argument for runs with nothing heavy driving it.
 
+### Extremity scales weight — a category is a prior, not a ceiling (added same day)
+
+The first version of the above assigned weight by CATEGORY alone, so a team 10-1 over its
+last 10 counted exactly as much as one 6-5 — both are "team trend", both LIGHT. That is
+wrong in the other direction: the block describes the *typical* reading, and the reading
+in front of you is what you actually have.
+
+**Weight is now the category MULTIPLIED BY how extreme the reading is.** An egregious
+figure in a light block can outweigh an unremarkable one in a heavy block. Promotion above
+a block requires **all four** of these, and the published reason has to say which it
+clears:
+
+| Test | What it rules out |
+|---|---|
+| **MAGNITUDE** — far from the §1 league baselines, not merely on the right side | "above average" passing itself off as extreme |
+| **CONSISTENCY** — every observation says it, not an average dragged there by one | a 6.00 ERA from one disaster and four decent starts |
+| **SAMPLE** — three of three is thin, ten of ten is not | a short sequence doing what short sequences do |
+| **MECHANISM** — something on the card explains it | a sample artifact read as a discovery |
+
+**The counterweight is not optional, and removing it turns this into streak-chasing.** The
+more extreme and visible a signal, the more certainly it is already in the price — a
+ten-game winning streak is the most conspicuous thing on the board, and the number in
+front of you is what remains after the book and the public have both seen it. An extreme
+reading therefore raises *two* estimates at once, the team and what the price already
+contains, and those largely cancel. Promotion changes confidence in the read of the GAME;
+it does not by itself mean the PRICE is wrong, and only a wrong price is a bet. The §4
+threshold still has to clear.
+
+The corollary is carried in the prompt too and is worth as much: an extreme reading
+pointing AWAY from the bet is heavier counter-evidence than its block suggests, which
+feeds §4's requirement to name the strongest thing arguing the other way.
+
+**Head-to-head is where this most often applies.** Consistency is the one thing a 60-80
+plate appearance sample CAN establish, so a starter shelled the same way in every meeting
+— each outing a separate failure rather than one number spread thin — is stronger than the
+block's moderate default. It stays moderate if the roster that did the damage has turned
+over or nothing on today's card explains it, **which preserves the deliberate demotion of
+head-to-head off the top tier recorded above** — this promotes an extreme *reading*, it
+does not re-promote the *category*.
+
+One contradiction had to be fixed to make room: the LIGHT paragraph previously said a
+light signal "cannot carry a case ALONE", which forbade exactly this. It is scoped to
+ORDINARY light signals now. The independence rule below is untouched — extremity raises
+the weight of one signal, it does not turn restatements into separate ones.
+
 **The guard that makes accumulation honest is the independence rule, and it must stay.**
 Park factor, temperature and wind are three readings of ONE thing — the run environment —
 and citing all three is one piece of evidence, not three. §2 says so explicitly, §9
@@ -741,6 +786,42 @@ fix can still hold the bad value.
 died, so the run left a pick log with no page rather than publishing something
 unreproducible — the last good deploy (run 401, 13:14) stayed up. That is the invariant
 `publish.yml` is ordered for; the stranded picks render on the next successful run.
+
+## The page and the pick log can disagree — 2026-08-30
+
+`render_html.py` contains **zero** references to `picks/`. The published page renders from
+`data/suggestions_{date}.json`; `picks/{date}.json` is a separate artifact that only
+`picks.py` writes and only `/results/` grades. Normally they agree, which is why this went
+unnoticed — the suggestions merge cleanly into a log that was built from the same
+suggestions.
+
+**They come apart the moment the prompt changes mid-day**, which happened twice on
+2026-08-30:
+
+| | |
+|---|---|
+| `data/suggestions_2026-08-30.json` (what the page showed) | the new prompt's **5** picks |
+| `picks/2026-08-30.json` (what `/results/` grades) | the earlier run's **8** |
+
+The mechanism is `_canon_pick_key`, which for props is `(game, "pitcher", last)` and
+**deliberately excludes the line** so two rungs of one ladder collapse. A regenerated pick
+on an already-picked pitcher therefore merges into the existing slot and the **first price
+seen wins** — `[picks] 0 new pick(s), 8 total`, even though the model had just returned 5.
+The append-only guarantee did exactly its job; the side effect is that the day's log
+cannot show a policy adopted after the log was first written.
+
+**This is not a bug to fix by adding `line` to the key** — CLAUDE.md already records that
+doing so would break the guarantee alternate lines depend on. It is a fact to know: after
+a mid-day prompt change, the only way to make the page and the ledger agree is to clear
+`picks/{date}.json` and re-run, and that is a deliberate immutability break with the
+conditions listed under "Published Picks Are Immutable" (nothing graded, nothing started).
+
+**Watch for the forced-tool retry.** The same run logged
+`[suggestions] No tool_use block — retrying with forced tool`, so it cost **2 Claude calls,
+not 1**, and the answer came from the forced call — which suppresses thinking entirely, per
+the measurement recorded under "AI Picks — one generation call". A run that retries is a
+run whose picks had less reasoning behind them. If this becomes common the prompt is
+provoking prose answers and that is worth fixing; a single occurrence is not yet a pattern.
 
 ## Adversarial Review — 2026-08-24
 
@@ -1363,7 +1444,7 @@ things drifted after it was written and neither was re-measured:
 
 - **`_AI_SYSTEM_PROMPT` is ~12,950 tokens, not the 4.0K the table assumed.** It roughly
   tripled across the 2026-08-23 prompt audit and the 08-24 adversarial review. Measure it,
-  don't estimate it: `len(_AI_SYSTEM_PROMPT)` is 51,819 chars as of 2026-08-27.
+  don't estimate it: `len(_AI_SYSTEM_PROMPT)` is **63,173 chars (~15.8K tok) as of 2026-08-30**, up from 51,819 on 08-27 — the audit-pass removal, the evidence rewrite, the ported K-prop paragraph, the F5 restoration and the extremity block all added to it. The *total* system-prompt surface still fell (60,818 -> 63,173 for generation, but `_VERIFY_SYSTEM_PROMPT`'s 8,997 chars went entirely). **The main prompt has grown, not shrunk; do not describe the prompt work as a size reduction.** The CARD is what shrank.
 - **The card is far past the ~550 tok/game the table assumed.** See below.
 
 Regressing daily input tokens on daily call count over those 18 days gives
