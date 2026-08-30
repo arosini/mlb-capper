@@ -111,7 +111,7 @@ main{max-width:580px;margin:0 auto;padding:.5rem .625rem}
 .mu-q{color:#9ca3af;font-size:.655rem;font-weight:500;white-space:nowrap}
 .mu-grp-hd{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af;margin-top:.35rem;padding-top:.3rem;border-top:1px solid rgba(0,0,0,.09)}
 .ot-wrap{font-size:.74rem}
-.ot-row{display:grid;grid-template-columns:3rem 3.2rem 2rem 2.4rem 2.2rem 1.5rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .18rem;align-items:center;padding:.04rem 0}
+.ot-row{display:grid;grid-template-columns:4.1rem 3rem 1.8rem 2.4rem 2rem 1.5rem 1.5rem 1.5rem 1.5rem 1.5rem;gap:.06rem .18rem;align-items:center;padding:.04rem 0}
 .ot-hd span{font-size:.62rem;font-weight:700;color:#9ca3af;text-align:center}
 .ot-hd span:first-child{text-align:left}
 .ot-row span{text-align:center}
@@ -187,9 +187,13 @@ header{background:#030712}
 .spl-sp-hd{font-size:.72rem;font-weight:700;color:#374151;padding:.32rem 0 .08rem;border-top:1px solid rgba(0,0,0,.07)}
 .spl-sp-hd:first-child{border-top:none;padding-top:0}
 .spl-ot{margin:.22rem 0 .45rem}
+.spl-meta{font-size:.64rem;color:#9ca3af;padding:.1rem 0 0}
+.spl-meta-fresh{color:#b45309;font-weight:600}
 @media(prefers-color-scheme:dark){
 .spl-hd span{color:#6b7280}
 .spl-sp-hd{color:#d1d5db;border-top-color:rgba(255,255,255,.1)}
+.spl-meta{color:#6b7280}
+.spl-meta-fresh{color:#f59e0b}
 }
 .ai-picks{background:white;margin:.5rem 0 .75rem;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
 .ai-picks-hd{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;padding:.45rem .875rem .3rem;cursor:pointer;list-style:none}
@@ -806,6 +810,32 @@ def _spl_ot(outings) -> str:
     return f'<div class="spl-ot">{_outing_table(outings)}</div>' if outings else ""
 
 
+def _spl_meta(meta: Optional[dict]) -> str:
+    """Which season the meetings are from, and how long ago the last one was.
+
+    Both are readable off the dates in the table below it — this states them once so
+    the reader is not doing date arithmetic. A meeting inside FAMILIAR_DAYS is called
+    out because it is the one part of head-to-head that means something on its own.
+    """
+    if not meta or not meta.get("n"):
+        return ""
+    n, ty, py = meta["n"], meta.get("this_year", 0), meta.get("prior_year", 0)
+    if n == 1:
+        bit = "this season" if ty else "last season"
+    elif ty == n:
+        bit = f"all {n} this season"
+    elif ty:
+        bit = f"{ty} this season, {py} last season"
+    else:
+        bit = f"none this season — {py} from last season"
+    last = meta.get("last_days")
+    if last is not None:
+        ago = "yesterday" if last == 1 else f"{last} days ago" if last else "today"
+        bit += f" · last met {ago}"
+    cls = " spl-meta-fresh" if meta.get("familiar") else ""
+    return f'<div class="spl-meta{cls}">{_h(bit)}</div>'
+
+
 def _spl_block(sp_name: str, spl: dict, vs_lbl: str, at_lbl: str,
                merge: bool = False) -> str:
     """Situational splits for one starter, with the outings behind them.
@@ -819,13 +849,16 @@ def _spl_block(sp_name: str, spl: dict, vs_lbl: str, at_lbl: str,
     if not spl.get("vs") and not spl.get("at"):
         return ""
     head = f'<div class="spl-sp-hd">{_h(sp_name)}</div>' + _SPL_HDR
+    meta = _spl_meta(spl.get("vs_meta"))
     if merge:
         return (head
                 + _spl_row(vs_lbl, spl.get("vs"))
                 + _spl_row(at_lbl, spl.get("at"))
+                + meta
                 + _spl_ot(spl.get("outings") or []))
     return (head
             + _spl_row(vs_lbl, spl.get("vs"))
+            + meta
             + _spl_ot(spl.get("vs_outings") or [])
             + _spl_row(at_lbl, spl.get("at"))
             + _spl_ot(spl.get("at_outings") or []))
