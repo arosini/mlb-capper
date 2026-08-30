@@ -1548,7 +1548,7 @@ def _serialize_game_for_ai(g: dict) -> str:
         if not vs_ot:
             return base
         return base + (
-            f"\n    each meeting (oldest → newest):\n"
+            "\n    each meeting (oldest → newest):\n"
             + "\n".join(f"      {_outing_str(o)}" for o in vs_ot)
         )
 
