@@ -1057,6 +1057,21 @@ stripped its own directory from `sys.path` before importing anything else, and a
 script in `scripts/` that imports from the repo root should do the same — nothing here
 imports a sibling by name, so the repo root is the only path such a script needs.
 
+## PR #5's K-prop rule, ported by hand — 2026-08-30
+
+The weekly review's one surviving output was PR #5: a §8 paragraph requiring every K prop
+reason to name today's opponent's K% (last 6 vs hand) and the posted outs line, and to
+confront whichever of the two argues against the bet. It was raised against a 2026-08-24
+main and could not merge — §8 has been rewritten twice since — so the paragraph was ported
+into the current §8 by hand and PR #5 closed.
+
+**It matters more now than when it was written.** Audit checks 6 ("K PROP FIGHTING THE
+LINEUP") and 7 ("K OVER WITH NO INNINGS TO GET THERE") enforced exactly this, and both
+went with the audit pass. §8 already covered the outs half — "taking it anyway requires
+saying in the reason why he goes longer than the number" — but nothing required the
+opponent's K% to appear at all. With no auditor downstream, the generation prompt is the
+only place that discipline can live.
+
 ## The weekly prompt review is removed — 2026-08-30
 
 `.github/workflows/prompt-review.yml` and `scripts/review_rejections.py` are deleted.
