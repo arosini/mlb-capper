@@ -54,10 +54,10 @@
     "market_probability": 49,
     "rung_rejected": "the 3.5 over at -170 \u2014 no reason to lay juice on the wrong side of this matchup",
     "found_at": "2026-08-30T14:38:10.656266+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 4,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-30T22:20:13.499905+00:00"
   },
   {
     "date": "2026-08-30",
@@ -84,10 +84,10 @@
     "market_probability": 48,
     "rung_rejected": "the 3.5 over at -275 \u2014 far too short a price for the same read",
     "found_at": "2026-08-30T14:38:10.656266+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 16,
+    "annotated_at": "2026-08-30T22:20:13.499905+00:00"
   },
   {
     "date": "2026-08-30",
@@ -114,10 +114,10 @@
     "market_probability": 52,
     "rung_rejected": "the 6.5 over at +175 \u2014 the extra strikeout is the part I am least sure of given his short last outing",
     "found_at": "2026-08-30T14:38:10.656266+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-30T22:20:13.499905+00:00"
   },
   {
     "date": "2026-08-30",
@@ -144,10 +144,10 @@
     "market_probability": 60,
     "rung_rejected": null,
     "found_at": "2026-08-30T14:38:10.656266+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 0,
+    "home_score_final": 7,
+    "annotated_at": "2026-08-30T22:20:13.499905+00:00"
   },
   {
     "date": "2026-08-30",
@@ -240,6 +240,38 @@
     "market_probability": 45,
     "rung_rejected": "3.5 rung, which prices only the over at -285",
     "found_at": "2026-08-30T17:53:31.206133+00:00",
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 4,
+    "annotated_at": "2026-08-30T22:20:13.499905+00:00"
+  },
+  {
+    "date": "2026-08-30",
+    "game": "CIN @ CHC",
+    "game_number": 1,
+    "games_today": 1,
+    "away": "Cincinnati Reds",
+    "away_code": "CIN",
+    "home": "Chicago Cubs",
+    "home_code": "CHC",
+    "game_time_utc": "2026-08-30T23:21:00Z",
+    "bet_type": "Pitcher_Outs",
+    "bet": "Shota Imanaga Under 16.5 Outs",
+    "team_side": null,
+    "line": 16.5,
+    "period": "props",
+    "odds": "-114",
+    "odds_num": -114,
+    "is_best": false,
+    "confidence": "medium",
+    "reason": "Imanaga has averaged just 4.2 IP per start over his last 3 \u2014 14 outs, 18 outs and then 6 outs on 72 pitches at Seattle a week ago \u2014 so a line of 16.5 asks him to go a full inning and a half deeper than he has been going. His 8.5 BB% over that span and a 15.6 Barrel% mean the pitch count climbs fast, and Cincinnati sends seven of nine hitters with the platoon edge against the left-hander tonight. Against this club he has been at 5.0, 6.0 and 5.0 innings across three meetings (15, 18 and 15 outs), so even his best case sits right on the number. The stressed Cubs bullpen at 8.0 IP over the past two days argues for a longer leash, but a manager cannot buy innings from an arm that has finished five just once in three tries \u2014 the market pricing this at a coin flip ignores where his outings have actually ended.",
+    "line_warning": false,
+    "alt_suggestion": null,
+    "projection": 14.5,
+    "win_probability": 60,
+    "market_probability": 50,
+    "rung_rejected": null,
+    "found_at": "2026-08-30T22:20:12.486154+00:00",
     "result": null,
     "away_score_final": null,
     "home_score_final": null,
