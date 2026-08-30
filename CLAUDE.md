@@ -627,6 +627,37 @@ line/side/price bucket is reproducible without touching the API. Over/under has 
 parsed out of the `bet` string for props (`team_side` is null there) and off `team_side`
 for totals.
 
+## Caps Are Not the Limiter — 2026-08-30
+
+The per-game caps were tightened (one prop per GAME) and then loosened again the same
+day, back to **one prop per PITCHER**. Both moves were about volume; only the second is
+right, and the reason is worth keeping.
+
+Capping is the wrong instrument. It cannot tell a good pick from a bad one — it just
+stops the fourth one, whatever it is. The measured effect of the tighter cap was real
+(15 picks → 8, and games carrying 2-3 picks went 21-of-33 → 0) but it worked by
+truncation, and it pushed the output into a corner: **8 of 8 picks were pitcher props and
+7 of 8 were unders**, because with F5 gone and the prop cap tight, that was most of what
+was left reachable.
+
+So the caps now say what they are for — stopping ONE read being sold through several
+correlated markets — and say explicitly that a strong slate should not be trimmed to look
+disciplined.
+
+**The limiter is evidence, and §4 now tests it in the one way a self-reported number
+cannot be gamed:** every pick must name the strongest thing on the card pointing the
+OTHER way and say why it does not carry. A pick with nothing against it means the model
+has not looked; a pick whose counter-evidence is itself heavy is a game where two real
+forces disagree, which is what the price already reflects.
+
+`MIN_EDGE_PTS` went 4 → 6 → 8 across the same day. Read that as a failure, not a policy:
+at 4 the floor sat below the entire distribution (min 5.0, median 11.5); at 6 — with the
+prompt already showing the model its own numbers and calling them unbelievable — the next
+slate came back at median 14.5, min 7.0. **Unmoved.** 8 binds at the bottom of the
+observed distribution rather than below it, but it is arms-racing a number the model
+writes itself. Watch the *distribution*: if the median climbs to track the floor, the
+floor is being gamed and raising it again will not help.
+
 ## Evidence, Not Tiers — 2026-08-30
 
 `_AI_SYSTEM_PROMPT` §2 used to be a three-tier hierarchy: Tier 1 "decides the game",
@@ -1476,7 +1507,19 @@ rejections. Each of these four cuts moved the prompt too: §4A/§4B/§6/§7 lost
 options and the `bet_type`/`period` enums stopped offering them; §11's framing of the
 outcome blocks now lives in `_CARD_FORMAT`. Keep that pairing for any future cut.
 
-**F5 is gone from the card and the tool schema, not from the project.** `analysis.py`
+> **Superseded 2026-08-30, same day: F5 was restored.** The cut cited this file's own
+> "-54% ROI on F5 totals, -100% on F5 ML" — and the -100% is FOUR picks. Recomputed with
+> `results.unit_pnl` over the whole log: **F5 ML is 21-10, +21.5% over 34**, the largest
+> F5 sample there is and well ahead of the archive era's -5.7% baseline. Only F5 totals
+> are genuinely bad (**6-19, -62.2%, n=25**). Cutting the whole family on a four-pick
+> number was wrong. Restoring costs ~$2.41/month now that the card is sent once per run
+> rather than re-sent for every audit call, and §6 carries the F5-totals warning so the
+> record is on the card rather than enforced by hiding the market. **Do not re-cut F5
+> without splitting ML from totals first.**
+
+**The paragraph below is the superseded rationale, kept for the record.**
+
+**F5 was gone from the card and the tool schema, not from the project.** `analysis.py`
 still computes it, the HTML page still shows it, `history.py` still records it, and
 `picks.py` still grades it — past picks have to render and settle. `download.py` also
 still fetches the three F5 markets, so **this saves no Odds API credits**; removing them

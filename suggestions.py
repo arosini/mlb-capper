@@ -135,9 +135,10 @@ short labels; their meaning is fixed and given here.
     actually in the box, so where a lineup exists this is the one place a missing regular
     or an unusual platoon arrangement is visible.
 
-  ODDS:  full-game markets only. FIRST-FIVE-INNINGS (F5) markets are NOT on the card and
-    are NOT bettable — do not ask for them and do not reason about them. "[no-vig NN% /
-    NN%]" beside a market is its two posted prices with the book's margin divided out.
+  ODDS:  full-game markets, and the same markets for the FIRST FIVE INNINGS (F5) where
+    the book posts them. An F5 line settles on the score after five, so it is decided by
+    the starters with far less bullpen exposure. "[no-vig NN% / NN%]" beside a market is
+    its two posted prices with the book's margin divided out.
 """
 
 _AI_SYSTEM_PROMPT = f"""\
@@ -356,50 +357,66 @@ inverts every matchup you then reason about.
 
 Per game, you may recommend AT MOST ONE pick from each of these three categories:
 
-  A. ONE TOTAL. This single slot covers the game total and either club's team total.
-     Pick the ONE that best expresses your read. You may not take a game under AND a
-     team under.
+  A. ONE TOTAL. This single slot covers the game total, either club's team total, the F5
+     total, and either club's F5 team total. Pick the ONE that best expresses your read.
+     You may not take a game under AND a team under, or a full-game over AND an F5 over —
+     those are one opinion sold twice.
 
-  B. ONE SIDE. This single slot covers the moneyline and the run line/spread. Pick the
-     ONE that carries the price you actually want.
+  B. ONE SIDE. This single slot covers the moneyline, the run line/spread, the F5 ML and
+     the F5 spread. Pick the ONE that carries the price you actually want.
 
-  C. ONE PROP PER GAME — strikeouts or outs, on ONE of the two starters. If you like
-     something on both starters, take the better-priced one and let the other go. This
-     used to allow one prop per pitcher; that allowance was where most of the volume came
-     from, and two props on one game were almost never two independent reads.
+  C. ONE PROP PER STARTING PITCHER — either strikeouts OR outs, never both for the same
+     pitcher. Two different pitchers in the same game may each have one prop.
 
-The realistic outcome of applying Section 5 honestly is that most games produce ZERO
-picks and a strong game produces ONE. Taking TWO slots on one game should be rare and
-requires genuinely independent reads on independent markets; taking all three should
-essentially never happen.
+THESE CAPS EXIST TO STOP ONE READ BEING SOLD TWICE, NOT TO RATION GOOD PICKS. They rule
+out expressing a single opinion through several correlated markets. They do NOT mean a
+strong slate should be trimmed to look disciplined: if four games genuinely clear the bar
+in Section 5, take four. A pick you would defend individually is never "one too many."
 
-That is not how it has been going. Measured over the four slates before this rule
-changed: 33 games were touched and 21 of them — nearly two thirds — carried two or three
-picks. "Rare" was the majority case. If you find yourself adding a second pick to a game,
-the question is not whether you like it; it is whether it would survive as your ONLY pick
-on that game. If not, it is the first pick's case wearing a second market.
+What you must not do is let a game you like generate picks in every slot it touches.
+Before adding a SECOND pick to a game, ask whether it would survive as your ONLY pick
+there. If it only looks good because you already like the first one, it is the first
+pick's case wearing a second market — drop it.
 
-SLATE-LEVEL DISCIPLINE. The per-game caps above are a ceiling, not a target, and clearing
-them is not the same as having found value.
+SLATE-LEVEL DISCIPLINE. The caps above are a ceiling, not a target, and clearing them is
+not the same as having found value. The real limiter is the next paragraph, not the caps.
 
   EVERY PICK MUST CLEAR THE MARKET'S OWN NUMBER BY A STATED MARGIN. The card prints the
   no-vig probability for every two-sided market — that is what the market thinks. You will
   submit your own estimate alongside it (Section 12). If your estimate is not at least
-  SIX PERCENTAGE POINTS better than the no-vig price for the side you are taking, there is
-  no bet, however much you like the matchup.
+  EIGHT PERCENTAGE POINTS better than the no-vig price for the side you are taking, there
+  is no bet, however much you like the matchup.
 
   THE THRESHOLD ONLY WORKS IF YOUR ESTIMATE IS HONEST, AND SO FAR IT HAS NOT BEEN. This
-  bar was four points and it never once bound: across 54 submitted picks the SMALLEST
-  stated edge was 5.0 points and the median was 11.5. A median edge of eleven and a half
-  points against a liquid market priced by people doing this professionally is not
-  believable — it is what happens when the number is set to clear the bar rather than
-  measured. An 11-point edge means the market is wrong about better than one game in nine,
-  every day, in markets it has every incentive to get right.
+  bar was four points, then six, and neither ever bound. At four, across 54 submitted
+  picks, the SMALLEST stated edge was 5.0 and the median was 11.5 — the floor sat below
+  the entire distribution. At six, with this section already saying what you are reading
+  now, the next slate came back at median 14.5 and minimum 7.0: essentially unmoved.
+
+  A median edge of eleven to fifteen points against a liquid market priced by people doing
+  this professionally is not believable — it is what happens when the number is set to
+  clear the bar rather than measured. A 15-point edge means the market is wrong by more
+  than one game in seven, every day, in markets it has every incentive to get right.
 
   So: derive win_probability from what you actually believe about the game, WITHOUT
-  looking at whether the result clears six points. Then check it. If most of your picks
-  still land in double digits, the estimates are the problem, not the market. Most real
-  edges, when you find one, are 6 to 9 points.
+  looking at whether the result clears the bar. Then check it. If most of your picks still
+  land in double digits, the estimates are the problem, not the market. Most real edges,
+  when you find one, are 6 to 10 points.
+
+  NAME WHAT ARGUES AGAINST THE PICK. This is the test that matters, and unlike the number
+  above you cannot satisfy it by adjusting a digit. Section 2 defines a pick as a balance:
+  substantial evidence for, thin evidence against. So for every pick, identify the
+  strongest thing on the card pointing the OTHER way and say, in the reason, why it does
+  not carry. A pick with nothing against it usually means you have not looked — go back
+  and find it. If the strongest counter-evidence is itself heavy, you do not have a
+  mispricing; you have a game where two real forces disagree, which is what the market
+  price already reflects. PASS those.
+
+  A LOW-EVIDENCE PICK IS ONE WHOSE CASE IS THIN, NOT ONE WHOSE NUMBER IS SMALL. Three
+  light signals that genuinely point the same way and survive the independence test in
+  Section 2 are a better bet than one heavy signal with two heavy signals against it —
+  even if the second feels more impressive to write up. Rank by the BALANCE, not by the
+  weight of the single best thing you can quote.
 
   This replaces the game-count target that used to sit here. A quota ("touch fewer than
   half the games") is not something you can check a single pick against, and it did not
@@ -532,6 +549,12 @@ of knowing whether your number disagrees with it.
     a bet, for the same reason.
   In both cases what makes it a bet is the DISTANCE between your run environment and the
   posted number. Neither direction is the default and neither is the trap.
+  • Choose full game vs F5 deliberately: F5 when your entire read is about the STARTERS
+    and you want little bullpen exposure; full game when the bullpens reinforce the same
+    direction. Do not default to either. Note that F5 TOTALS specifically are the worst
+    bucket in the whole pick log — 6-19, -62% over 25 — so an F5 total needs a better
+    reason than "the starters are good"; the F5 SIDE markets have no such record against
+    them.
   • Choose a TEAM total when only ONE side of the run environment is mispriced — you like
     one lineup against one starter but have no opinion on the other half.
   • "GOOD OFFENSE VS BAD STARTER" IS THE EASIEST READ ON THE BOARD, and therefore the one
@@ -556,7 +579,7 @@ things make a side harder than a total or a prop, and both are structural:
   • THE LADDER CANNOT HELP YOU. Every other market on this card is priced at several
     numbers, so a read that does not survive the posted line can be moved to one that
     suits it. A side has one number and one price. If the price is wrong for your read,
-    the only moves are the run line or passing.
+    the only moves are the run line, the F5, or passing.
   • BASEBALL SIDES ARE COMPRESSED. The best team in the league beats the worst something
     like 60% of the time on a given day, and most matchups sit far closer than that. An
     edge that would be enormous on a total is often invisible on a moneyline, because a
@@ -570,11 +593,11 @@ WHICH EXPRESSION FITS WHICH EDGE:
   • Dominant starter + opposing lineup cold over its last 6 vs his hand → their side, IF
     the price has not already absorbed it. This is the cleanest side there is and it is
     also the one the market prices best.
-  • Own bullpen shaky or stressed while the starter is the whole edge → NOT a side. A
-    side pays only on the final score, so a read that is entirely about the starter and
-    actively distrusts the bullpen behind him is being bet on the innings it does not
-    cover. Put it in that starter's strikeout or outs prop, where the bullpen cannot
-    take it away, or pass.
+  • Own bullpen shaky or stressed while the starter is the whole edge → F5 ML or F5
+    spread. This is the case the F5 markets exist for: a full-game side pays on the final
+    score, so a read that is entirely about the starter and actively distrusts the bullpen
+    behind him is being bet partly on innings it has no opinion about. The F5 settles
+    before the bullpen matters. The starter's own prop is the other home for such a read.
   • Strong offense vs a weak opposing starter, but you do not trust your own starter →
     this is a SCORING opinion, not a winning one, so it belongs in the TOTAL slot rather
     than the side slot. Which total is a separate question — Section 6 is explicit that a
@@ -956,7 +979,7 @@ Derive the confidence label from those two against the card's no-vig price:
 
   edge = your win_probability − the no-vig probability for that side
 
-Under 6 points, there is no pick (Section 4). Both fields are published as-is, so a
+Under 8 points, there is no pick (Section 4). Both fields are published as-is, so a
 projection you would not defend is a projection you should not submit.
 
 CONFIDENCE describes the strength of the MISPRICING, not how likely the bet is to win —
@@ -1023,14 +1046,22 @@ When your analysis is complete, call the report_betting_suggestions tool.
 # only ever sees picks whose numbers are real.
 
 PRICE_FLOOR = -200          # Section 5, in every market, main and alternate alike
-MIN_EDGE_PTS = 6.0          # Section 4, over the card's own no-vig price
+MIN_EDGE_PTS = 8.0          # Section 4, over the card's own no-vig price
 #
-# Raised from 4.0 on 2026-08-30. At 4.0 it never rejected anything: across the 54
-# picks carrying both probabilities, the smallest stated edge was 5.0 points and the
-# median was 11.5, so the floor sat below the entire distribution. Raising it is only
-# half the fix — a self-reported number can be inflated past any threshold — which is
-# why Section 4 now also tells the model what its own distribution looked like and
-# asks it to derive the estimate before checking it against the bar.
+# 4.0 -> 6.0 -> 8.0, both moves on 2026-08-30, and the reason for the second is that
+# the first did not work. At 4.0 the floor sat below the entire distribution (smallest
+# stated edge 5.0, median 11.5). At 6.0, with Section 4 explicitly showing the model its
+# own distribution and calling a median 11.5-point edge unbelievable, the next slate came
+# back at median 14.5 and minimum 7.0 — essentially unmoved, and still not binding.
+#
+# 8.0 binds at the bottom of the observed distribution rather than below it. Be honest
+# about what that is: arms-racing a SELF-REPORTED number, which the model can clear by
+# writing a bigger digit. It is the only code-enforced dial on pick quality, so it is
+# worth setting where it bites, but the real work is Section 4's "name what argues
+# against the pick" — a test that cannot be satisfied by adjusting a number.
+#
+# Watch the distribution, not the count. If the median climbs to track the floor, the
+# floor is being gamed and raising it again will not help.
 
 
 def _prop_for(pick: dict, g: dict, market: str):
@@ -1331,7 +1362,7 @@ def _serialize_game_for_ai(g: dict) -> str:
         elif sp.get("mode") == "bullpen":
             first = f"{op['name']} listed first; " if op.get("name") else ""
             role = (f" [BULLPEN GAME: {first}no conventional starter — "
-                    f"starter props do not apply]")
+                    f"starter props and F5 reads do not apply]")
         if not sp.get("has_stats"):
             return f"  {name} ({hand}):{role or ''} NO STATS (first start this season)"
         parts = []
@@ -1468,15 +1499,21 @@ def _serialize_game_for_ai(g: dict) -> str:
         ("ML",             None,       "away_ml",      "home_ml",       True),
         ("Spread",         None,       "away_spread",  "home_spread",   True),
         ("Total",          None,       "over",         "under",         False),
+        ("F5 ML",          "has_f5",   "away_f5_ml",   "home_f5_ml",    True),
+        ("F5 Total",       "has_f5",   "f5_over",      "f5_under",      False),
+        ("F5 Spread",      "has_f5",   "away_f5_spread", "home_f5_spread", True),
         ("Team Total",     "has_tt",   "away_tt_over", "away_tt_under", "away"),
         ("Team Total",     "has_tt",   "home_tt_over", "home_tt_under", "home"),
+        ("F5 Team Total",  "has_f5tt", "away_f5tt_over", "away_f5tt_under", "away"),
+        ("F5 Team Total",  "has_f5tt", "home_f5tt_over", "home_f5tt_under", "home"),
     )
-    # The five F5 rows (F5 ML / total / spread and both F5 team totals) were half the
-    # odds block — the single largest thing on the card — for a family the pick log
-    # scores at -54% ROI on F5 totals, -100% on F5 ML, and zero picks taken since the
-    # 2026-08-08 prompt rewrite. They are off the AI card and out of the tool schema.
-    # They stay on the HTML page, in history/ and in picks.py's grading, because past
-    # picks still have to render and settle.
+    # F5 was cut on 2026-08-30 and restored the same day. The cut cited "-54% ROI on F5
+    # totals, -100% on F5 ML" — but the -100% is FOUR picks. Recomputed with
+    # results.unit_pnl over the whole log: F5 ML is 21-10, +21.5% over 34, the largest F5
+    # sample there is and better than the era's -5.7% baseline. Only F5 totals are
+    # genuinely bad (6-19, -62.2%, n=25), and Section 6 says so rather than the card
+    # hiding the market. Restoring costs ~$2.41/month now that the card is sent once per
+    # run instead of being re-sent for every audit call.
     def _nv(key_a, key_b):
         """The market's two prices with the book's margin divided out.
 
@@ -1773,10 +1810,10 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                             # forever rather than failing loudly.
                             "bet_type":    {
                                 "type": "string",
-                                "enum": ["Total", "Spread", "ML",
-                                         "Team_Total", "Pitcher_Ks",
+                                "enum": ["Total", "Spread", "ML", "F5_Total", "F5_ML",
+                                         "F5_Spread", "Team_Total", "Pitcher_Ks",
                                          "Pitcher_Outs"],
-                                "description": "Market. Full-game only; F5 markets are not offered.",
+                                "description": "Market. Team_Total with period 'f5' is an F5 team total.",
                             },
                             "bet":         {"type": "string", "description": "Full bet description, e.g. 'Game Total Under 8.5' or 'NYY -1.5'"},
                             "team_side":   {
@@ -1785,7 +1822,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                                 "description": "Which side: 'over'/'under' for totals; 'away'/'home' for ML/spread; 'away_over' etc for team totals; null for props",
                             },
                             "line":        {"type": ["number", "null"], "description": "Numeric line: total line (e.g. 8.5), spread line (e.g. -1.5 for favorite), null for ML"},
-                            "period":      {"type": "string", "enum": ["full_game", "props"], "description": "full_game or props (F5 is not offered)"},
+                            "period":      {"type": "string", "enum": ["full_game", "f5", "props"], "description": "full_game, f5 (first 5 innings), or props"},
                             "odds":        {"type": "string", "description": "American odds string, e.g. '-110' or '+145'"},
                             "odds_num":    {"type": "integer", "description": "Same odds as an integer, e.g. -110 or 145. Must match the odds string."},
                             "confidence":  {"type": "string", "enum": ["high", "medium"]},
@@ -1817,7 +1854,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                                     "The no-vig probability the card prints for the side you are "
                                     "taking, 0-100, copied from the [no-vig …] figure on that "
                                     "market's line. win_probability minus this is your edge and "
-                                    "must be at least 6 points."
+                                    "must be at least 8 points."
                                 ),
                             },
                             "reason":      {
