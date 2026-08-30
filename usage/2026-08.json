@@ -446,13 +446,13 @@
       "claude": {
         "cache_read_tokens": 36290,
         "cache_write_tokens": 3629,
-        "calls": 15,
-        "cost_usd": 2.782605,
-        "input_tokens": 309001,
+        "calls": 17,
+        "cost_usd": 3.791695,
+        "input_tokens": 414969,
         "models": {
-          "claude-opus-5": 15
+          "claude-opus-5": 17
         },
-        "output_tokens": 47871
+        "output_tokens": 67041
       },
       "odds": {
         "observed_at": "2026-08-30T13:06:03.594781+00:00",
