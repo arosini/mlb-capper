@@ -1264,6 +1264,56 @@ opened Mar 20).
 Empty pages now distinguish three cases: off-season, tomorrow's slate not yet posted, and
 no games today.
 
+## Bullpen Stress — the cache made it two days stale
+
+The "2d stress" chip on every bullpen card is the only bullpen number this project
+computes itself. Everything else in the Bullpens block is Handigraphs' last-12 feed;
+stress is `mlb_api.get_bullpen_stress()`, which reads `/schedule` for the two calendar
+days before the target date and then one `/boxscore` per game, summing the innings of
+every pitcher whose line shows `gamesStarted == 0`. `stress_label_cls()` turns average
+relief IP per game into Fresh / Normal / Elevated / Stressed. All of it is free.
+
+**It was serving numbers that omitted yesterday entirely** — every club, every day,
+not one team. The cache was the whole window keyed on the target date, written once
+and returned unconditionally on any later call:
+
+1. `handicap.py --date tomorrow` runs on **every** deploy, including the 3:30 AM ET
+   one, and its target date is tomorrow — so its window is `[yesterday, today]` and it
+   wrote `data/bullpen_stress_{D+1}.json` before a single one of day D's games had been
+   played. Non-final games are skipped, so the file recorded `games: 1`.
+2. The workflow's `Clean stale data files` step deliberately preserves `*${TOMORROW_DATE}*`.
+   That file therefore survived into day D+1, where it *is* the today-dated file.
+3. On D+1 `cache_path.exists()` was true, so the aggregate came back from disk and the
+   boxscores for day D were never fetched.
+
+A bullpen that threw 8 relief innings yesterday read **Fresh, 1.0 IP over 1g**. Because
+the stress label feeds §2/§8 of `_AI_SYSTEM_PROMPT` and the bullpen flag, that fed
+pitcher-prop and totals reasoning directly.
+
+**The cache is per GAME now, and only final games are ever written to it.** The
+aggregate is recomputed on every call from whatever games the window currently holds,
+so an in-progress day simply completes on the next run instead of freezing. The file is
+`{"by_game": {gamePk: {"date": ..., "teams": {team_id: relief_ip}}}}`, pruned to the
+window on write. Per-game caching also means one file serves any team set, so the
+today and tomorrow slates no longer need separate fetches of the same boxscores, and a
+repeat call inside a run costs one schedule request and zero boxscore requests.
+Old whole-window files have no `by_game` key and read as empty, so they refetch.
+
+Two consequences worth keeping:
+
+- **A `/schedule` call now happens on every invocation**, where a cache hit used to
+  short-circuit it. It is free and it is what makes "has this game gone final yet"
+  answerable at all; do not reintroduce a short-circuit that skips it.
+- **A failed schedule fetch falls through to the cache** rather than returning `{}`.
+  Blanking the stress line on every card for a transient statsapi blip is worse than
+  showing what was last known.
+
+**Known and deliberate: `games` counts games PLAYED, not days.** A club that threw 5
+relief innings two days ago and was off yesterday averages 5.0 over one game and reads
+Elevated, though it has had a full day of rest. Fixing that means deciding whether an
+off day is a zero or an exclusion, which changes what every threshold in
+`stress_label_cls()` means; it was left alone.
+
 ## Venue Truth and Weather
 
 **The home team is not the ballpark.** MLB plays a handful of neutral-site games a year
