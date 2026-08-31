@@ -208,10 +208,10 @@
     "market_probability": 52,
     "rung_rejected": "5.5 rung, which prices only the over at -145",
     "found_at": "2026-08-30T17:53:31.206133+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 7,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-31T11:30:14.252324+00:00"
   },
   {
     "date": "2026-08-30",
@@ -272,9 +272,9 @@
     "market_probability": 50,
     "rung_rejected": null,
     "found_at": "2026-08-30T22:20:12.486154+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 5,
+    "annotated_at": "2026-08-31T11:30:14.252324+00:00"
   }
 ]
