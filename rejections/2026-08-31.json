@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-08-31",
+    "game": "BAL @ COL",
+    "bet_type": "Pitcher_Outs",
+    "bet": "Tanner Gordon Over 15.5 Outs",
+    "odds": "-115",
+    "confidence": "medium",
+    "reason": "Gordon has recorded 16 and 21 outs in his two most recent starts and carries a 2.9% walk rate over his last 3, the single best predictor of a starter avoiding the early pitch-count spiral. Colorado's bullpen has thrown 9.3 relief innings over the past two days and owns a 4.17 xERA over its last 12 games, so the manager needs length here, and Baltimore arrives with a 90 wRC+ over their last 6 against right-handers and 82 over their last 12 \u2014 a lineup that has not been forcing anyone out of games. The Coors environment is the argument against, and his 5 earned runs in 5.1 innings on Aug 21 shows it can get loud, but he still finished sixteen outs that day and a 2.77 xERA over his last 3 with a 3.6% barrel rate says the hard contact has not been there. The market has priced this at a coin flip when his own recent depth and a gassed bullpen behind him both point past five and a third.",
+    "reject_reason": "[mechanical] pitcher OVER into meaningful rain risk (Section 8 disqualifier)",
+    "rejected_at": "2026-08-31T23:39:06.800221+00:00"
+  }
+]
