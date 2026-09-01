@@ -292,6 +292,12 @@ _SCALES = {
     # (min 15.5, median 22.6, p90 29.7); a pitcher scale would call nearly every lineup
     # "elite".
     "whiff_bat": _Scale((28, 25, 21, 18), "ge", _WRC, False),
+    # Drawing a walk is good for the offense, so this one runs the other way from the
+    # pitcher's bb_sp. Cuts are a PRIOR, not a measured spread: season team walk rates
+    # sit roughly 6-10.5% around a ~8.3% league mean, and a six-game hand split is a
+    # ~100-PA sample that widens that noticeably. Re-cut them against the observed
+    # spread across all 30 clubs x both hands the way whiff_bat's were.
+    "bb_bat":    _Scale((11, 9.5, 7.5, 6), "ge", _WRC, True),
 }
 
 _ERA_CLS_BY_LBL = dict(zip(_ERA.labels, _ERA.classes))
@@ -669,12 +675,12 @@ def _sp_card(sp, pc_avg=None, sec_id=""):
 # The two offense windows carry the same four stats under the same four labels — the
 # group header is what tells you which window you are reading, not the row text. Keyed
 # off analysis._off()'s field names:
-#   (header, wRC+ display, precomputed-label key or None, wRC+ raw, K%, Whiff%, HH%)
+#   (header, wRC+ display, precomputed-label key or None, wRC+ raw, K%, BB%, Whiff%, HH%)
 # The primary window arrives with its descriptor already computed; the comparison
 # window has none, so its label is derived here from the same wrc_label() ladder.
 _OFF_WINDOWS = (
-    ("L6",  "wrc_s",     "label", "wrc",     "k",     "whiff",     "hard"),
-    ("L12", "wrc_ctx_s", None,    "wrc_ctx", "k_ctx", "whiff_ctx", "hard_ctx"),
+    ("L6",  "wrc_s",     "label", "wrc",     "k",     "bb",     "whiff",     "hard"),
+    ("L12", "wrc_ctx_s", None,    "wrc_ctx", "k_ctx", "bb_ctx", "whiff_ctx", "hard_ctx"),
 )
 
 
@@ -690,12 +696,17 @@ def _bat_card(team, off):
     # primary window it is suppressed in both, so the two groups stay row-for-row
     # comparable rather than one silently gaining a line the other lacks.
     has_whiff = bool(off.get("whiff")) and off["whiff"] != "?"
+    # Same rule for BB%: suppressed in both windows unless the primary one has it, so a
+    # club whose row carries no walk rate does not gain a lone "?" line in one group.
+    has_bb = bool(off.get("bb")) and off["bb"] != "?"
 
     body = ""
-    for header, wrc_s_key, lbl_key, wrc_key, k_key, whiff_key, hh_key in _OFF_WINDOWS:
+    for header, wrc_s_key, lbl_key, wrc_key, k_key, bb_key, whiff_key, hh_key in _OFF_WINDOWS:
         lbl = off.get(lbl_key, "") if lbl_key else wrc_label(off.get(wrc_key))
         rows  = _row("wRC+", off.get(wrc_s_key, "N/A"), _wrc_cls(lbl), lbl)
         rows += _scaled_row("K%", off.get(k_key, "?"), "k_bat")
+        if has_bb:
+            rows += _scaled_row("BB%", off.get(bb_key, "?"), "bb_bat")
         if has_whiff:
             rows += _scaled_row("Whiff%", off.get(whiff_key, "?"), "whiff_bat")
         rows += _scaled_row("HH%", off.get(hh_key, "?"), "hh_bat")
@@ -1237,11 +1248,18 @@ def _html_game(g: dict, ai_pick: Optional[dict] = None) -> str:
                     f'</details>'
                 )
             ai_sec_html = "".join(sections)
-        elif pass_reason:
+        else:
+            # The section is rendered even with nothing to say in it. A game the model
+            # was never asked about — it had already started when the last analysis ran,
+            # or its pass reason never came back — used to render no AI section at all,
+            # which reads as a broken page rather than as an absence.
+            body = (f'<div class="ai-pass-reason">{_h(pass_reason)}</div>' if pass_reason
+                    else '<div class="ai-pass-reason dim">No AI read for this game '
+                         'in the latest analysis.</div>')
             ai_sec_html = (
                 f'<details class="sec" id="{g_id}-ai">'
                 f'<summary class="sec-sum">AI Analysis</summary>'
-                f'<div class="sec-body"><div class="ai-pass-reason">{_h(pass_reason)}</div></div>'
+                f'<div class="sec-body">{body}</div>'
                 f'</details>'
             )
 
@@ -1288,8 +1306,15 @@ def render_html_page(games: list[dict], target_date: date, generated_at: str,
 
     if games:
         ai_by_game = _ai_game_map(valid_picks, suggestions)
+        # An empty map means the AI never ran for this page at all (a push-triggered
+        # rebuild, an off-season slate, a failed generation). Placeholder AI sections on
+        # every card would be noise there, so they are only offered once the model has
+        # said something about SOME game — then a card with nothing is a real gap and
+        # worth marking.
+        blank_ai = {"picks": [], "pass_reason": ""} if ai_by_game else None
         cards = "".join(
-            _html_game(g, _lookup_ai_for_game(ai_by_game, g["away"], g["home"], g.get("game_time_utc", "")))
+            _html_game(g, _lookup_ai_for_game(ai_by_game, g["away"], g["home"],
+                                              g.get("game_time_utc", "")) or blank_ai)
             for g in games
         )
         ai_html = _render_suggestions_html(valid_picks, target_date)

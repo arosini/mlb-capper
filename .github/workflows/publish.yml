@@ -195,9 +195,12 @@ jobs:
             python3 download.py --date tomorrow
           fi
 
-      - name: Clear stale suggestions
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: rm -f data/suggestions_*.json data/suggestions_meta_*.json
+      # No "clear stale suggestions" step: today's and tomorrow's files are deliberately
+      # kept. Regeneration is forced by --force-suggestions below instead, because the
+      # existing file is what carries the pass reasons for games that have already
+      # started (each run only analyses the unstarted ones), and deleting it left most
+      # of an evening slate with no AI section on the page. Files for other dates are
+      # already removed by "Clean stale data files" above.
 
       - name: Save odds history
         run: python3 history.py --save
@@ -206,7 +209,7 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python3 handicap.py --suggestions-only
+        run: python3 handicap.py --suggestions-only --force-suggestions
 
       - name: Save AI picks
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

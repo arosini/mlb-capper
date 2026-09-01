@@ -181,7 +181,7 @@ _MLB_MAP   = {**_STATS_MAP, "ARI": "AZ"}  # MLB API uses AZ; ATH stays as-is
 Each card renders collapsed `<details>` sections except Matchup (open by default):
 1. **Summary** (always visible): `[logo] AWAY @ [logo] HOME` + `time · venue (roof status)` subtitle + weather/APF badge
 2. **Betting Odds** — Full Game: 4×3 grid (ML / Spread / Total for away/home); First 5 Innings: same grid if available; Pitcher Props: K O/U and Outs O/U per starter (requires Odds API Starter plan+)
-3. **Matchup · SP Last 3 / Team Last 6/12** (open) — SP card: xERA, ERA, K%, Whiff% visible; HH%, Barrel%, IP/gs, H/gs, PC/gs, BB% behind "More Stats"; Offense card: two group headers "L6" and "L12", each with wRC+, K%, Whiff%, HH% for that window vs starter hand; outing table per SP. The SP card also carries a `BULK` or `BULLPEN GAME` badge and a one-line sub-caption when the game is not a conventional start, and the offense card is headed "all hands" instead of "vs RHP"/"vs LHP" on a bullpen game
+3. **Matchup · SP Last 3 / Team Last 6/12** (open) — SP card: xERA, ERA, K%, Whiff% visible; HH%, Barrel%, IP/gs, H/gs, PC/gs, BB% behind "More Stats"; Offense card: two group headers "L6" and "L12", each with wRC+, K%, BB%, Whiff%, HH% for that window vs starter hand; outing table per SP. The SP card also carries a `BULK` or `BULLPEN GAME` badge and a one-line sub-caption when the game is not a conventional start, and the offense card is headed "all hands" instead of "vs RHP"/"vs LHP" on a bullpen game
 4. **Bullpens · last 12** — xERA, ERA, and **2d stress** (Fresh/Normal/Elevated/Stressed based on avg relief IP per game over past 2 calendar days via MLB boxscores) (collapsed)
 5. **Weather** — venue, roof, conditions, APF with color coding (collapsed)
 6. **Flags** — auto-generated warnings (regression risk, small samples, weather, etc.) (collapsed)
@@ -494,16 +494,31 @@ opposing starter hand (`team_stats_L6{RHP,LHP}_*`), bullpens are the last 12. xE
 ERA cover the *same* 3-start window — they are not "season vs recent". The prompt
 requires every stat in a rationale to carry its window in the output text.
 
-**Team offense carries two wRC+ windows and only two.** The last-6 split drives every
-offense number on the card and the offense edge; the last-12 split contributes exactly
-one figure, a comparison wRC+ printed beside it (`team_stats_L12{RHP,LHP}_*`). Nothing
-else comes from the 12-game file. The two are labelled by window everywhere they appear
+**Team offense carries two windows and only two.** The last-6 split drives the offense
+edge and is the primary read; the last-12 split (`team_stats_L12{RHP,LHP}_*`) contributes
+a comparison figure printed beside each of the five offense stats — wRC+, K%, BB%, Whiff%
+and HH%. Nothing else comes from the 12-game file. The two are labelled by window everywhere they appear
 — HTML card, terminal, AI data card — because a published rationale naming the wrong
 window states a false time period as fact; §1 and §10 of `_AI_SYSTEM_PROMPT` and check 2
 of the verification prompt all enforce that. The split tokens live in one place,
 `config.TEAM_SPLIT_PRIMARY` / `config.TEAM_SPLIT_CONTEXT`, and the API 400s on an
 unknown split rather than silently ignoring it. **Bullpens are a genuinely separate
 last-12 dataset** (`bullpen_stats_last12g`) and are not part of this.
+
+**Walk rate joined the offense card on 2026-09-01.** `BB%` was already loaded by
+`_load_team_stats_json` and thrown away at `_off()`; it now renders in both windows on
+the HTML card, in the terminal offense line, and on the AI data card, and §8's outs
+inputs gained it as input 6 — the lineup's own walk rate is the half of the pitch-count
+story the starter does not control, and it was the one thing on the outs read that the
+model had no line for.
+
+> ⚠️ **The `bb_bat` colour scale's cuts are a PRIOR, not a measurement.** Every other
+> scale in `_SCALES` was cut against the observed spread; this one could not be, because
+> no team-stats file survives in the repo (`data/*` is gitignored bar the starters) and
+> this session had no Handigraphs credentials or network to fetch one. `(11, 9.5, 7.5, 6)`
+> comes from season team walk rates running roughly 6-10.5% around a ~8.3% mean, widened
+> for a ~100-PA six-game hand split. Re-cut it against a real slate the way `whiff_bat`'s
+> were — if most lineups are landing in one bucket, that is the cuts, not the league.
 
 `extract_outings()` returns outings **newest-first**. `render_html.py` slices `[:n]`;
 `suggestions.py` takes `[:3]` then reverses for chronological display. Do not `[-3:]`.
@@ -838,6 +853,54 @@ fix can still hold the bad value.
 died, so the run left a pick log with no page rather than publishing something
 unreproducible — the last good deploy (run 401, 13:14) stayed up. That is the invariant
 `publish.yml` is ordered for; the stranded picks render on the next successful run.
+
+## Pass Reasons Evaporated Through The Day — 2026-09-01
+
+Most game cards on the afternoon and evening page had **no AI Analysis section at all**.
+Nothing was broken and nothing was logged; the section simply was not rendered.
+
+The cause is the interaction of three things that are each individually correct:
+
+1. `generate_suggestions` analyses only the games that have **not started yet** — the
+   `unstarted` filter. Correct: there is no point paying for a read on a game in the 6th.
+2. `pass_reasons` therefore exists for a given game in exactly ONE run — whichever was
+   the last to see it unstarted.
+3. `publish.yml` had a **`Clear stale suggestions`** step that `rm -f`'d
+   `data/suggestions_*.json` before every scheduled generation, so each run's file was
+   the only file, and it held pass reasons for the shrinking unstarted subset.
+
+By the 6:30 PM run most of the slate is underway, so most of the page had no AI read on
+it. **Picks were unaffected** and that is why this hid for so long: they live in the
+append-only `picks/{date}.json`, which the page reads separately, so a game that had been
+BET kept its section while a game that had been PASSED lost it.
+
+Four changes:
+
+- **`_carry_pass_reasons()`** folds the previous file's pass reasons into the new result,
+  this run winning on any key it re-covers. Started games keep the read they were given.
+- **The `rm` step is gone.** Regeneration is forced by `handicap.py --suggestions-only
+  --force-suggestions` → `generate_suggestions(..., force=True)` instead, because the
+  existing file is now the thing being merged and deleting it defeats the point. Files
+  for other dates were already handled by `Clean stale data files`; the `rm` was only
+  ever a way to force a call. **Do not reintroduce it.**
+- **`_canon_matchup()`** reduces a `pass_reasons` key to a bare `AWAY @ HOME`, stripping
+  a `===` fence and anything after a `|`. The schema asks for "the game header exactly"
+  and the header carries a time and a venue; a key that keeps them matched no card and
+  cost that game its section silently. `_lookup_ai_for_game` also now falls back to the
+  **reversed** matchup — but only for entries with no picks, since a reversed pick set
+  would put `team_side` on the wrong club (`save_picks()` snaps picks back; nothing ever
+  snapped pass reasons back).
+- **`_ai_game_map` no longer files a pass reason for a matchup that already has picks.**
+  Picks accumulate across the day while `pass_reasons` are one run's, so a game bet at
+  noon and passed at 6 PM landed in both — two entries for one matchup, which sent
+  `_lookup_ai_for_game` down the doubleheader path where an entry with no start time
+  cannot be scored, and the card came back with **nothing**, picks included.
+
+**The section now always renders.** A game with neither picks nor a pass reason says "No
+AI read for this game in the latest analysis" rather than dropping the block — an absence
+that looks like an absence, not like a broken page. It is suppressed entirely when the AI
+did not run for the page at all (a push rebuild, a failed generation), where a placeholder
+on all 15 cards would be noise.
 
 ## The page and the pick log can disagree — 2026-08-30
 
@@ -1780,9 +1843,11 @@ subscription so this is free, while the Odds API is metered per market — odds 
 to come from the restored cache and are only re-fetched on `schedule`/`workflow_dispatch`.
 That is what stops a push from clobbering good pages with stat-less ones.
 
-The AI and picks steps (`Clear stale suggestions`, `Generate AI suggestions`,
-`Save AI picks`) stay gated on `schedule`/`workflow_dispatch`. **Do not un-gate them** —
-a push must never mint new picks, or the immutability guarantee goes with it.
+The AI and picks steps (`Generate AI suggestions`, `Save AI picks`) stay gated on
+`schedule`/`workflow_dispatch`. **Do not un-gate them** — a push must never mint new
+picks, or the immutability guarantee goes with it. (`Clear stale suggestions` was a third
+gated step here until 2026-09-01; see "Pass Reasons Evaporated Through The Day" for why
+it is gone and why deleting that file must not come back.)
 
 Belt and braces: the `Generate tomorrow HTML` step checks for
 `data/starters_last3g_tomorrow_${TOMORROW_DATE}.json` first and, if it is missing,

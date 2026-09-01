@@ -113,9 +113,13 @@ short labels; their meaning is fixed and given here.
 
   OFFENSE:  that lineup vs the HAND of today's opposing starter — except on a bullpen
     game, where the line reads "all hands" because no starter's hand governs enough of
-    the game to split on. wRC+, K%, Whiff% and HH% are each shown TWICE: "last 6" is the
-    primary read, "last 12" is the same lineup and same hand over a longer window, for
-    context only. Section 1 governs how to weigh a gap between them.
+    the game to split on. wRC+, K%, BB%, Whiff% and HH% are each shown TWICE: "last 6" is
+    the primary read, "last 12" is the same lineup and same hand over a longer window, for
+    context only. Section 1 governs how to weigh a gap between them. BB% is the lineup's
+    own walk rate — how often it takes a free base, which is also how it runs a starter's
+    pitch count up; it is NOT the starter's walk rate, which is on his own line. A league
+    lineup walks in roughly 8% of its plate appearances, so read a team's figure against
+    that and against the other club's, which is on the same card.
 
   BULLPENS:  that bullpen's LAST 12 GAMES. "2d stress" is relief innings thrown over the
     past two calendar days.
@@ -161,10 +165,10 @@ do NOT invent any figure that is not printed in the card.
 
   SP xERA, ERA, K%, Whiff%, BB%, HH%, Barrel%,
   IP/gs                                         →  that starter's LAST 3 STARTS only
-  Team wRC+, K%, Whiff%, HH% marked "last 6"    →  that lineup's LAST 6 GAMES, split
+  Team wRC+, K%, BB%, Whiff%, HH% "last 6"      →  that lineup's LAST 6 GAMES, split
                                                     against the HAND of today's opposing
                                                     starter (RHP or LHP)
-  Team wRC+, K%, Whiff%, HH% marked "last 12"   →  the SAME lineup vs the SAME hand over
+  Team wRC+, K%, BB%, Whiff%, HH% "last 12"     →  the SAME lineup vs the SAME hand over
                                                     its LAST 12 GAMES — context only
   Bullpen xERA / ERA                            →  that bullpen's LAST 12 GAMES
   Bullpen stress                                →  relief innings over the past 2 days
@@ -840,14 +844,21 @@ mediocre and grind through 19. Use exactly these:
   5. His BB% over the last 3 — walks are what end outings early. A command wobble caps
      depth even when the runs look fine, and the box scores show it as pitch count
      climbing faster than innings.
+  6. The opposing lineup's own BB% (last 6 vs his hand) — the other half of the same
+     pitch-count story, and the half a starter cannot control. A patient lineup runs a
+     count up on free bases whatever his command is doing; a lineup that expands the zone
+     lets a starter work deep on fewer pitches even when his own walk rate is ordinary.
+     Where the two BB% figures point the same way the depth read is much firmer than
+     either alone; where they fight, say which one you are leaning on and why.
 
   Key thresholds: 15 outs (5 full innings) and 18 outs (6 innings) are what starters aim
   for — lines near those numbers are where the real decisions are.
 
   BOTH SIDES ARE LIVE, and the reasons differ:
     • UNDER — the line sits at or above his normal depth, a 100+ pitch last start plus a
-      fresh bullpen argues for a shorter leash, his BB% is climbing, or this opponent has
-      historically run his count up. The under is the more common bet, not the default one.
+      fresh bullpen argues for a shorter leash, his BB% is climbing, this lineup walks at
+      a high rate against his hand, or this opponent has historically run his count up.
+      The under is the more common bet, not the default one.
     • OVER — the line sits BELOW his recent depth, his own bullpen is stressed so the
       manager needs innings out of him, and nothing about the matchup suggests early
       trouble. A stressed bullpen behind a starter who has been going 6 is the cleanest
@@ -1505,7 +1516,7 @@ def _serialize_game_for_ai(g: dict) -> str:
         # The longer window is only ever quoted alongside the primary one, so a stat
         # missing from the last 6 drops both halves rather than presenting a bare
         # last-12 figure the model would have no primary number to weigh it against.
-        for stat, key in (("K%", "k"), ("Whiff%", "whiff"), ("HH%", "hard")):
+        for stat, key in (("K%", "k"), ("BB%", "bb"), ("Whiff%", "whiff"), ("HH%", "hard")):
             if off.get(key) in ("?", None):
                 continue
             parts.append(f"{stat} last 6: {off[key]}")
@@ -1826,11 +1837,48 @@ def _normalize_tool_result(result) -> dict:
     return result
 
 
+def _carry_pass_reasons(sugg_path: Path, result: dict) -> dict:
+    """Fold the previous run's pass reasons into this run's, this run winning.
+
+    Every run analyses only the games that have NOT started yet, so a pass reason exists
+    for a game exactly once — in whichever run last saw it unstarted. Without this, each
+    regeneration through the day drops the pass reasons for everything already underway
+    and those cards render with no AI section at all, which is the whole bug: by the
+    evening most of the slate has started, so most of the page has no AI read on it.
+
+    Picks do not need this — they persist in picks/{date}.json, which is the append-only
+    log the page reads separately. Pass reasons live only here.
+    """
+    if not sugg_path.exists():
+        return result
+    try:
+        prior = json.loads(sugg_path.read_text())
+    except Exception:
+        return result
+    old = (prior or {}).get("pass_reasons")
+    if not isinstance(old, dict):
+        return result
+    carried = {k: v for k, v in old.items() if isinstance(v, str)}
+    n_new = len(result.get("pass_reasons") or {})
+    merged = {**carried, **(result.get("pass_reasons") or {})}
+    if len(merged) > n_new:
+        print(f"[suggestions] carried {len(merged) - n_new} pass reason(s) forward from "
+              f"the previous run", file=sys.stderr)
+    result["pass_reasons"] = merged
+    return result
+
+
 def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
-                         rej_dir: Path = Path("./rejections")) -> Optional[dict]:
+                         rej_dir: Path = Path("./rejections"),
+                         force: bool = False) -> Optional[dict]:
     """
     Call Claude to generate betting suggestions. Caches to data/suggestions_{date}.json
     and regenerates whenever odds are updated. Returns parsed dict or None on failure.
+
+    force=True regenerates regardless of how fresh the cached file is — that is what the
+    scheduled publish run wants, and it is a flag rather than the workflow deleting the
+    file first because the file is also what carries the earlier runs' pass reasons
+    forward (see _carry_pass_reasons).
 
     Picks are checked by _validate_pick — deterministic, no API call — and anything it
     rejects is dropped and logged to rejections/{date}.json.
@@ -1840,7 +1888,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
     sugg_meta = data_dir / f"suggestions_meta_{date_str}.json"
     odds_meta  = data_dir / f"odds_meta_{date_str}.json"
 
-    if sugg_path.exists() and sugg_meta.exists():
+    if not force and sugg_path.exists() and sugg_meta.exists():
         try:
             s_ts = datetime.fromisoformat(json.loads(sugg_meta.read_text())["generated_at"])
             if odds_meta.exists():
@@ -2125,6 +2173,8 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
         print(f"[validate] {len(kept)} kept, {len(rejections)} rejected of {len(picks)}",
               file=sys.stderr)
 
+    result = _carry_pass_reasons(sugg_path, result)
+
     try:
         sugg_path.write_text(json.dumps(result, indent=2))
         sugg_meta.write_text(json.dumps({"generated_at": datetime.now(timezone.utc).isoformat()}))
@@ -2236,6 +2286,24 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
     )
 
 
+def _canon_matchup(game: str) -> str:
+    """Reduce whatever was used as a game key to a bare "AWAY @ HOME".
+
+    The tool schema asks for "the game header exactly" and gives 'TEX @ MIA' as the
+    example, but the header line on the card carries a start time, a venue and sometimes
+    a doubleheader tag after the matchup. A pass_reasons key that keeps any of that
+    matches no card, and the only visible symptom is that game losing its AI section on
+    the page — nothing errors and nothing is logged. Normalising here costs nothing and
+    removes a whole class of silent misses.
+    """
+    g = (game or "").strip().strip("=").strip()
+    g = g.split("|")[0]
+    parts = g.split("@")
+    if len(parts) != 2:
+        return " ".join(g.split()).upper()
+    return f"{' '.join(parts[0].split()).upper()} @ {' '.join(parts[1].split()).upper()}"
+
+
 def _ai_game_map(valid_picks: list, suggestions: Optional[dict]) -> dict:
     """
     Build per-game AI lookup: {(away @ home, game_time_utc): {"picks": [...], "pass_reason": str|None}}.
@@ -2246,7 +2314,7 @@ def _ai_game_map(valid_picks: list, suggestions: Optional[dict]) -> dict:
     """
     picks_by_game: dict[tuple, list] = {}
     for p in (valid_picks or []):
-        game = p.get("game", "")
+        game = _canon_matchup(p.get("game", ""))
         if game:
             picks_by_game.setdefault((game, p.get("game_time_utc", "")), []).append(p)
 
@@ -2259,8 +2327,19 @@ def _ai_game_map(valid_picks: list, suggestions: Optional[dict]) -> dict:
     result: dict = {}
     for key, picks in picks_by_game.items():
         result[key] = {"picks": picks, "pass_reason": None}
+    picked = {gm for gm, _ in result}
     for game, reason in pass_reasons.items():
-        key = (game, "")
+        gm = _canon_matchup(game)
+        # A matchup that already carries picks must not also get a pass-reason entry.
+        # The card renders its picks either way, but the second entry gives
+        # _lookup_ai_for_game two candidates for one matchup and sends it down the
+        # doubleheader path, where an entry with no start time cannot be scored — so a
+        # game with picks could come back with nothing at all. This happens for real:
+        # picks accumulate across the day's runs while pass_reasons are the latest run's,
+        # so a game picked at noon and passed at 6 PM lands in both.
+        if not gm or gm in picked:
+            continue
+        key = (gm, "")
         if key not in result:
             result[key] = {"picks": [], "pass_reason": reason}
     return result
@@ -2273,6 +2352,20 @@ def _lookup_ai_for_game(ai_by_game: dict, away: str, home: str, game_time_utc: s
     hit = ai_by_game.get((game, game_time_utc))
     if hit is not None:
         return hit
+    # Last resort, tried wherever the matchup itself finds nothing: the same matchup
+    # written backwards. A pass reason is prose ABOUT the matchup rather than a bet on
+    # one side of it, so it reads correctly against either orientation — and the model
+    # writes a matchup backwards often enough that save_picks() has to snap picks back
+    # (see CLAUDE.md), while a pass_reasons key gets no such correction anywhere.
+    # Restricted to entries with no picks: a reversed PICK set must never be handed to a
+    # card, since team_side would then be pointing at the wrong club.
+    def _reversed_pass_reason():
+        rev = f"{home} @ {away}"
+        for (gm, _t), val in ai_by_game.items():
+            if gm == rev and not val.get("picks") and val.get("pass_reason"):
+                return val
+        return None
+
     # The old fallback matched ANY entry for the matchup, which is right for a single
     # game whose time was never recorded and wrong for a doubleheader: it handed leg 1's
     # picks to leg 2's card, so both legs rendered the same bets.
@@ -2280,7 +2373,7 @@ def _lookup_ai_for_game(ai_by_game: dict, away: str, home: str, game_time_utc: s
     if len(same) == 1:
         return same[0][1]
     if not same:
-        return None
+        return _reversed_pass_reason()
     # Two or more legs and no exact hit — the times drifted rather than being absent.
     # Take the nearest start; picking a leg by clock is defensible, picking one
     # arbitrarily is not.
@@ -2290,7 +2383,8 @@ def _lookup_ai_for_game(ai_by_game: dict, away: str, home: str, game_time_utc: s
         except Exception:
             return None
     want = _ts(game_time_utc)
-    if want is None:
-        return None
-    scored = [(abs(t2 - want), v) for t, v in same if (t2 := _ts(t)) is not None]
-    return min(scored, key=lambda x: x[0])[1] if scored else None
+    scored = ([(abs(t2 - want), v) for t, v in same if (t2 := _ts(t)) is not None]
+              if want is not None else [])
+    if scored:
+        return min(scored, key=lambda x: x[0])[1]
+    return _reversed_pass_reason()

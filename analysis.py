@@ -1105,6 +1105,8 @@ def analyze_game(
             "woba":      fp3(s.get("wOBA")),
             "k":         fp1(s.get("K%")),
             "k_ctx":     fp1(ctx_row.get("K%")),
+            "bb":        fp1(s.get("BB%")),
+            "bb_ctx":    fp1(ctx_row.get("BB%")),
             "hard":      fp1(s.get("HardHit%")),
             "hard_ctx":  fp1(ctx_row.get("HardHit%")),
             "whiff":     fp1(s.get("Whiff%")),

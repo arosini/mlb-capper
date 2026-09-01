@@ -74,6 +74,9 @@ def main():
                     help="Output a self-contained HTML page to stdout")
     ap.add_argument("--suggestions-only", action="store_true",
                     help="Generate and cache AI suggestions (no HTML output); run before --html")
+    ap.add_argument("--force-suggestions", action="store_true",
+                    help="Regenerate suggestions even if the cached file is still fresh "
+                         "(one Claude call). Used by the scheduled publish run.")
     ap.add_argument("--dump-cards", metavar="PATH",
                     help="Write the serialized AI data cards to PATH as JSON and exit. "
                          "Makes no API call — this is the input to scripts/measure_card.py")
@@ -366,7 +369,14 @@ def main():
         Path(args.dump_cards).write_text(json.dumps(cards, indent=2))
         print(f"[dump-cards] wrote {len(cards)} cards to {args.dump_cards}", file=sys.stderr)
     elif args.suggestions_only:
-        generate_suggestions(game_data, data_dir, target_date)
+        # --force-suggestions is how the scheduled publish run gets its one generation
+        # call even when the cached file still looks fresh. That used to be done by the
+        # workflow deleting data/suggestions_*.json first, which also threw away the
+        # pass reasons for every game that had already started — those cards then
+        # rendered with no AI section at all. The file has to survive for them to be
+        # carried forward, so the forcing moved in here.
+        generate_suggestions(game_data, data_dir, target_date,
+                             force=args.force_suggestions)
     elif args.html:
         generated_at = datetime.now(timezone.utc).isoformat()
         suggestions = generate_suggestions(game_data, data_dir, target_date)

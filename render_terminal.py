@@ -93,7 +93,7 @@ def print_game(
             f"  {team:<5} {off.get('hand_lbl') or 'vs ' + off['vs_hand']}: "
             f"wRC+ L6 {off['wrc_s']} {lbl:<12}  "
             f"wRC+ L12 {off.get('wrc_ctx_s', 'N/A')}  "
-            f"wOBA {off['woba']}  K% {off['k']}  Hard% {off['hard']}"
+            f"wOBA {off['woba']}  K% {off['k']}  BB% {off['bb']}  Hard% {off['hard']}"
         )
 
     print(cyan("\nOFFENSE vs STARTER HAND  (last 6g; L12 wRC+ for comparison)"))
