@@ -26,10 +26,10 @@
     "market_probability": 57,
     "rung_rejected": "6.5 over at +138",
     "found_at": "2026-09-01T09:53:28.988148+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 1,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   },
   {
     "date": "2026-09-01",
@@ -58,10 +58,10 @@
     "market_probability": 49,
     "rung_rejected": "3.5, where only the over side is priced at -160",
     "found_at": "2026-09-01T09:53:28.988148+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 4,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   },
   {
     "date": "2026-09-01",
@@ -90,10 +90,10 @@
     "market_probability": 53,
     "rung_rejected": "3.5, where only the over side is priced at -213",
     "found_at": "2026-09-01T09:53:28.988148+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 9,
+    "home_score_final": 4,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   },
   {
     "date": "2026-09-01",
@@ -122,10 +122,10 @@
     "market_probability": 54,
     "rung_rejected": "3.5, where only the over side is priced at -215",
     "found_at": "2026-09-01T09:53:28.988148+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 15,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   },
   {
     "date": "2026-09-01",
@@ -154,10 +154,10 @@
     "market_probability": 46,
     "rung_rejected": null,
     "found_at": "2026-09-01T09:53:28.988148+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   },
   {
     "date": "2026-09-01",
@@ -186,10 +186,10 @@
     "market_probability": 50,
     "rung_rejected": null,
     "found_at": "2026-09-01T09:53:28.988148+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 8,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   },
   {
     "date": "2026-09-01",
@@ -218,10 +218,10 @@
     "market_probability": 51,
     "rung_rejected": "4.5 over at +215",
     "found_at": "2026-09-01T09:53:28.988148+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 6,
+    "home_score_final": 3,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   },
   {
     "date": "2026-09-01",
@@ -250,10 +250,10 @@
     "market_probability": 53,
     "rung_rejected": "4.5 under, not posted on the ladder \u2014 only the 5.5 under carries a price",
     "found_at": "2026-09-01T17:34:19.529359+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 1,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   },
   {
     "date": "2026-09-01",
@@ -282,10 +282,10 @@
     "market_probability": 51,
     "rung_rejected": "the 3.5 rung, which the card prices only on the over at -258",
     "found_at": "2026-09-01T22:24:34.748492+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 1,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   },
   {
     "date": "2026-09-01",
@@ -314,9 +314,9 @@
     "market_probability": 47,
     "rung_rejected": "3.5, where only the over side is posted (-296)",
     "found_at": "2026-09-02T00:29:14.365432+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 4,
+    "annotated_at": "2026-09-02T08:35:32.529113+00:00"
   }
 ]
