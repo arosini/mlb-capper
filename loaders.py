@@ -364,6 +364,41 @@ def load_history_games(history_dir: Path, target_date: Optional[date] = None,
     return games
 
 
+def _roof_is_closed(roof_status: str) -> bool:
+    """True when the roof is shut — a fixed dome, or a retractable Handigraphs reports closed."""
+    r = (roof_status or "").lower()
+    if not r or r in ("open air", "n/a") or "open" in r:
+        return False
+    return "dome" in r or "closed" in r
+
+
+def _drop_outdoor_readings(g: dict) -> dict:
+    """Blank rain and wind on a game played under a closed roof.
+
+    Handigraphs reports the city's forecast next to the roof state, so a domed park
+    arrives carrying a rain chance and a wind reading that describe conditions nobody
+    plays in. Consumers disagreed about that: weather_flags() and the HTML card check
+    the roof and suppress, while the AI card and the terminal read the fields directly
+    — so a Tropicana game serialized to the model as "(Dome)" on the header line and
+    "Rain 61%, Wind: Out 9mph" on the next one, which is where a dome game picks up a
+    rain-risk rationale. Normalizing here makes the feed match the shape
+    mlb_api.get_weather() already returns indoors, so every consumer agrees.
+    """
+    if not _roof_is_closed(g.get("roof_status", "")):
+        return g
+    return {**g,
+            # weather_description ("Rain showers") is the same claim in words, and only
+            # the terminal renders it — but a dome game reading "Rain showers" is wrong
+            # in the same way the number is.
+            "weather_description":     "",
+            "precip_probability":      None,
+            "precip_risk_during_game": False,
+            "wind_speed":              None,
+            "wind_direction":          None,
+            "wind_direction_label":    "",
+            "wind_effect_label":       "Indoor"}
+
+
 def load_ballpark_weather(data_dir: Path, target_date: date) -> dict:
     """Returns dict keyed by (frozenset({away_team, home_team}), game_number) → game weather dict.
 
@@ -379,5 +414,5 @@ def load_ballpark_weather(data_dir: Path, target_date: date) -> dict:
         away = g.get("away_team", "")
         home = g.get("home_team", "")
         if away and home:
-            result[(frozenset([away, home]), g.get("game_number") or 1)] = g
+            result[(frozenset([away, home]), g.get("game_number") or 1)] = _drop_outdoor_readings(g)
     return result
