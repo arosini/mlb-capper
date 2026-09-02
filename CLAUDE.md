@@ -1431,6 +1431,42 @@ map has been deleted: it had no remaining callers, and it was wrong for exactly 
 this section is about. Do not reintroduce a team-keyed park lookup — resolve the venue and
 its coordinates from the schedule (see `venues.py`).
 
+### The Handigraphs feed reports rain under a closed roof — 2026-09-02
+
+Only the Open-Meteo fallback ever gated its own readings on the roof (`indoor` in
+`get_weather()` nulls precip and wind for a fixed roof). The Handigraphs
+`ballpark_weather` row was passed through **verbatim** by `load_ballpark_weather()`, and
+that feed reports the *city's* forecast next to `roof_status` — so a domed park arrived
+carrying a rain chance and a wind reading for weather nobody plays in.
+
+Whether that reached anything depended on which consumer read it, and they disagreed:
+
+| Consumer | Gated on the roof? |
+|---|---|
+| `analysis.weather_flags()` | yes — returns `[]` for Dome / Roof Closed |
+| `render_html._html_game()` | yes — renders a static `Weather · Dome` row |
+| `suggestions._serialize_game_for_ai()` | **no** |
+| `render_terminal.print_game()` | **no** |
+
+So the AI card read `=== NYM @ TBR | (Dome) ===` on its header line and
+`Weather: 72°F, Rain 61%, Wind: Out 9mph` on the next one, and picked up rain-risk
+reasoning on a dome game while the published page showed no weather at all. Nothing
+downstream catches it either: the `_validate_pick` rain disqualifier keys on
+`precip_risk_during_game`, which **only** `get_weather()` ever sets — so a Handigraphs
+rain never trips the mechanical gate, it just lands in published copy.
+
+`loaders._drop_outdoor_readings()` now normalizes the row at load time to the same shape
+`get_weather()` returns indoors (precip, wind and `weather_description` blanked,
+`wind_effect_label` set to `Indoor`). One place, and all four consumers agree by
+construction. `_roof_is_closed()` tests `"open"` **before** `"dome"`/`"closed"`, so
+Handigraphs' `Roof Open` on a retractable stays outdoors — the feed reports the actual
+state, which is why the retractable caveat in `weather_flags` exists only for the
+Open-Meteo path.
+
+The general shape is the one this file already records for flags: **anything the card
+asserts, the model acts on** — and a field the loader hands over unexamined is a card
+assertion nobody wrote.
+
 ## Data Volume — what grows, and what is bounded
 
 `history/` and `picks/` are append-only and git-tracked, so they grow by one file per day
