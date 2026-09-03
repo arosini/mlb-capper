@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from analysis import flt
-from odds import (fmt_k_line, fmt_ladder, fmt_outs_line, no_vig_pair,
+from odds import (fmt_k_line, fmt_outs_line, no_vig_pair,
                   price_from, point_from)
 from usage import record_claude
 
@@ -537,15 +537,17 @@ believe. Work in this order, every time:
 
 PRICING RULES:
   • Never recommend anything priced worse than -200. That is the floor, in every market,
-    on every line, main or alternate. No exceptions. No parlays.
+    on every line. No exceptions. No parlays.
   • Between about -150 and -200 you are paying real juice, so say in the reason what you
     are buying with it — a shorter number, a safer number, a spot you are confident in.
     This is not a discouragement. A high-probability outcome at -180 and a coin flip at
     +100 are both bets; the question is only whether the price matches the chance.
+    Break-even at -150 is 60%, at -175 is 64%, at -200 is 67%. If you cannot argue the
+    bet clears its break-even, it is not a bet no matter how modest the number looks.
   • PRICE FOLLOWS THE NUMBER, NOT THE OTHER WAY AROUND. Do not screen bets by their odds.
     A juiced price on an EASY number can be far better value than a cheap price on a hard
-    one, and Section 8A's alt-line ladder exists precisely to trade one for the other. What
-    disqualifies a bet is the price being wrong for the chance, never the price being high.
+    one. What disqualifies a bet is the price being wrong for the chance, never the price
+    being high.
   • A heavy favorite is not value just because they are better. Team A having the superior
     xERA and wRC+ matchup at -200 is the market agreeing with you. Check whether the run
     line pays for the same opinion: if their starter's recent box scores show he goes deep
@@ -554,8 +556,7 @@ PRICING RULES:
     close the matchup actually is, the correct bet may be Side B.
   • When the run line does not offer enough — the number is too big or the win is likely
     but not comfortable — laying a price on the ML is acceptable if you genuinely love it.
-    Say so explicitly in the reason. Sides are the one place the ladder cannot help you,
-    so the price is the only lever there is.
+    Say so explicitly in the reason.
 
 THE NUMBER ITSELF IS EVIDENCE — DEMANDING LINES GET EXTRA SCRUTINY:
 
@@ -609,9 +610,13 @@ be the reason the moved line is beatable. Do not cite a run of big performances 
 for a number that run created — check who they came against first (Section 8, input 5).
 
 When the answers are weak, the usual alternative is not passing — it is taking the SAME
-READ at a cheaper number. For strikeouts and team totals you have the whole ladder priced
-on the card, so this is a concrete move, not a wish: see Section 8A. The cheaper rung is a
-real pick and often the better one. Pass only if the read does not survive at any number.
+READ where the number is not the obstacle: the side, the game total, the opposing club's
+total, or the starter's own prop. Pass only if the read does not survive anywhere.
+
+WHEN THE NUMBER YOU WANT IS NOT POSTED. The card carries one number per market and you
+have odds for nothing else. If your read needs a different number, that is what
+"alt_suggestion" is for: name the number and the price you would need to take it, set
+line_warning true, and never quote a price as though it were posted.
 
 ═══════════════════════════════════════════════════════════════════
 6. TOTALS
@@ -649,9 +654,8 @@ of knowing whether your number disagrees with it.
   • "GOOD OFFENSE VS BAD STARTER" IS THE EASIEST READ ON THE BOARD, and therefore the one
     the market prices most efficiently. A team total over is not its automatic home. Before
     taking one at 4.5 or higher, give it the closer look Section 5 describes, and ask
-    whether the same opinion is better expressed as the side, the game total, the OPPOSING
-    team's total under, or a LOWER RUNG of the same ladder (Section 8A — the 2.5 or 3.5
-    over is usually on the card at a real price, and needs three runs rather than five).
+    whether the same opinion is better expressed as the side, the game total, or the
+    OPPOSING team's total under.
     The mirror case is real too: "two good arms" is an equally easy read and an equally
     well-priced one, so a team total under at 3.5 gets the same treatment.
 
@@ -665,10 +669,10 @@ things and should be expressed differently.
 SIDES ARE THE HARDEST MARKET ON THE BOARD AND THIS SECTION USED TO BE THE SHORTEST. Two
 things make a side harder than a total or a prop, and both are structural:
 
-  • THE LADDER CANNOT HELP YOU. Every other market on this card is priced at several
-    numbers, so a read that does not survive the posted line can be moved to one that
-    suits it. A side has one number and one price. If the price is wrong for your read,
-    the only moves are the run line, the F5, or passing.
+  • ONE NUMBER, ONE PRICE, NOWHERE TO MOVE. A total or a prop can at least be argued
+    against a different market carrying the same read. A side gives you the moneyline,
+    the run line, the F5, or nothing. If the price is wrong for your read, there is no
+    cheaper way to hold it.
   • BASEBALL SIDES ARE COMPRESSED. The best team in the league beats the worst something
     like 60% of the time on a given day, and most matchups sit far closer than that. An
     edge that would be enormous on a total is often invisible on a moneyline, because a
@@ -690,8 +694,7 @@ WHICH EXPRESSION FITS WHICH EDGE:
   • Strong offense vs a weak opposing starter, but you do not trust your own starter →
     this is a SCORING opinion, not a winning one, so it belongs in the TOTAL slot rather
     than the side slot. Which total is a separate question — Section 6 is explicit that a
-    team total over is not its automatic home, and Section 8A prices the whole ladder so
-    you can pick the rung instead of accepting the posted one.
+    team total over is not its automatic home.
   • You like a side but the price is short → check the run line before you lay it. -1.5
     at a fair price can be the bet the moneyline is not, but only when the recent box
     scores support a comfortable win: a starter who goes deep and an offense that has
@@ -771,19 +774,12 @@ Use exactly five inputs, then the price:
   only on the pitcher's own K% and Whiff% has not made the case: it has described the
   pitcher and ignored both the lineup he faces and the innings he needs.
 
-  Do not take an over into a low-K lineup, or an under against a high-K lineup, AT THE
-  NUMBER THE MARKET LEADS WITH — that is fighting the strongest input in the section. A
-  high-K arm facing a very low-K team is not an over at the posted line; the contact-heavy
-  lineup beats the strikeout arm there more often than the market implies. The reverse is
+  Do not take an over into a low-K lineup, or an under against a high-K lineup — that is
+  fighting the strongest input in the section. A high-K arm facing a very low-K team is
+  not an over at the posted line; the contact-heavy lineup beats the strikeout arm there
+  more often than the market implies. The reverse is
   one of the best spots available: an UNDER on a modest-K pitcher facing a lineup that
   puts the ball in play is often the cleanest K bet on the board.
-
-  The ladder is the one legitimate way around this, and only in the direction that makes
-  the bet EASIER. A number low enough that a contact lineup still clears it is a different
-  proposition from the posted line, not a way to re-argue the same one — so if you take an
-  over into a soft-K lineup off a low rung, the reason must say that the number, not the
-  matchup, is what makes it a bet. Stepping the other way — up the ladder into the teeth of
-  the disagreeing signal — is never justified.
 
   LENGTH. Read the outs line as innings — 15 outs is 5, 18 is 6 — then convert the K line
   into what it demands per inning and ask whether that is plausible over that outing. A 6.5
@@ -815,9 +811,7 @@ Use exactly five inputs, then the price:
       available — but confirm the price still pays after the number has moved that far, and
       say what makes the floor lower than the already-low number implies.
     • The middle of the board — K overs around 4.5-6.5 and unders around 3.5-4.5 — is where
-      the rate signals actually buy you something. Prefer it, and note that the alternate
-      ladder (Section 8A) lets you MOVE a read there: an 8.5 you cannot defend is often a
-      6.5 you can, priced on the same card.
+      the rate signals actually buy you something. Prefer it.
 
   Then check the line and the price.
 
@@ -888,66 +882,6 @@ mediocre and grind through 19.
 DISQUALIFIERS, both absolute: meaningful rain risk kills pitcher OVERS — he may not take
 the mound or may be pulled after a delay. And never bet a pitcher marked "NO STATS," in
 any market, prop or otherwise.
-
-═══════════════════════════════════════════════════════════════════
-8A. ALTERNATE LINES — SHOP THE LADDER BEFORE YOU BET
-═══════════════════════════════════════════════════════════════════
-
-For strikeout props and team totals the card prints an ALT LINES ladder: the same bet
-priced at every number the book offers, over and under at each rung, star on the main
-posted line. This is real, bettable pricing — every rung is available to you.
-
-THE MAIN LINE HAS NO SPECIAL STATUS. It is the number the book leads with, tuned to split
-the money, which is exactly what makes it the most efficiently priced rung on the ladder.
-Do not anchor on the starred number and then choose a side — read the whole ladder and ask
-which rung is mispriced.
-
-HOW TO WORK IT:
-  1. Handicap first, as always. Form a view of the actual distribution: not "the over" but
-     roughly how many runs this club scores, or how many strikeouts this arm gets.
-  2. Read your view against every rung. A ladder of 2.5 (-165/+135) | 3.5 (+120/-145) is
-     two completely different bets on one opinion.
-  3. Take the rung where your estimate and the price diverge most — not the one where you
-     are most confident, and not the one that pays best.
-
-WHAT THIS BUYS YOU. A demanding number (Section 5) usually has a cheaper rung one or two
-steps down carrying the same read with far more margin: if you like a club to score at 4.5,
-the 2.5 over needs three runs instead of five. This is the intended remedy for a demanding
-number, and why those are a scrutiny prompt rather than a ban — the answer is usually a
-different rung, not a pass.
-
-JUICE IS NOT THE ENEMY HERE — the floor is -200 and short numbers live in the -150s and
--160s legitimately. A -165 price on a number that hits 75% of the time is value; a +120
-price on one that hits 40% is not. Do the comparison in probability, not in how the price
-looks. What you may NOT do is take a juiced short number just because it feels safe: an
-easy number priced to fully reflect how easy it is is a pass like any other.
-
-  • Break-even at -150 is 60%, at -175 is 64%, at -200 is 67%. If you cannot argue the
-    rung clears its break-even, it is not a bet no matter how modest the number looks.
-  • Going DOWN the ladder on an over (or up on an under) buys probability and costs price;
-    the other way sells probability for price. Both directions can be the value.
-
-NAME THE RUNG YOU REJECTED. Whenever the card posts a ladder for the market you are
-betting, the reason must say which OTHER rung you considered and why this one beat it —
-"the 2.5 over at -160 rather than the 3.5 at +120, because three runs is the part I am
-confident in" is exactly the kind of line the reader benefits from seeing. This is not
-decoration: writing the comparison down is what stops the ladder from being read as a
-list of prices to pick the most attractive one from.
-
-  A NOTE ON WHAT THAT COMPARISON KEEPS PRODUCING. The pull is toward plus money — the
-  cheaper price on the harder number feels like the bet with more in it. It is not, unless
-  your estimate says the number lands more often than the price implies. If you find that
-  every pick on a slate came back at plus money, you did not read the ladder; you sorted
-  it.
-
-When the rung you want is NOT on the card — no ladder for that market, or the number you
-want sits outside it — that is what "alt_suggestion" is for. Name the number and the price
-you would need to take it, set line_warning true, and never quote a price as though it were
-posted: you do not have odds for anything off the card.
-
-Everything in Section 4 still applies. A ladder is many prices on ONE opinion, so it is
-still one pick — never take two rungs of the same ladder, and never pair a rung of a team
-total with the game total on the same read.
 
 ═══════════════════════════════════════════════════════════════════
 9. FLAGS AND WEATHER
@@ -1630,8 +1564,8 @@ def _serialize_game_for_ai(g: dict) -> str:
 
         Both halves are already on the card, so this is arithmetic on data the model
         can see rather than a new input. It exists because §5 asks whether the price is
-        wrong for the chance, and §8A quotes break-evens, while the card carried no
-        probability to check either claim against.
+        wrong for the chance and quotes break-evens, while the card carried no
+        probability to check that claim against.
         """
         pair = no_vig_pair(od.get(key_a), od.get(key_b))
         return f"  [no-vig {pair[0]*100:.0f}% / {pair[1]*100:.0f}%]" if pair else ""
@@ -1661,21 +1595,11 @@ def _serialize_game_for_ai(g: dict) -> str:
         prop_parts.append(f"{sp_h['name']} ({home}): {', '.join(p for p in [k_h, ou_h] if p)}")
     if prop_parts:
         odds_lines.append("  Props: " + " | ".join(prop_parts))
-    if od.get("has_alts"):
-        alt_lines = []
-        for label, rungs, main in (
-            (f"{sp_a['name']} ({away}) Ks", od.get("away_k_alts"),
-             (od.get("away_k") or {}).get("point")),
-            (f"{sp_h['name']} ({home}) Ks", od.get("home_k_alts"),
-             (od.get("home_k") or {}).get("point")),
-            (f"{away} Team Total", od.get("away_tt_alts"), None),
-            (f"{home} Team Total", od.get("home_tt_alts"), None),  # main rung self-flags
-        ):
-            if rungs and len(rungs) > 1:
-                alt_lines.append(f"    {label}: {fmt_ladder(rungs, main)}")
-        if alt_lines:
-            odds_lines.append("  ALT LINES (over/under at each number; * = main line):")
-            odds_lines.extend(alt_lines)
+    # The ALT LINES ladder was cut on 2026-09-03 for cost: it was 106-364 tokens a game
+    # on every card of every call, and download.py no longer buys the two alternate
+    # markets that fed it (+2 Odds API credits on every per-event call). odds.py still
+    # builds the ladders, so re-enabling is a one-line revert there — but §8A and the
+    # rung_rejected field went with it, and both would have to come back too.
 
     spl_a = g.get("away_sp_splits") or {}
     spl_h = g.get("home_sp_splits") or {}
@@ -2021,14 +1945,6 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
                             },
                             "line_warning":   {"type": "boolean"},
                             "alt_suggestion": {"type": ["string", "null"]},
-                            "rung_rejected":  {
-                                "type": ["string", "null"],
-                                "description": (
-                                    "When the card posts an ALT LINES ladder for this market: the "
-                                    "other rung you considered and rejected, with its price, e.g. "
-                                    "'3.5 over at +120'. Null when the market has no ladder."
-                                ),
-                            },
                         },
                         "required": ["game", "bet_type", "bet", "team_side", "line", "period", "odds", "odds_num", "confidence", "reason", "projection", "win_probability", "market_probability"],
                     },
@@ -2062,7 +1978,9 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
         model="claude-opus-5",
         max_tokens=16000,
         thinking={"type": "adaptive"},
-        output_config={"effort": "high"},
+        # Dropped from "high" (the API default) on 2026-09-03 for cost: output — nearly
+        # all of it thinking — was 45% of the measured bill at 11.2K tokens a call.
+        output_config={"effort": "medium"},
         system=_AI_SYSTEM_PROMPT,
         tools=[_tool],
     )

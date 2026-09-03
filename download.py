@@ -290,10 +290,11 @@ def download_pitcher_props(data_dir: Path, date_str: str, max_age_minutes: int =
             "&markets=pitcher_strikeouts,pitcher_outs"
             ",h2h_1st_5_innings,spreads_1st_5_innings,totals_1st_5_innings"
             ",team_totals,team_totals_1st_5_innings"
-            # Alternate ladders. Billing is markets × regions per event, so these two
-            # are +2 credits on every props call — see "API Budget" in CLAUDE.md before
-            # adding a third.
-            ",alternate_team_totals,pitcher_strikeouts_alternate"
+            # alternate_team_totals and pitcher_strikeouts_alternate were dropped on
+            # 2026-09-03. Billing is markets × regions per event, so they were +2
+            # credits on every props call — ~22% of the largest line on the Odds API
+            # bill — and the ALT LINES block they fed is off the AI card. See
+            # "API Budget" in CLAUDE.md before adding any market back.
             "&bookmakers=draftkings,fanduel,fanatics"
             "&oddsFormat=american"
         )

@@ -1109,7 +1109,18 @@ grows by a third has quietly changed what the model reaches for.
   accumulated, regress realised outcomes on the stated projections — that is a far better
   calibration signal than W-L, and it is the reason those fields exist.
 
-## Alternate Lines — the ladder
+## Alternate Lines — the ladder (REMOVED 2026-09-03)
+
+> **Cut for cost on 2026-09-03.** `download.py` no longer buys
+> `alternate_team_totals` / `pitcher_strikeouts_alternate` (−2 credits on every
+> per-event call, ~22% of the largest line on the Odds API bill), the ALT LINES block
+> is off the AI card (106–364 tok/game on every card of every call), and §8A plus the
+> `rung_rejected` tool field are gone with it. **`odds.py` still builds the ladders** —
+> `alt_ladder()`, `merge_main_rung()`, `fmt_ladder()` and the `*_alts` / `has_alts`
+> keys are all still there and simply return empty now, so re-enabling is a one-line
+> revert in `download.py` plus restoring §8A and `rung_rejected`. `_validate_pick`'s
+> alt-rung acceptance also still stands and no-ops. What follows is the original
+> section, kept because it is the design rationale you would need to bring it back.
 
 Added 2026-08-23. Strikeout props and team totals now arrive as a **ladder**: the same bet
 priced at every number the book offers, not just the one it leads with. `odds.alt_ladder()`
@@ -1570,7 +1581,7 @@ Cost is **markets × regions per call**, not one credit per call:
 | Call | Markets | Credits |
 |------|---------|---------|
 | Bulk odds (`/odds`) | h2h, spreads, totals | **3** |
-| Per-event props (`/events/{id}/odds`) | 2 pitcher props + 3 F5 + 2 team totals + 2 alternate ladders = 9 | **9** |
+| Per-event props (`/events/{id}/odds`) | 2 pitcher props + 3 F5 + 2 team totals = 7 | **7** (was 9 until 2026-09-03; the two alternate ladders were cut) |
 
 With 4 cron runs/day, a 300-minute throttle, and a ~15-game slate:
 
@@ -1644,8 +1655,10 @@ Measured from `picks/`, the model returns ~7–8 picks per run (~4 survive dedup
 | Output tokens/day | 75,000 | ~112,000 |
 | Input share of the bill | **53%** | ~16% |
 
-> Superseded 2026-08-30: with the audit pass removed the bill is **~$2.64/day,
-> ~$79/month, 4 calls/day**. The measurement below is kept because it is what identified
+> Superseded twice. 2026-08-30: with the audit pass removed the bill was modelled at
+> **~$2.64/day, ~$79/month, 4 calls/day**. That model was wrong on both counts — see
+> "Where the Anthropic bill actually went — 2026-09-03" below for the measured figures
+> (6.5 calls/day, $4.05/day, ~$121/month) and what was changed. The measurement below is kept because it is what identified
 > the audit pass as ~$48 of the bill, and because the per-call arithmetic still applies to
 > the one remaining call.
 
@@ -1682,6 +1695,62 @@ Two things follow, and both are load-bearing:
 The AI call is skipped when no game on the slate has odds posted (early opening day, or a
 failed odds fetch) — the prompt cannot produce a bet without a price, so that call was
 guaranteed to return an empty picks array at full cost.
+
+## Where the Anthropic bill actually went — 2026-09-03
+
+The account ran out of credit. `usage/*.json` says why, and the model in this file was
+wrong on every term. Measured over 2026-09-01..09-02 (13 calls):
+
+| | modelled (08-30) | measured |
+|---|---|---|
+| calls/day | 4 | **6.5** |
+| input tok/call | — | **68,600** |
+| output tok/call | — | **11,200** |
+| $/call | — | **$0.62** |
+| $/day | 2.64 | **4.05** |
+| $/month | 79 | **~121** |
+
+Input is 55% of the bill and output 45% — and output is nearly all thinking, since a
+call returns ~10 picks of prose. Within input, the cards are ~73% and
+`_AI_SYSTEM_PROMPT` ~25%.
+
+**The call count was the biggest single line, and nothing was buying it.** Four things
+were true at once: `save_picks()` is append-only and keeps the first price seen, so a
+later call can only ADD picks; the page renders `picks/`, not the newest suggestions;
+the first run of the day returns 6-10 picks and every later run 1-3; and the workflow's
+`Clear stale suggestions` step deleted the cache on every run, forcing a full Opus call
+each time. So runs 2-6 spent $0.62 each to append one or two picks.
+
+That step is **gone**. `generate_suggestions()` already regenerates when
+`data/odds_meta_{date}.json` is newer than the cached suggestions, and `download_odds()`
+only rewrites that file when it actually fetches (300-minute throttle) — so picks now
+refresh **when the board moves, ~2-3 times a day**, and a run that finds nothing new
+costs nothing. Do not reintroduce a step that clears `data/suggestions_*.json`.
+
+Three smaller changes landed with it:
+
+- **`output_config.effort` high → medium.** `high` is the API default, and output was
+  45% of the bill. This is the one change here that trades quality for cost; Anthropic's
+  guidance is to try the better model at lower effort before dropping a model tier, so
+  this was taken instead of Sonnet 5. **Re-measure output tokens/call after a few days**
+  — if they have not moved, effort is not the lever and the choice is Sonnet 5 ($2/$25 →
+  $2/$10, a flat 60%) or nothing.
+- **ALT LINES off the card, §8A deleted** — see the alternate-lines section above.
+- The prompt lost 4,565 chars with §8A (68,089 → 63,524), about 1,140 tokens a call.
+  §5 kept the two things worth keeping from it: the break-even percentages
+  (-150 → 60%, -175 → 64%, -200 → 67%) and the `alt_suggestion` / `line_warning`
+  definition, which lived inside §8A and is still what the page's "Line Warning" row
+  renders from. §8 is 12,339 → 11,640 chars; §7 3,514 → 3,380; §6 2,678 → 2,528.
+
+Expected: ~3 calls/day at ~$0.51 → **~$46/month**, from $121. The effort term is the
+uncertain one.
+
+**A credit exhaustion is invisible from the outside.** `generate_suggestions()` catches
+the API exception, prints to stderr and returns `None`, so the run continues, the page
+publishes, and yesterday's committed picks stay up. The 400 reads
+`Your credit balance is too low to access the Anthropic API`. Nothing fails, nothing
+alerts, and `/budget/` reports self-metered spend rather than a balance. If the picks
+ever stop changing, check the `Generate AI suggestions` step's log before anything else.
 
 ## Measuring the AI Card
 

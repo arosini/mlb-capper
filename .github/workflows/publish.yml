@@ -195,10 +195,15 @@ jobs:
             python3 download.py --date tomorrow
           fi
 
-      - name: Clear stale suggestions
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: rm -f data/suggestions_*.json data/suggestions_meta_*.json
-
+      # There is deliberately no "clear stale suggestions" step. It used to delete
+      # data/suggestions_*.json on every run, which forced a full Opus call every time —
+      # 6 a day against a measured $0.62 a call. generate_suggestions() already
+      # regenerates whenever data/odds_meta_{date}.json is newer than the cached
+      # suggestions, and download_odds() only rewrites that file when it actually
+      # fetches (300-minute throttle). So the picks now refresh when the BOARD moves,
+      # about 2-3 times a day, instead of once per run. Later runs added 1-3 picks each
+      # and could never change an existing one — save_picks() is append-only and keeps
+      # the first price seen.
       - name: Save odds history
         run: python3 history.py --save
 
