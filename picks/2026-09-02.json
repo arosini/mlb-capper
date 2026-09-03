@@ -218,10 +218,10 @@
     "market_probability": 51,
     "rung_rejected": "6.5 under (over priced -235), which needs him under his exact recent total three straight times",
     "found_at": "2026-09-02T12:18:56.707802+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 9,
+    "home_score_final": 5,
+    "annotated_at": "2026-09-03T08:44:05.553039+00:00"
   },
   {
     "date": "2026-09-02",
@@ -250,10 +250,10 @@
     "market_probability": 51,
     "rung_rejected": null,
     "found_at": "2026-09-02T12:18:56.707802+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 9,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-03T08:44:05.553039+00:00"
   },
   {
     "date": "2026-09-02",
@@ -282,10 +282,10 @@
     "market_probability": 45,
     "rung_rejected": "7.5 over at +390, which needs a blowout rather than the ordinary five-run game I project",
     "found_at": "2026-09-02T12:18:56.707802+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 11,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-03T08:44:05.553039+00:00"
   },
   {
     "date": "2026-09-02",
@@ -346,10 +346,10 @@
     "market_probability": 55,
     "rung_rejected": "7.5 over at +145",
     "found_at": "2026-09-02T22:22:09.250050+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 8,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-03T08:44:05.553039+00:00"
   },
   {
     "date": "2026-09-02",
@@ -378,10 +378,10 @@
     "market_probability": 53,
     "rung_rejected": "3.5 under at +135",
     "found_at": "2026-09-02T22:22:09.250050+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 9,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-03T08:44:05.553039+00:00"
   },
   {
     "date": "2026-09-02",
@@ -410,10 +410,10 @@
     "market_probability": 46,
     "rung_rejected": null,
     "found_at": "2026-09-02T22:22:09.250050+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 9,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-03T08:44:05.553039+00:00"
   },
   {
     "date": "2026-09-02",
@@ -442,10 +442,10 @@
     "market_probability": 51,
     "rung_rejected": null,
     "found_at": "2026-09-02T22:22:09.250050+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 6,
+    "home_score_final": 3,
+    "annotated_at": "2026-09-03T08:44:05.553039+00:00"
   },
   {
     "date": "2026-09-02",
@@ -474,10 +474,10 @@
     "market_probability": 54,
     "rung_rejected": null,
     "found_at": "2026-09-02T22:22:09.250050+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 0,
+    "home_score_final": 2,
+    "annotated_at": "2026-09-03T08:44:05.553039+00:00"
   },
   {
     "date": "2026-09-02",
@@ -506,9 +506,9 @@
     "market_probability": 40,
     "rung_rejected": null,
     "found_at": "2026-09-03T00:36:10.572650+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 6,
+    "home_score_final": 3,
+    "annotated_at": "2026-09-03T08:44:05.553039+00:00"
   }
 ]
