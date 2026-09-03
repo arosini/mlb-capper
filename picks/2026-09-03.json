@@ -90,10 +90,10 @@
     "market_probability": 53,
     "rung_rejected": null,
     "found_at": "2026-09-03T08:44:03.183643+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-03T22:13:40.079293+00:00"
   },
   {
     "date": "2026-09-03",
@@ -186,10 +186,10 @@
     "market_probability": 53,
     "rung_rejected": "0.5 over at -1800, which pays nothing for a near-certainty",
     "found_at": "2026-09-03T08:44:03.183643+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 5,
+    "annotated_at": "2026-09-03T22:13:40.079293+00:00"
   },
   {
     "date": "2026-09-03",
