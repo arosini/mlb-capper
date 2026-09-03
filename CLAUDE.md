@@ -19,7 +19,7 @@ Keys in use: `HANDIGRAPHS_EMAIL`, `HANDIGRAPHS_PASSWORD`, `ODDS_API_KEY`, `ANTHR
 | Source | Auth | What it provides |
 |--------|------|-----------------|
 | Handigraphs API | JWT Bearer (login → token) | Starters (last 3), team offense stats (L6RHP/LHP primary + L12RHP/LHP for the comparison wRC+, plus unsplit L6G/L12G for bullpen games), bullpen stats (last 12), ballpark weather |
-| MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs, posted lineups + bat sides (`get_lineups`/`get_bat_sides`), home plate umpire (recorded to `history/`, not on the card — see Adversarial Review) |
+| MLB Stats API | None (free) | Home/away determination, venue name, pitcher game logs, home plate umpire (recorded to `history/`, not on the card — see Adversarial Review) |
 | The Odds API | API key (query param) | Full-game ML/spread/total + F5 ML/spread/total + team totals + pitcher K/outs props for DK, FanDuel, Fanatics. Paid plan (~20K credits/month); billed per market × region, **not** per call — see API Budget |
 | Anthropic API | API key (`ANTHROPIC_API_KEY`) | Claude Opus 5 for AI Picks — ONE generation call per odds refresh, cached to `data/suggestions_{date}.json`. The per-pick audit call was removed 2026-08-30 |
 
@@ -70,7 +70,7 @@ handicap.py       — slim entry point, main() only; imports everything
 
 **`loaders.py`**: `load_starters()`, `load_team_stats()`, `load_bullpen()`, `load_ballpark_weather()`, `load_odds_meta()`, `load_pitcher_props()`
 
-**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_pitch_hands()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()` (takes lat/lon, not a team code), `get_lineups()`, `get_bat_sides()`, `wind_effect()`, `compass_point()`, `stress_label_cls()`, `HAS_REQUESTS`
+**`mlb_api.py`**: `get_mlb_schedule()`, `get_recent_starts()`, `get_pitch_hands()`, `get_team_schedule()`, `get_bullpen_stress()`, `get_weather()` (takes lat/lon, not a team code), `wind_effect()`, `compass_point()`, `stress_label_cls()`, `HAS_REQUESTS`
 
 **`analysis.py`**: `analyze_game()`, `build_games()`, `resolve_pitchers()`, `pitcher_ids_to_check()`, `pitcher_workload()`, `is_short_arm()`, `is_bulk_arm()`, `pitched_too_recently()`, `outing_ip()`, `has_sp_stats()`, `flt()`, `fp1()`, `fp3()`, `wrc_label()`, `xera_label()`, `pitcher_csv_flags()`, `bullpen_flags()`, `weather_flags()`, `pitcher_history_flags()`, `team_whiff_k_flag()`, `pitcher_whiff_k_flag()`, `extract_outings()`
 
@@ -1071,18 +1071,34 @@ rides the schedule call the annotate pass already makes), so a ledger accrues. R
 test above before surfacing anything. One `/schedule` call covers a 23-day range with
 `hydrate=officials,linescore`, so the backfill is a handful of requests, not 150.
 
-### Posted lineups
+### Posted lineups — added here, REMOVED 2026-09-03
 
-`mlb_api.get_lineups()` + `get_bat_sides()`, two calls per slate, both free. MLB posts
-lineups 1-2 hours before first pitch, so the early runs get nothing and **the card says so
-explicitly** rather than going silent — the absence must not read as information. Where a
-lineup exists the card prints the batting order with each hitter's bat side and a count of
-how many carry the platoon advantage against today's starter. Switch hitters count on the
-advantage side.
+`mlb_api.get_lineups()` + `get_bat_sides()` were two free calls per slate that printed
+today's batting order with each hitter's bat side and a platoon-advantage count onto the
+AI card. **All of it is gone** — the two functions, the fetch in `handicap.py`, the
+POSTED LINEUP block and its `_CARD_FORMAT` paragraph. `git show d2b7d03~1:mlb_api.py`
+has the originals.
 
-This does not fix the underlying gap — every offense number on the card is a team-level
-last-6 that is blind to who is in the box, and no per-player offense data reaches this
-project — but it is the one place a missing regular is visible at all.
+Two reasons, and the second is the real one:
+
+1. **The two-hour filter made it unreachable.** `LEAD_TIME_MIN = 120` stops a game being
+   sent inside two hours of first pitch, and MLB posts lineups 1-2 hours out — so every
+   card we actually paid for read "POSTED LINEUP: not yet posted", 62 tokens a game plus
+   ~110 tokens of system prompt describing a block that could never have content.
+2. **A posted lineup is in the price by the time we can see it.** The books move on the
+   lineup within minutes of it dropping; a resting star is priced before the card is
+   built. It is not a source of edge, which is the only thing this project is looking
+   for.
+
+The counter-argument, recorded because it is real: the card's offense figures are
+TEAM-level last-6 numbers that know nothing about who is in the box, so the lineup was
+never an edge — it was a guard against our own stale input, the one place a missing
+regular was visible at all. That gap is now unguarded. It is also unguarded on every
+game that starts inside two hours, which is where lineups were visible in the first
+place, so the guard was already mostly gone.
+
+The page never rendered lineups — `render_html.py` has no reference to them — so nothing
+visible to a reader changed.
 
 ### Section balance — the prompt's shape was part of the bias
 
@@ -1832,11 +1848,10 @@ cost $0.62 to append one pick now cost nothing.
 
 **Two consequences worth stating plainly.**
 
-The imminent filter means **the posted lineup is now almost never on a card we bet**.
-MLB posts lineups 1-2 hours before first pitch, which is inside the window — so the
-lineup block, added in the 2026-08-24 review, will read "not yet posted" on essentially
-every game the model still sees. That is the price of not betting games that are about
-to start.
+The imminent filter put the posted lineup out of reach — MLB posts lineups 1-2 hours
+before first pitch, which is inside the window — so **the lineup block was removed the
+same day**. See "Posted lineups — added here, REMOVED 2026-09-03" above for what went
+and what it cost.
 
 The covered filter is **a hard cap of two picks per game per day**, enforced by not
 sending the card rather than by the prompt. §4's slots allow up to four (one total, one
@@ -1908,8 +1923,9 @@ Three things the profile says that the estimates did not:
   rewrite. It is the best-evidenced cut on the card.
 - **`lineup` at 62 tok is the "not yet posted" placeholder, not a lineup.** This run was
   9:37 AM ET. Measured again at 5:16 PM ET the block is real and **320 tok**, so the
-  evening card runs ~260 tokens heavier than the morning one. Three of the four daily
-  runs pay the placeholder, not the lineup.
+  evening card ran ~260 tokens heavier than the morning one. Three of the four daily runs
+  paid the placeholder, not the lineup — which is most of why the block was cut on
+  2026-09-03.
 - **`ou_history` + `trends` = 341 tok/game (11.7%)** for the two things §11 says are worth
   very little.
 

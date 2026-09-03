@@ -7,8 +7,7 @@ once per game in the generation call. (It used to be re-sent in full for every p
 audit pass checked; that pass was removed on 2026-08-30, so the generation call is now
 the only place the card is paid for.) CLAUDE.md's API Budget section models it at ~550 tokens; that figure was
 written before the adversarial review added weather detail, bullpen rates, ou_trends,
-head-to-head, no-vig probabilities, posted lineups and the alternate ladders, and it
-has never been re-measured.
+head-to-head and no-vig probabilities, and it has never been re-measured.
 
 This does not guess. Feed it a dump of real cards:
 
@@ -54,7 +53,6 @@ _SECTIONS = (
     ("odds",        lambda l: l.startswith("ODDS:")),
     ("trends",      lambda l: l.startswith("TEAM TRENDS")),
     ("ou_history",  lambda l: l.startswith("OVER/UNDER HISTORY")),
-    ("lineup",      lambda l: l.startswith("POSTED LINEUP")),
     ("season",      lambda l: l.startswith("SEASON SERIES:")),
     ("flags",       lambda l: l.startswith("FLAGS:")),
     ("situational", lambda l: l.startswith("SITUATIONAL TRENDS")),

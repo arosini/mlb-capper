@@ -132,13 +132,6 @@ short labels; their meaning is fixed and given here.
     evidence — they count, but they are the easiest thing on the card to over-read.
     Section 11 sets how to weigh them.
 
-  POSTED LINEUP:  today's actual batting order with each hitter's bat side. MLB posts
-    these 1-2 hours before first pitch, so early in the day the card reads "not yet
-    posted" — that absence is NOT information about either club, it just has not happened
-    yet. The OFFENSE figures above are TEAM numbers that know nothing about who is
-    actually in the box, so where a lineup exists this is the one place a missing regular
-    or an unusual platoon arrangement is visible.
-
   ODDS:  full-game markets, and the same markets for the FIRST FIVE INNINGS (F5) where
     the book posts them. An F5 line settles on the score after five, so it is decided by
     the starters with far less bullpen exposure. "[no-vig NN% / NN%]" beside a market is
@@ -1693,26 +1686,6 @@ def _serialize_game_for_ai(g: dict) -> str:
     lines.append("OVER/UNDER HISTORY:")
     lines.append(_ou_line(away, g.get("away_ou")))
     lines.append(_ou_line(home, g.get("home_ou")))
-    lu = g.get("lineups")
-    sides = g.get("bat_sides") or {}
-    if lu:
-        def _lineup_line(team, players, opp_hand):
-            cells, counts = [], {"L": 0, "R": 0, "S": 0}
-            for i, pl in enumerate(players, 1):
-                bs = sides.get(pl["id"], "?")
-                counts[bs] = counts.get(bs, 0) + 1
-                cells.append(f"{i}. {pl['name']} ({bs}, {pl['pos']})")
-            # Switch hitters bat opposite the arm, so they count on the platoon-
-            # advantage side of an opposing starter, not against it.
-            adv = counts.get("S", 0) + counts.get("L" if opp_hand == "R" else "R", 0)
-            head = (f"  {team} ({adv} of {len(players)} bat with the platoon advantage "
-                    f"vs {opp_hand}HP): ")
-            return head + "; ".join(cells)
-        lines.append("POSTED LINEUP:")
-        lines.append(_lineup_line(away, lu["away"], hand_h))
-        lines.append(_lineup_line(home, lu["home"], hand_a))
-    else:
-        lines.append("POSTED LINEUP: not yet posted.")
     h2h = g.get("h2h") or {}
     if h2h.get("total", 0) >= 2:
         lines.append(
