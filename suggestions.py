@@ -823,33 +823,49 @@ Use exactly five inputs, then the price:
 
 OUTS. An outs prop is a bet on how long the manager lets him work, which is a different
 question from how well he pitches — a starter can be excellent and still get 15 outs, or
-mediocre and grind through 19. Use exactly these:
-  1. How deep he normally goes (IP/gs, last 3)
-  2. His IP/gs VS THIS OPPONENT (up to last 3 meetings) — a lineup that runs his pitch
-     count up has done it repeatedly, and it shows here before it shows anywhere else.
-     Where a consistent head-to-head depth differs from his overall IP/gs, weigh the
-     head-to-head heavily: depth against a specific lineup is one of the few places a
-     small head-to-head sample carries real information.
-  3. How deep he went LAST time, and how recently that was. If the last time was against
-     THIS club inside the last two weeks, Section 2's recency exception applies and cuts
-     toward the UNDER — a lineup with fresh looks runs the pitch count up sooner.
-  4. Bullpen stress on his own team
-  5. His BB% over the last 3 — walks are what end outings early. A command wobble caps
-     depth even when the runs look fine, and the box scores show it as pitch count
-     climbing faster than innings.
+mediocre and grind through 19.
+
+  HIS RECENT DEPTH IS NOT EVIDENCE — IT IS WHAT THE LINE IS MADE OF. The book sets an outs
+  number off the same IP/gs and the same three box scores you are reading, which is why it
+  lands within an out or two of them nearly every time. "He has gone 15, 15 and 17 outs and
+  the line is 17.5" is you and the market reading the same page and agreeing; it tells you
+  where the number came from, not that it is wrong. A reason whose case is his recent
+  average has not disagreed with anything, and that is most of what a losing outs pick is.
+
+  THE CASE MUST COME FROM SOMETHING THE NUMBER DOES NOT ALREADY CONTAIN, and the reason has
+  to name it. What moves an outing away from his own baseline:
+  1. PITCH EFFICIENCY. His BB% over the last 3, read against the pitch counts printed on
+     his recent-start lines. Two starters both averaging 5.1 innings are not the same bet
+     when one needs 95 pitches to get there and the other 78 — walks and deep counts are
+     what end outings, and they cap depth while the run prevention still looks fine.
+  2. WHO TAKES THE BALL NEXT. His own bullpen's 2d stress and its last-12 xERA. A stressed
+     pen buys him innings the number does not assume; a fresh, sharp one takes them away.
+  3. WHAT THIS LINEUP DOES TO A PITCH COUNT. Read the opponent's K% and Whiff% (last 6 vs
+     his hand) as pitch-count inputs rather than as a quality judgement: a high-K club ends
+     innings in three pitches, a contact club grinds them out. Then his IP/gs and pitch
+     counts VS THIS OPPONENT (up to last 3 meetings) — a lineup that runs his count up has
+     usually done it more than once, and a consistent head-to-head depth that differs from
+     his overall IP/gs outweighs that overall figure. If they met inside the last two
+     weeks, Section 2's recency exception applies and cuts toward the UNDER.
+  4. THE SETUP. Days between starts, off the dates on his recent-start lines; a first
+     outing back; an opener or a bullpen game behind him.
+  Two of those pointing the same way is a case. His last three outing lengths, however
+  consistent they look, are not one on their own.
 
   Key thresholds: 15 outs (5 full innings) and 18 outs (6 innings) are what starters aim
   for — lines near those numbers are where the real decisions are.
 
   BOTH SIDES ARE LIVE, and the reasons differ:
-    • UNDER — the line sits at or above his normal depth, a 100+ pitch last start plus a
-      fresh bullpen argues for a shorter leash, his BB% is climbing, or this opponent has
-      historically run his count up. The under is the more common bet, not the default one.
-    • OVER — the line sits BELOW his recent depth, his own bullpen is stressed so the
-      manager needs innings out of him, and nothing about the matchup suggests early
-      trouble. A stressed bullpen behind a starter who has been going 6 is the cleanest
-      outs over available, and the market is slow to price it because it is reasoning
-      about the manager rather than the pitcher.
+    • UNDER — his pitch count is running ahead of his innings (a climbing BB%, 95+ pitches
+      for a five-inning start), a fresh or sharp bullpen argues for a shorter leash, or this
+      opponent has run his count up before. The line sitting at or above his normal depth is
+      the STARTING CONDITION for looking, never the argument itself. The under is the more
+      common bet, not the default one.
+    • OVER — the line sits BELOW his recent depth (again, the condition, not the case), his
+      own bullpen is stressed so the manager needs innings out of him, and nothing about
+      the matchup suggests early trouble. A stressed bullpen behind a starter who has been
+      going 6 is the cleanest outs over available, and the market is slow to price it
+      because it is reasoning about the manager rather than the pitcher.
   A read that his OFFENSE will stake him a lead cuts the same way — a comfortable margin
   buys a starter innings that a tight game does not.
 

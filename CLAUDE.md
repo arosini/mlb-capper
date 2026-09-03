@@ -627,6 +627,38 @@ line/side/price bucket is reproducible without touching the API. Over/under has 
 parsed out of the `bet` string for props (`team_side` is null there) and off `team_side`
 for totals.
 
+## The Outs Line Is Made of His Last 3 Starts — 2026-09-03
+
+§8's OUTS block opened with "1. How deep he normally goes (IP/gs, last 3)" and the UNDER
+bullet began "the line sits at or above his normal depth". Both invite the circular
+argument, and the published rationales took it: over the last 10 days every outs pick led
+with the recent outing lengths — "15, 15 and 17 outs, none of them clearing this number"
+under a 17.5 — which is the input the book used to SET 17.5. Agreeing with the market
+about a starter's workload is not a disagreement about his price. Outs props are -10.5%
+ROI over 42 in the current era, the worst market on the board bar spreads.
+
+The block now says that in as many words (**HIS RECENT DEPTH IS NOT EVIDENCE — IT IS WHAT
+THE LINE IS MADE OF**) and requires the case to rest on something the number does not
+already contain, with the reason naming it. The four it lists are all readable off the
+card: pitch efficiency (BB% last 3 against the pitch counts on the recent-start lines),
+his own bullpen's 2d stress and last-12 xERA, the opponent's K%/Whiff% read as
+pitch-count inputs plus the head-to-head pitch counts, and the setup (days between starts
+off the outing dates, a first start back, an opener behind him). Recent depth is now
+named as the STARTING CONDITION for looking at a line, never the argument.
+
+**Nothing enforces this in code, deliberately.** Whether a rationale rests on an
+independent factor or restates the baseline is a judgement about one game's prose; a
+mechanical version would be keyword-matching for "BB%", which the model would satisfy by
+naming the stat rather than using it. Same reasoning that keeps the independence rule and
+the demanding-number list in the prompt rather than in `_validate_pick`.
+
+§8 grew 14,943 → 16,276 chars and the **K:outs ratio inside it went 1.97x → 1.32x** —
+which is the direction the 2026-08-23 prop-bias work wanted and never achieved. Full
+prompt is 68,089 chars, about +$1/month at 4 calls/day. Re-measure the outs-vs-K pick mix
+in a couple of weeks: if the reasons still lead with the average, the next place to look
+is whether anything on the CARD is arguing the other way, per the lesson recorded under
+Prop Market Bias.
+
 ## Picks Are Split by Confidence, Not Filtered — 2026-09-03
 
 Volume was still ~13.8 picks/day over the 14 days to 09-02 (193 picks). The page now
