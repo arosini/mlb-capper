@@ -38,7 +38,7 @@ import json
 import os
 import sys
 
-MODEL = "claude-opus-5"
+MODEL = "claude-sonnet-5"
 
 # Ordered: the first pattern whose test matches a non-indented line opens that block.
 # Indented lines and blank lines continue whichever block is open. The order matters

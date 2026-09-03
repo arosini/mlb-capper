@@ -34,7 +34,10 @@ from season import ET
 PRICING = {
     "claude-opus-4-8": {"input": 5.00, "output": 25.00},
     "claude-opus-5":   {"input": 5.00, "output": 25.00},
-    "claude-sonnet-5": {"input": 3.00, "output": 15.00},
+    # $2/$10 is Sonnet 5. The 3.00/15.00 that sat here until 2026-09-03 is the
+    # Sonnet 4.6 rate, and it would have overstated the ledger by 50% from the day
+    # suggestions.py started calling Sonnet 5.
+    "claude-sonnet-5": {"input": 2.00, "output": 10.00},
     "claude-haiku-4-5": {"input": 1.00, "output": 5.00},
 }
 _CACHE_READ_MULT  = 0.10

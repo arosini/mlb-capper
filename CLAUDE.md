@@ -391,23 +391,35 @@ patch releases arrive on their own. Check with
 `gh api repos/{owner}/{repo}/releases/latest`.
 
 > ⚠️ **The model id is not a dependency and is not covered by these pins.**
-> `suggestions.py` hardcodes `claude-opus-5` as of
-> 2026-08-24 (previously `claude-opus-4-8`; same price, $5/$25 per MTok). Moving is a
-> deliberate change, not a version bump, and `usage.PRICING` must carry a rate for
-> whatever id is used — it already carries both. `PRICING` keeps the `claude-opus-4-8`
-> key as the unknown-model fallback and so historical `usage/*.json` days still price
-> correctly; do not delete it.
+> `suggestions.py` hardcodes **`claude-sonnet-5`** as of 2026-09-03 — $2/$10 per MTok,
+> against Opus 5's $5/$25 (it ran `claude-opus-4-8` to 2026-08-24, then `claude-opus-5`).
+> Moving is a deliberate change, not a version bump, and `usage.PRICING` must carry a
+> rate for whatever id is used — it carries all four. `PRICING` keeps the
+> `claude-opus-4-8` key as the unknown-model fallback so historical `usage/*.json` days
+> still price correctly; do not delete it.
 >
-> **The prompt has not been re-tuned for Opus 5.** `_AI_SYSTEM_PROMPT` was written and
-> calibrated against 4.8, including the selectivity language in `## Selectivity`. The swap was verified for API contract and
-> output shape, not for pick quality or pick volume. Re-tune against real Opus 5
-> rejections in `rejections/` once a few days have accumulated.
+> **`PRICING["claude-sonnet-5"]` was wrong until the swap** — it held $3/$15, which is
+> the Sonnet **4.6** rate, and would have overstated the ledger and `/budget/` by 50%
+> from the first Sonnet call. Check a new id's rate against the live pricing page rather
+> than against whatever key is already in the dict.
+>
+> **The prompt has been re-tuned for neither Opus 5 nor Sonnet 5.** `_AI_SYSTEM_PROMPT`
+> was written and calibrated against 4.8, including the selectivity language in
+> `## Selectivity`. Both swaps were verified for API contract and output shape, not for
+> pick quality or pick volume. Every parameter the call passes — adaptive thinking,
+> `output_config.effort`, `tool_choice` auto with a forced fallback, `max_tokens` 16000 —
+> is supported on Sonnet 5, so reverting to Opus 5 is one line and nothing else.
+> **What is NOT verified on Sonnet 5 is the thinking-suppression measurement** behind
+> `tool_choice: auto` (recorded under "AI Picks — one generation call"); it was measured
+> on 4.8 and Opus 5 only.
 
 ## AI Picks — one generation call
 
 **The per-pick AI audit was removed on 2026-08-30.** There is now exactly ONE model call
-per scheduled run: `generate_suggestions`, Claude Opus 5 with `thinking: {"type":
-"adaptive"}`, one call for the whole slate.
+per scheduled run: `generate_suggestions`, Claude Sonnet 5 (Opus 5 until 2026-09-03)
+with `thinking: {"type": "adaptive"}` and `effort: "medium"`, one call for the whole
+slate — and now only on runs where the odds actually moved, so ~2-3 a day rather than
+one per run.
 
 It ran with `tool_choice: auto`, **not** forced. Forcing the tool suppresses thinking
 entirely, which would defeat the point of using Opus. Verified on Opus 4.8, and
@@ -1744,6 +1756,30 @@ Three smaller changes landed with it:
 
 Expected: ~3 calls/day at ~$0.51 → **~$46/month**, from $121. The effort term is the
 uncertain one.
+
+**That was still over budget, and the model moved the same day.** The operator's target
+is **$20/month**, and at the measured 63K input / 8-11K output per call only two shapes
+reach it:
+
+| | 3 calls/day | 2 calls/day | 1 call/day |
+|---|---|---|---|
+| Opus 5 ($5/$25) | $46-54 | $31-36 | **$15-18** |
+| Sonnet 5 ($2/$10) | **$19-21** | **$12-14** | $6-7 |
+
+Opus at two generations a day does not fit at any plausible effort setting. The choice
+taken was **Sonnet 5 at the existing 2-3 calls/day (~$19-21/month)** — keeping the
+refresh cadence rather than the model tier, on the reasoning that a pick made blind to
+posted lineups is worth less than a pick reasoned about slightly less well. It lands
+*on* the budget rather than under it, so a 20-game April slate or an effort setting that
+underdelivers will push it over; the fallback with room is 2 calls/day at $12-14.
+
+**Watch what this costs.** The current era is -0.6% ROI over 321 graded picks, so there
+was no measured Opus edge to lose — but there is also no measurement that will detect a
+Sonnet-shaped loss for months at ~10 picks a day. The things to watch are cheaper than
+ROI: whether rationales start quoting figures that are not on the card (the failure the
+removed audit pass used to catch), whether `rejections/` grows, and whether the
+forced-tool retry starts firing — "[suggestions] No tool_use block" in the run log means
+a call that cost double and reasoned less.
 
 **A credit exhaustion is invisible from the outside.** `generate_suggestions()` catches
 the API exception, prints to stderr and returns `None`, so the run continues, the page

@@ -1971,11 +1971,15 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
     # re-verified on Opus 5 at the 2026-08-24 model swap: with this exact system prompt
     # and tool schema, tool_choice auto returned ['thinking', 'text', 'tool_use'] and
     # 7345 output tokens, while a forced call returned a bare ['tool_use'] with no
-    # thinking block and 2684. Since the whole point of Opus here is the per-game
-    # reasoning, run with tool_choice auto and fall back to a forced follow-up turn on
-    # the rare occasions it answers in prose instead.
+    # thinking block and 2684. The per-game reasoning is the product, so run with
+    # tool_choice auto and fall back to a forced follow-up turn on the rare occasions it
+    # answers in prose instead. NOT re-verified on Sonnet 5 — if forced calls stop
+    # costing thinking there, this fallback is cheaper than it looks, but do not assume.
     _common = dict(
-        model="claude-opus-5",
+        # Sonnet 5 since 2026-09-03, for cost: $2/$10 per MTok against Opus 5's $5/$25,
+        # taken to reach a $20/month budget. usage.PRICING carries the rate. Reverting is
+        # this line plus nothing else — every parameter below is supported on both.
+        model="claude-sonnet-5",
         max_tokens=16000,
         thinking={"type": "adaptive"},
         # Dropped from "high" (the API default) on 2026-09-03 for cost: output — nearly
