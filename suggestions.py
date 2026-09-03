@@ -4,7 +4,7 @@ import html
 import json
 import re
 import sys
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -1090,6 +1090,12 @@ When your analysis is complete, call the report_betting_suggestions tool.
 
 PRICE_FLOOR = -200          # Section 5, in every market, main and alternate alike
 MIN_EDGE_PTS = 8.0          # Section 4, over the card's own no-vig price
+
+# Which games are worth paying to analyse again. Both of these drop whole cards from the
+# request, which is the only input-token lever that scales with the slate: a card is
+# ~3,000 tokens and the system prompt is sent once regardless.
+LEAD_TIME_MIN = 120         # a game inside this window is not re-sent
+MAX_PICKS_PER_GAME = 2      # a game already carrying this many logged picks is not re-sent
 #
 # 4.0 -> 6.0 -> 8.0, both moves on 2026-08-30, and the reason for the second is that
 # the first did not work. At 4.0 the floor sat below the entire distribution (smallest
@@ -1763,8 +1769,29 @@ def _normalize_tool_result(result) -> dict:
     return result
 
 
+def _picks_per_game(picks_dir: Path, date_str: str) -> dict:
+    """{(game, game_number): n} from today's committed pick log.
+
+    Deferred import, the way handicap.py reaches for the same loader: picks.py is a
+    standalone script in the module order and the pick log's shape is its business, but
+    a module-level edge from here into it would invert that.
+    """
+    try:
+        from picks import load_all_picks
+        from datetime import date as _date
+        logged = load_all_picks(picks_dir, _date.fromisoformat(date_str))
+    except Exception:
+        return {}
+    counts: dict = {}
+    for pk in logged:
+        key = (pk.get("game") or "", pk.get("game_number") or 1)
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
 def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
-                         rej_dir: Path = Path("./rejections")) -> Optional[dict]:
+                         rej_dir: Path = Path("./rejections"),
+                         picks_dir: Path = Path("./picks")) -> Optional[dict]:
     """
     Call Claude to generate betting suggestions. Caches to data/suggestions_{date}.json
     and regenerates whenever odds are updated. Returns parsed dict or None on failure.
@@ -1812,25 +1839,51 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
     if not games:
         return None
 
+    # ── Which games to pay for ───────────────────────────────────────────────
+    #
+    # Three reasons not to send a card, all of them about a call that cannot produce
+    # anything worth its price:
+    #
+    #   started   — the game is under way and nothing on the card is bettable.
+    #   imminent  — it starts inside LEAD_TIME_MIN. There is no time to act on a pick,
+    #               and a run that fires at 6:30 PM was otherwise paying full card price
+    #               for the whole evening slate.
+    #   covered   — the game already carries MAX_PICKS_PER_GAME logged picks. save_picks()
+    #               is append-only and keyed on the correlated slot, so a re-analysis of
+    #               a game with a total and a side already logged can only add a prop,
+    #               and cannot change or replace anything already published.
+    #
+    # A game with no start time is kept: unknown is not a reason to skip a real game.
     _now = datetime.now(timezone.utc)
-    unstarted = []
+    _cutoff = _now + timedelta(minutes=LEAD_TIME_MIN)
+    _logged = _picks_per_game(picks_dir, date_str)
+
+    eligible, dropped = [], {"started": 0, "imminent": 0, "covered": 0}
     for _g in games:
-        _gt = _g.get("game_time_utc", "")
-        if not _gt:
-            unstarted.append(_g)
+        _key = (f"{_g.get('away')} @ {_g.get('home')}", _g.get("game_number") or 1)
+        if _logged.get(_key, 0) >= MAX_PICKS_PER_GAME:
+            dropped["covered"] += 1
             continue
         try:
-            if datetime.fromisoformat(_gt.replace("Z", "+00:00")) > _now:
-                unstarted.append(_g)
-        except Exception:
-            unstarted.append(_g)
-    if not unstarted:
-        print("[suggestions] All games have started — skipping AI call", file=sys.stderr)
-        return json.loads(sugg_path.read_text()) if sugg_path.exists() else None
+            _gt = datetime.fromisoformat((_g.get("game_time_utc") or "").replace("Z", "+00:00"))
+        except ValueError:
+            eligible.append(_g)
+            continue
+        if _gt <= _now:
+            dropped["started"] += 1
+        elif _gt <= _cutoff:
+            dropped["imminent"] += 1
+        else:
+            eligible.append(_g)
 
-    n_skipped = len(games) - len(unstarted)
-    if n_skipped:
-        print(f"[suggestions] Skipping {n_skipped} already-started game(s)", file=sys.stderr)
+    _dropped_s = ", ".join(f"{n} {k}" for k, n in dropped.items() if n)
+    if not eligible:
+        print(f"[suggestions] Nothing to analyse ({_dropped_s or 'no games'}) — "
+              f"skipping AI call", file=sys.stderr)
+        return json.loads(sugg_path.read_text()) if sugg_path.exists() else None
+    if _dropped_s:
+        print(f"[suggestions] Sending {len(eligible)} of {len(games)} games "
+              f"(skipped {_dropped_s})", file=sys.stderr)
 
     # "Price is the whole job" — the prompt cannot produce a bet without a posted
     # number, so a slate where no game has odds yields an empty picks array at the
@@ -1842,16 +1895,16 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
         return any(od.get(k) not in (None, "", "—")
                    for k in ("away_ml", "over", "away_spread"))
 
-    if not any(_has_odds(g) for g in unstarted):
-        print(f"[suggestions] No odds posted for any of {len(unstarted)} game(s) — "
+    if not any(_has_odds(g) for g in eligible):
+        print(f"[suggestions] No odds posted for any of {len(eligible)} game(s) — "
               f"skipping AI call", file=sys.stderr)
         return json.loads(sugg_path.read_text()) if sugg_path.exists() else None
 
     # Kept as a list as well as a joined blob — the verification pass re-sends the exact
     # card for whichever game a pick came from.
-    serialized = [_serialize_game_for_ai(g) for g in unstarted]
+    serialized = [_serialize_game_for_ai(g) for g in eligible]
     user_msg = (
-        f"Today is {date_str}. Analyze these {len(unstarted)} MLB games and "
+        f"Today is {date_str}. Analyze these {len(eligible)} MLB games and "
         f"identify any strong betting opportunities:\n\n" + "\n\n".join(serialized)
     )
 
@@ -2029,7 +2082,7 @@ def generate_suggestions(games: list[dict], data_dir: Path, target_date: date,
     # prompt review still has input.
     picks = result.get("picks") or []
     if picks:
-        games_by_key = {f"{g['away']} @ {g['home']}": g for g in unstarted}
+        games_by_key = {f"{g['away']} @ {g['home']}": g for g in eligible}
         kept, rejections = [], []
         for pick in picks:
             game = pick.get("game", "")

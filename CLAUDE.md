@@ -1788,6 +1788,64 @@ publishes, and yesterday's committed picks stay up. The 400 reads
 alerts, and `/budget/` reports self-metered spend rather than a balance. If the picks
 ever stop changing, check the `Generate AI suggestions` step's log before anything else.
 
+## When a Pick Call Actually Happens — 2026-09-03
+
+Five conditions, all of which must hold. Anything that fails short-circuits before the
+API:
+
+1. **The workflow runs.** Four scheduled slots — `30 7`, `0 14`, `0 20`, `30 22` UTC =
+   **3:30 AM, 10:00 AM, 4:00 PM and 6:30 PM ET** — plus `workflow_dispatch`, plus the
+   hourly catch-up cron when `history/{today_et}.json` is missing (in season, 3 AM–10 PM
+   ET). GitHub's scheduler is best-effort and these land late often; see "The Schedule Is
+   Not Reliable".
+2. **The step is allowed to run.** `Generate AI suggestions` is gated on
+   `schedule || workflow_dispatch`. **A push to main never mints picks** — that gate is
+   what protects the immutability guarantee.
+3. **The cache is stale.** `generate_suggestions()` returns the cached
+   `data/suggestions_{date}.json` unless `data/odds_meta_{date}.json` is newer than
+   `data/suggestions_meta_{date}.json` (with no odds_meta at all, a 4-hour age fallback).
+   `download_odds()` rewrites odds_meta **only on a real fetch**, and it throttles at 300
+   minutes — so this is the term that sets the cadence: **one call per odds refresh,
+   ~2-3 a day.**
+4. **Some game survives the filters** (below).
+5. **At least one surviving game has odds.** No posted number, no possible bet.
+
+`handicap.py --html` calls `generate_suggestions()` again in the same run, but by then
+condition 3 fails and it reads the cache. One run, one call at most — two only when the
+model answers in prose and the forced-tool retry fires.
+
+### Which games are sent
+
+Cards are ~3,000 input tokens each and the system prompt is sent once regardless, so
+dropping whole cards is the only input lever that scales with the slate. Three reasons a
+game is withheld, in `generate_suggestions()`:
+
+| | Constant | Why |
+|---|---|---|
+| **started** | — | Under way; nothing on the card is bettable. |
+| **imminent** | `LEAD_TIME_MIN = 120` | Starts inside two hours. No time to act on the pick, and the 6:30 PM run was otherwise paying full card price for the entire evening slate. |
+| **covered** | `MAX_PICKS_PER_GAME = 2` | Already carries two logged picks. `save_picks()` is append-only and keyed on the correlated slot, so re-analysing it can only append — it can never change or replace what is already published. |
+
+A game with an unparseable start time is kept: unknown is not a reason to skip a real
+game. When nothing survives, **no call is made at all** — the late-day runs that used to
+cost $0.62 to append one pick now cost nothing.
+
+**Two consequences worth stating plainly.**
+
+The imminent filter means **the posted lineup is now almost never on a card we bet**.
+MLB posts lineups 1-2 hours before first pitch, which is inside the window — so the
+lineup block, added in the 2026-08-24 review, will read "not yet posted" on essentially
+every game the model still sees. That is the price of not betting games that are about
+to start.
+
+The covered filter is **a hard cap of two picks per game per day**, enforced by not
+sending the card rather than by the prompt. §4's slots allow up to four (one total, one
+side, one prop per pitcher). This file's "Caps Are Not the Limiter" section argues
+against caps as a *quality* instrument and that argument still stands — this one is a
+COST instrument, it truncates, and it will sometimes truncate a good third pick. If pick
+quality matters more than the last few dollars, `MAX_PICKS_PER_GAME` is the first knob
+to loosen.
+
 ## Measuring the AI Card
 
 The card is the dominant input-token term in the bill (see API Budget above), and it had
