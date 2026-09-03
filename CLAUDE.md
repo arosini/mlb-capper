@@ -627,6 +627,47 @@ line/side/price bucket is reproducible without touching the API. Over/under has 
 parsed out of the `bet` string for props (`team_side` is null there) and off `team_side`
 for totals.
 
+## Picks Are Split by Confidence, Not Filtered — 2026-09-03
+
+Volume was still ~13.8 picks/day over the 14 days to 09-02 (193 picks). The page now
+groups the upcoming picks into **High Confidence** and **Other Picks** — two labelled
+tiers inside the AI Picks card, plus a `High` badge on the row itself (the badge matters
+because `splitPicks()` moves a started pick out of its tier into the flat
+"In Progress / Completed" list, where the grouping is gone) and an `N High · M Bets`
+count in the card header. Nothing is dropped: every pick still publishes, still logs to
+`picks/`, and still grades.
+
+**Grouping was chosen over filtering, and over raising `MIN_EDGE_PTS` again.** Measured
+2026-09-03 over `picks/` (321 graded, current era):
+
+| Split | n | record | ROI |
+|---|---|---|---|
+| `confidence: high` | 39 | 22-17 | **+12.3%** |
+| `confidence: medium` | 282 | 138-143 | -2.4% |
+| stated edge 9-11 pts | 30 | 16-14 | +1.0% |
+| stated edge 11-13 | 21 | 11-10 | +4.5% |
+| stated edge 13-16 | 15 | 7-8 | -3.3% |
+| stated edge 16+ | 31 | 15-16 | -3.0% |
+
+Two things follow. **The stated edge does not discriminate above the floor** — every
+bucket from 9 points up is flat — so raising `MIN_EDGE_PTS` a fourth time buys nothing;
+the only losing bucket is the sub-9 one the floor already removes. And the minimum
+submitted edge keeps tracking whatever the floor is set to (floor 8 → daily minima of 9,
+9, 11, 9), which is the gaming pattern this file predicted. **Confidence does
+discriminate**, but weakly: n=39, roughly t=0.8, and the sign is *opposite* to the
+archive era's (high was -13.8% over 117 under the old prompt). That is why it groups
+rather than filters — a high-only gate would have published 23 of 193 picks and left 4 of
+14 days blank on a signal this thin.
+
+**The model is not told the page splits on the field**, and must not be. §12 defines
+confidence as the strength of the mispricing and says high should be rare (it comes back
+on ~12% of picks). Announcing that `high` is the headline tier gives it something to
+inflate toward, exactly as the edge floor did. Any future gate on this field should stay
+silent for the same reason.
+
+Also note the headline: the current era is **-0.6% ROI over 321 graded** as of 2026-09-03.
+The +5.9% recorded elsewhere in this file was measured at n=184 and has since decayed.
+
 ## Caps Are Not the Limiter — 2026-08-30
 
 The per-game caps were tightened (one prop per GAME) and then loosened again the same
@@ -1735,6 +1776,20 @@ outcome blocks now lives in `_CARD_FORMAT`. Keep that pairing for any future cut
 > rather than re-sent for every audit call, and §6 carries the F5-totals warning so the
 > record is on the card rather than enforced by hiding the market. **Do not re-cut F5
 > without splitting ML from totals first.**
+>
+> **The §6 F5-totals warning was removed 2026-09-03**, at the operator's direction, after
+> a check of why no F5 bet had been taken in 12 days. **Nothing was broken** — verified end
+> to end: F5 odds are on ~75-85% of games in `history/`, all five F5 rows render on the AI
+> card, the `bet_type`/`period` enums accept them, `_validate_pick` accepts every F5 shape,
+> and `picks.py` grades them. F5 usage collapsed at the **2026-08-08 prompt rewrite** (2-5
+> a day through 08-05, then scattered singles, then none), not at the 08-27 cut, and §4's
+> slot structure is the mechanism: an F5 side has to beat the full-game side inside ONE
+> SIDE. The decision was to stop arguing against the market and let selection be natural,
+> so the "worst bucket in the whole pick log" sentence is gone and §6 now only says to
+> choose full-game vs F5 deliberately. The record it stated is still true — recomputed
+> 2026-09-03 over the whole log: **F5 ML 21-14, +10.7% (n=38); F5 totals 6-19, -62.2%
+> (n=25); F5 spread 0-1**. If F5 totals come back and lose again, that sentence is where
+> to put it back.
 
 **The paragraph below is the superseded rationale, kept for the record.**
 

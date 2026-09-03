@@ -222,6 +222,9 @@ header{background:#030712}
 .ai-active-wrap{padding:.55rem .875rem .5rem}
 .ai-started-wrap{padding:.45rem .875rem .5rem;border-top:1px solid #f0f0f0}
 .ai-started-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:.28rem}
+.ai-tier+.ai-tier{margin-top:.55rem}
+.ai-tier[hidden]{display:none}
+.ai-tier-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:.28rem}
 .ai-conf-dim{font-size:.54rem;background:#f3f4f6;color:#6b7280;padding:.04rem .26rem;border-radius:3px;font-weight:700;vertical-align:middle;margin-left:.3rem;text-transform:uppercase;letter-spacing:.04em}
 .ai-pick-row{border:1px solid #e5e7eb;border-radius:7px;margin-bottom:.32rem;overflow:hidden}
 .ai-pick-row:last-child{margin-bottom:0}
@@ -249,6 +252,7 @@ header{background:#030712}
 .ai-pick-game{color:#9ca3af}
 .ai-started-wrap{border-top-color:#2a2a2a}
 .ai-started-label{color:#4b5563}
+.ai-tier-label{color:#4b5563}
 .ai-conf-dim{background:#2a2a2a;color:#9ca3af}
 .ai-pick-row{border-color:#2a2a2a}
 .ai-pick-sum{color:#d1d5db}
@@ -490,6 +494,10 @@ _SPLIT_SCRIPT = """
       }
     });
     if(moved)startedWrap.removeAttribute('hidden');
+    activeWrap.querySelectorAll('.ai-tier').forEach(function(t){
+      var rows=t.querySelector('.ai-tier-rows');
+      if(rows&&!rows.querySelector('details.ai-pick-row'))t.setAttribute('hidden','');
+    });
   }
   function saveGames(){
     var open=Array.from(document.querySelectorAll('details.game[open]')).map(function(d){return d.id;});

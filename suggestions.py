@@ -643,10 +643,7 @@ of knowing whether your number disagrees with it.
   posted number. Neither direction is the default and neither is the trap.
   • Choose full game vs F5 deliberately: F5 when your entire read is about the STARTERS
     and you want little bullpen exposure; full game when the bullpens reinforce the same
-    direction. Do not default to either. Note that F5 TOTALS specifically are the worst
-    bucket in the whole pick log — 6-19, -62% over 25 — so an F5 total needs a better
-    reason than "the starters are good"; the F5 SIDE markets have no such record against
-    them.
+    direction. Do not default to either.
   • Choose a TEAM total when only ONE side of the run environment is mispriced — you like
     one lineup against one starter but have no opinion on the other half.
   • "GOOD OFFENSE VS BAD STARTER" IS THE EASIEST READ ON THE BOARD, and therefore the one
@@ -2157,6 +2154,9 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
     active_picks  = sorted([p for p in all_picks if _game_dt(p) > now],  key=_game_dt)
     started_picks = sorted([p for p in all_picks if _game_dt(p) <= now], key=_game_dt)
 
+    def _is_high(pick: dict) -> bool:
+        return (pick.get("confidence") or "").lower() == "high"
+
     def _pick_block(pick: dict) -> str:
         reason  = _h(pick.get("reason", ""))
         warn    = pick.get("line_warning")
@@ -2173,6 +2173,8 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
             except Exception:
                 pass
         title   = _h(_pick_summary_title(pick))
+        conf_s  = ('<span class="ai-conf">High</span>'
+                   if _is_high(pick) else "")
         pid     = _pick_dom_id(pick)
         gt      = _h(pick.get("game_time_utc", ""))
         # Which game this bet is on. The row showed the bet and the price and nothing
@@ -2194,7 +2196,7 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
                     if gl_parts[0] else "")
         return (
             f'<details class="ai-pick-row" id="{pid}" data-game-time="{gt}">'
-            f'<summary class="ai-pick-sum">{title}</summary>'
+            f'<summary class="ai-pick-sum">{title}{conf_s}</summary>'
             f'<div class="ai-pick-body">'
             f'{game_lbl}'
             f'<div class="ai-reason">{reason}</div>'
@@ -2210,9 +2212,24 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
     # the next run. Both wraps always render (started-wrap hidden if empty) so
     # splitPicks() in the page JS can move newly-started picks over client-side,
     # using the viewer's actual current time — mirrors split() for game cards.
+    #
+    # The upcoming picks are grouped by confidence rather than listed flat. §12 of the
+    # prompt defines confidence as the strength of the MISPRICING, and over the current
+    # era the high tier ran 22-17 (+12.3% ROI, n=39) against the medium tier's -2.4%
+    # over 282 — thin, and the sign is opposite to the archive era's, so this groups the
+    # two rather than filtering one away. The model is never told the page splits on the
+    # field, which is what keeps the number honest: it has nothing to inflate toward.
+    def _tier(label: str, picks: list, tid: str) -> str:
+        return (f'<div class="ai-tier" id="{tid}"{"" if picks else " hidden"}>'
+                f'<div class="ai-tier-label">{_h(label)}</div>'
+                f'<div class="ai-tier-rows">'
+                f'{"".join(_pick_block(p) for p in picks)}'
+                f'</div></div>')
+
     inner = (
         f'<div class="ai-active-wrap" id="ai-active-wrap">'
-        f'{"".join(_pick_block(p) for p in active_picks)}'
+        f'{_tier("High Confidence", [p for p in active_picks if _is_high(p)], "ai-tier-high")}'
+        f'{_tier("Other Picks", [p for p in active_picks if not _is_high(p)], "ai-tier-other")}'
         f'</div>'
         f'<div class="ai-started-wrap" id="ai-started-wrap"{"" if started_picks else " hidden"}>'
         f'<div class="ai-started-label">Games In Progress / Completed</div>'
@@ -2220,7 +2237,10 @@ def _render_suggestions_html(all_picks: list, target_date: date) -> str:
         f'</div>'
     )
 
+    n_high   = sum(1 for p in all_picks if _is_high(p))
     bets_lbl = f"{n_bets} Bet{'s' if n_bets != 1 else ''}"
+    if n_high:
+        bets_lbl = f"{n_high} High · {bets_lbl}"
     disclaimer = (
         '<div class="ai-disclaimer">'
         'AI-generated · For entertainment only · Not financial advice'
