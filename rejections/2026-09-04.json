@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-09-04",
+    "game": "DET @ CLE",
+    "bet_type": "Pitcher_Outs",
+    "bet": "Foster Griffin UNDER 16.5 Outs",
+    "odds": "-120",
+    "confidence": "medium",
+    "reason": "Griffin has needed 101, 105 and 82 pitches to get through 6.0, 5.0 and 5.0 innings over his last 3 starts, a 9.4 BB% pushing his counts up faster than his innings, and he lasted exactly 5.0 against Detroit 23 days ago with the same hitters getting a fresh look tonight. Detroit's 41.5 HH% all hands over their last 6 means hard contact even from a lineup at 67 wRC+, which is how his innings end. Cleveland's bullpen at 8.7 IP over the past two days is the reason to want length from him, but the pitch counts say the sixth is where he stops regardless, and the market has this at a coin flip when he has finished six once in three tries.",
+    "reject_reason": "[mechanical] the card posts no Pitcher_Outs at 16.5 on that side",
+    "rejected_at": "2026-09-04T17:18:37.574252+00:00"
+  }
+]
