@@ -26,10 +26,10 @@
     "market_probability": 51,
     "rung_rejected": null,
     "found_at": "2026-09-03T08:44:03.183643+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 4,
+    "annotated_at": "2026-09-04T08:39:13.123468+00:00"
   },
   {
     "date": "2026-09-03",
@@ -58,10 +58,10 @@
     "market_probability": 50,
     "rung_rejected": "3.5 under, only the over is posted at that rung, so 4.5 is the number available",
     "found_at": "2026-09-03T08:44:03.183643+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 6,
+    "home_score_final": 5,
+    "annotated_at": "2026-09-04T08:39:13.123468+00:00"
   },
   {
     "date": "2026-09-03",
@@ -122,10 +122,10 @@
     "market_probability": 44,
     "rung_rejected": "6.5 over at +258, which needs seven and leans on him going seven innings",
     "found_at": "2026-09-03T08:44:03.183643+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 7,
+    "annotated_at": "2026-09-04T08:39:13.123468+00:00"
   },
   {
     "date": "2026-09-03",
@@ -154,10 +154,10 @@
     "market_probability": 58,
     "rung_rejected": "7.5, where only the over is priced at -145, leaving 8.5 as the available under",
     "found_at": "2026-09-03T08:44:03.183643+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-09-04T08:39:13.123468+00:00"
   },
   {
     "date": "2026-09-03",
@@ -218,10 +218,10 @@
     "market_probability": 53,
     "rung_rejected": "3.5 over at +150 \u2014 four runs asks Oakland to beat the park as well as the pitcher, and three is the part of the distribution I trust",
     "found_at": "2026-09-03T17:26:16.872801+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 4,
+    "annotated_at": "2026-09-04T08:39:13.123468+00:00"
   },
   {
     "date": "2026-09-03",
@@ -250,10 +250,10 @@
     "market_probability": 56,
     "rung_rejected": "5.5 over at +158 \u2014 the extra strikeout is a real ask in a six-inning outing and the shorter number is where the price is wrong",
     "found_at": "2026-09-03T17:26:16.872801+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 6,
+    "home_score_final": 5,
+    "annotated_at": "2026-09-04T08:39:13.123468+00:00"
   },
   {
     "date": "2026-09-03",
@@ -282,10 +282,10 @@
     "market_probability": 44,
     "rung_rejected": "2.5 over at -215 \u2014 three strikeouts is nearly automatic but the price takes the entire edge with it",
     "found_at": "2026-09-03T17:26:16.872801+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 0,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-04T08:39:13.123468+00:00"
   },
   {
     "date": "2026-09-03",
@@ -314,10 +314,10 @@
     "market_probability": 52,
     "rung_rejected": "the 5.5 rung, which prices only the over at -138 \u2014 the ladder carries no under below 6.5, and 6.5 at plus money is the number that matters",
     "found_at": "2026-09-04T00:20:19.531584+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 4,
+    "annotated_at": "2026-09-04T08:39:13.123468+00:00"
   },
   {
     "date": "2026-09-03",
@@ -346,9 +346,9 @@
     "market_probability": 47,
     "rung_rejected": "5.5 at +215 \u2014 the extra strikeout is the part I am least sure of given his outing length, and the shorter number at even money is the better price for the read",
     "found_at": "2026-09-04T00:20:19.531584+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-09-04T08:39:13.123468+00:00"
   }
 ]
