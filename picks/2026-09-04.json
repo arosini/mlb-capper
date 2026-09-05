@@ -26,10 +26,10 @@
     "market_probability": 59,
     "rung_rejected": null,
     "found_at": "2026-09-04T08:39:12.364383+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -58,10 +58,10 @@
     "market_probability": 59,
     "rung_rejected": null,
     "found_at": "2026-09-04T08:39:12.364383+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 5,
+    "home_score_final": 2,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -90,10 +90,10 @@
     "market_probability": 52,
     "rung_rejected": "4.5 over at -238, which is the same read priced the wrong way",
     "found_at": "2026-09-04T08:39:12.364383+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 0,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -122,10 +122,10 @@
     "market_probability": 50,
     "rung_rejected": "2.5 over at -180 \u2014 the under at the posted number is where the price and the projection diverge most",
     "found_at": "2026-09-04T08:39:12.364383+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 1,
+    "home_score_final": 4,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -186,10 +186,10 @@
     "market_probability": 47,
     "rung_rejected": null,
     "found_at": "2026-09-04T08:39:12.364383+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 9,
+    "home_score_final": 2,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -218,10 +218,10 @@
     "market_probability": 57,
     "rung_rejected": "5.5 over at -169, which is the same read from the wrong side of the ladder",
     "found_at": "2026-09-04T08:39:12.364383+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 6,
+    "home_score_final": 10,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -250,10 +250,10 @@
     "market_probability": 45,
     "rung_rejected": "7.5 over at +360 \u2014 seven runs is a bigger ask than the read supports",
     "found_at": "2026-09-04T08:39:12.364383+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 6,
+    "home_score_final": 1,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -282,10 +282,10 @@
     "market_probability": 57,
     "rung_rejected": "2.5 under \u2014 not offered on the ladder, which prices only overs below the main line",
     "found_at": "2026-09-04T12:18:02.682372+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 6,
+    "home_score_final": 1,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -315,9 +315,9 @@
     "rung_rejected": "1.5 under \u2014 not offered on the ladder, which prices only overs below the main line",
     "found_at": "2026-09-04T12:18:02.682372+00:00",
     "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "away_score_final": 9,
+    "home_score_final": 2,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -346,10 +346,10 @@
     "market_probability": 47,
     "rung_rejected": null,
     "found_at": "2026-09-04T12:18:02.682372+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 0,
+    "home_score_final": 1,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -378,10 +378,10 @@
     "market_probability": 54,
     "rung_rejected": "1.5 under at +250 \u2014 two runs or fewer is a stretch against a bullpen-inclusive nine innings",
     "found_at": "2026-09-04T12:18:02.682372+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 5,
+    "home_score_final": 2,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -410,10 +410,10 @@
     "market_probability": 48,
     "rung_rejected": null,
     "found_at": "2026-09-04T22:07:08.525954+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 1,
+    "home_score_final": 4,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -442,10 +442,10 @@
     "market_probability": 44,
     "rung_rejected": "the 8.5 over at +126, which needs a career-type outing rather than a typical one",
     "found_at": "2026-09-04T22:07:08.525954+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 3,
+    "home_score_final": 5,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -474,10 +474,10 @@
     "market_probability": 53,
     "rung_rejected": null,
     "found_at": "2026-09-05T00:21:35.649496+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "won",
+    "away_score_final": 7,
+    "home_score_final": 6,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   },
   {
     "date": "2026-09-04",
@@ -506,9 +506,9 @@
     "market_probability": 54,
     "rung_rejected": "the 3.5 rung, which the book prices only on the over at -208 \u2014 the 4.5 under at -125 is the priced side",
     "found_at": "2026-09-05T00:21:35.649496+00:00",
-    "result": null,
-    "away_score_final": null,
-    "home_score_final": null,
-    "annotated_at": null
+    "result": "lost",
+    "away_score_final": 2,
+    "home_score_final": 3,
+    "annotated_at": "2026-09-05T10:12:04.908844+00:00"
   }
 ]
